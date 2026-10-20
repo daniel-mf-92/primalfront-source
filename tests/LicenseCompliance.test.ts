@@ -32,6 +32,10 @@ describe("licence compliance", () => {
     expect(read("src/client/components/Footer.ts")).toContain(
       "github.com/daniel-mf-92/primalfront-source",
     );
+    // every deploy republishes the public copy
+    expect(read(".github/workflows/deploy.yml")).toContain(
+      "scripts/publish-source.sh",
+    );
   });
 
   test("carries none of OpenFront's ad or analytics accounts", () => {
