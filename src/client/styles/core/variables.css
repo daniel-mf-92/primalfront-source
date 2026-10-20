@@ -1,0 +1,229 @@
+/*
+ * PRIMALFRONT — runtime variables + age-accent system.
+ * Dark primal theme: obsidian, bone, ember, moss, and ritual cyan accents,
+ * Oxanium display / Inter body / JetBrains Mono numerics. Mirrors @theme in styles.css.
+ */
+:root {
+  --theme: "dark";
+  --breakPoint-tablet: 800px;
+  --breakPoint-Desktop: 1024px;
+  --blur-md: 4px;
+
+  /* ---- Surface ladder (elevation = lighter, mirrors @theme) ---- */
+  --surface-0: #0b0d0c;
+  --surface-1: #15120e;
+  --surface-2: #211910;
+  --surface-3: #302414;
+  --overlay: #2e261d;
+
+  /* ---- Lines / text (cool white on near-black) ---- */
+  --hairline: rgba(239, 230, 210, 0.1);
+  --hairline-strong: rgba(239, 230, 210, 0.22);
+  --bevel-hi: rgba(255, 244, 214, 0.08);
+  --text: #efe6d2;
+  --text-dim: #b9ad96;
+  --text-lo: #786d5b;
+
+  /* ---- Supporting accents ---- */
+  --bone: #efe6d2;
+  --hide: #8b5b35;
+  --obsidian: #0b0d0c;
+  --gold: #c59b45;
+  --gold-deep: #7a5f2c;
+  --gold-bright: #e1bd62;
+  --moss: #71a65b;
+  --teal: #1eb6a5;
+  --teal-deep: #24796f;
+
+  /* ---- State / faction ---- */
+  --gain: #77c96b;
+  --loss: #e15a4f;
+  --ember: #e86b32;
+  --faction-you: #e0a33d;
+  --faction-enemy: #43b7c7;
+
+  /* ---- Per-age accent spine ---- */
+  --age-0: #e05f2f; /* Primitive — ember/ochre */
+  --age-1: #d19a4a; /* Classical — sun-baked bronze */
+  --age-2: #c0392b; /* Imperial — legion crimson */
+  --age-3: #b8923c; /* Feudal — heraldic gold */
+  --age-4: #7d5fb2; /* Enlightened — royal violet */
+  --age-5: #68706c; /* Industrial — steel/soot */
+  --age-6: #1eb6a5; /* Modern — teal tech */
+  --age-7: #45f0c0; /* Alien — bio-cyan */
+  --age-menu: var(--age-0);
+
+  --age-accent: var(--age-menu);
+  --age-accent-hi: color-mix(in srgb, var(--age-accent) 70%, #ffffff);
+  --age-accent-dim: color-mix(in srgb, var(--age-accent) 18%, var(--surface-1));
+  --age-glow: color-mix(in srgb, var(--age-accent) 34%, transparent);
+  --glow-accent: inset 0 0 0 1px var(--age-accent), 0 0 16px var(--age-glow);
+
+  /* ---- Per-climate accent (terrain/biome of the local player's territory) ----
+   * data-climate is set on the document root each tick from the player's
+   * dominant biome; --climate-accent feeds a subtle tint into the tactical
+   * HUD dock so a desert empire reads warm, a jungle one tropical-green, etc.
+   * Neutral steel by default (menu, no data-climate). */
+  /* The three vegetated climates are deliberately pulled apart in hue so they
+   * stay distinguishable: Forest = deep blue-pine, Green = neutral mid-green,
+   * Jungle = tropical teal. */
+  --climate-cold: #bcd6e8; /* pale icy blue */
+  --climate-forest: #3f9b78; /* deep blue-pine */
+  --climate-green: #8fc46a; /* temperate mid-green */
+  --climate-arid: #cdac6e; /* dry tan */
+  --climate-sandy: #e3cf94; /* desert sand */
+  --climate-jungle: #28bf95; /* tropical teal */
+  --climate-accent: #927f61; /* neutral bone-stone (no climate set) */
+  --climate-glow: color-mix(in srgb, var(--climate-accent) 32%, transparent);
+
+  /* ---- Radii / shadows ---- */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 8px;
+  --shadow-1: 0 2px 10px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 16px 52px rgba(0, 0, 0, 0.75);
+  --shadow-3: 0 24px 56px rgba(0, 0, 0, 0.7);
+  --ring-accent: 0 0 0 1px var(--age-accent), 0 0 16px var(--age-glow);
+
+  /* ---- Glass (in-game HUD only) ---- */
+  --glass-bg: color-mix(in srgb, var(--surface-1) 72%, transparent);
+  --glass-blur: 12px;
+
+  /* ---- Spacing (4px scale) ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ---- Typography (Oxanium display / Inter body / JetBrains Mono numerics) ---- */
+  --font-display: "Oxanium", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Inter", ui-monospace, monospace;
+  --fz-label: 0.7rem;
+  --tracking-label: 0.12em;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-forge: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-micro: 120ms;
+  --dur-panel: 240ms;
+  --dur-age: 600ms;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Legacy runtime vars re-mapped onto the dark palette ---- */
+  --boxBackgroundColor: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  --fontColor: var(--text);
+  --fontColorLight: var(--text);
+  --fontColorDark: var(--text-dim);
+
+  --primaryColorHover: var(--age-accent-hi);
+  --primaryColorDisabled: linear-gradient(
+    to right,
+    rgb(40, 50, 65),
+    rgb(30, 40, 55)
+  );
+  --secondaryColor: var(--age-accent);
+  --secondaryColorHover: var(--age-accent-hi);
+
+  --primaryColorHoverDark: var(--age-accent-hi);
+  --primaryColorDisabledDark: #2a3a4d;
+  --secondaryColorDark: var(--age-accent);
+  --secondaryColorHoverDark: var(--age-accent-hi);
+
+  /* Achievements */
+  --medal-easy: #cd7f32;
+  --medal-medium: #c0c0c0;
+  --medal-hard: var(--age-2);
+  --medal-impossible: #d32f2f;
+  --medal-custom: #2196f3;
+}
+
+/* ---- Age system: data-age (numeric index 0..7) is set on the document root
+ * each tick from the local player's age. A smooth transition on the derived
+ * accent colors makes the age-up moment a ceremonial recolor.
+ * Default (menu, no data-age) keeps the neutral --age-menu ember. ---- */
+[data-age] {
+  transition:
+    color var(--dur-age) var(--ease),
+    background-color var(--dur-age) var(--ease),
+    border-color var(--dur-age) var(--ease),
+    box-shadow var(--dur-age) var(--ease);
+}
+:root[data-age="0"] {
+  --age-accent: var(--age-0);
+}
+:root[data-age="1"] {
+  --age-accent: var(--age-1);
+}
+:root[data-age="2"] {
+  --age-accent: var(--age-2);
+}
+:root[data-age="3"] {
+  --age-accent: var(--age-3);
+}
+:root[data-age="4"] {
+  --age-accent: var(--age-4);
+}
+:root[data-age="5"] {
+  --age-accent: var(--age-5);
+}
+:root[data-age="6"] {
+  --age-accent: var(--age-6);
+}
+:root[data-age="7"] {
+  --age-accent: var(--age-7);
+}
+
+/* ---- Climate system: data-climate (biome slug) is set on the document root
+ * each tick from the local player's dominant biome. --climate-accent drives a
+ * subtle terrain tint on the tactical dock; transitions so a shift in territory
+ * climate eases rather than snaps. ---- */
+[data-climate] {
+  transition:
+    border-color var(--dur-age) var(--ease),
+    box-shadow var(--dur-age) var(--ease);
+}
+:root[data-climate="cold"] {
+  --climate-accent: var(--climate-cold);
+}
+:root[data-climate="forest"] {
+  --climate-accent: var(--climate-forest);
+}
+:root[data-climate="green"] {
+  --climate-accent: var(--climate-green);
+}
+:root[data-climate="arid"] {
+  --climate-accent: var(--climate-arid);
+}
+:root[data-climate="sandy"] {
+  --climate-accent: var(--climate-sandy);
+}
+:root[data-climate="jungle"] {
+  --climate-accent: var(--climate-jungle);
+}
+:root[data-climate] {
+  --climate-glow: color-mix(in srgb, var(--climate-accent) 34%, transparent);
+}
+
+/* Base body font = Inter (UI). Numeric stats opt into JetBrains Mono tabular. */
+body {
+  font-family: var(--font-ui);
+  color: var(--text);
+}
+.num,
+[data-num] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  [data-age] {
+    transition-duration: 1ms !important;
+    animation: none !important;
+  }
+}

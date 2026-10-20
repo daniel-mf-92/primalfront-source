@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en" class="h-full preload" translate="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title data-i18n="main.title">Primalfront (ALPHA)</title>
+    <link rel="manifest" href="<%- manifestHref %>" />
+    <link rel="icon" type="image/svg+xml" href="<%- faviconHref %>" />
+
+    <!-- Game typography (Oxanium display, Inter body, JetBrains Mono numerics) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Oxanium:wght@500;600;700;800&display=swap"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Oxanium:wght@500;600;700;800&display=swap"
+      />
+    </noscript>
+
+    <!-- First-paint shell; remains usable while the application bundle loads. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #090d0c;
+      }
+
+      #startup-shell {
+        display: none;
+      }
+
+      .preload body > :not(#startup-shell) {
+        visibility: hidden;
+      }
+
+      .preload #startup-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        box-sizing: border-box;
+        min-height: 100%;
+        padding: 1.25rem clamp(1rem, 4vw, 3rem) 2rem;
+        color: #f4efe4;
+        background: #090d0c;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .startup-shell__brand {
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #343c37;
+        color: #f3c861;
+        font-family: Oxanium, ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(1rem, 2vw, 1.35rem);
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .startup-shell__status {
+        width: min(100%, 28rem);
+        place-self: center;
+      }
+
+      .startup-shell__status h1 {
+        margin: 0 0 0.65rem;
+        font-family: Oxanium, ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(1.75rem, 5vw, 3rem);
+        line-height: 1.05;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .startup-shell__status p {
+        margin: 0;
+        color: #aaa69c;
+        font-size: 0.95rem;
+      }
+
+      .startup-shell__track {
+        height: 0.25rem;
+        margin-top: 1.5rem;
+        overflow: hidden;
+        background: #252b28;
+      }
+
+      .startup-shell__progress {
+        width: 42%;
+        height: 100%;
+        background: #ed6c3b;
+        animation: startup-progress 1.1s ease-in-out infinite alternate;
+        transform-origin: left;
+      }
+
+      .startup-shell__retry {
+        display: inline-block;
+        margin-top: 1.25rem;
+        color: #f3c861;
+        font-weight: 700;
+        letter-spacing: 0;
+        opacity: 0;
+        pointer-events: none;
+        animation: startup-retry 0s linear 12s forwards;
+      }
+
+      @keyframes startup-progress {
+        from {
+          transform: translateX(-75%);
+        }
+        to {
+          transform: translateX(215%);
+        }
+      }
+
+      @keyframes startup-retry {
+        to {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .startup-shell__progress {
+          animation: none;
+          width: 100%;
+        }
+      }
+
+      /* iOS safe area support */
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+      }
+
+      /* Prevent Playwire bottom rail from affecting flex layout */
+      [id^="pw-oop-bottom_rail"] {
+        position: fixed !important;
+      }
+
+      /* Ensure full viewport height on iOS */
+      html,
+      body {
+        height: 100%;
+        height: -webkit-fill-available;
+        min-height: 100%;
+        min-height: -webkit-fill-available;
+      }
+    </style>
+
+    <!-- SEO -->
+    <link rel="canonical" href="https://primalfront.com/" />
+    <meta
+      name="description"
+      content="Start as one small tribe and grow into a world power. Spread across the map, advance through the ages and outlast every rival. Free in your browser, no sign-up."
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:url" content="https://primalfront.com/" />
+    <meta property="og:title" content="Primalfront - From tribe to empire" />
+    <meta
+      property="og:description"
+      content="Start as one small tribe and grow into a world power. Spread across the map, advance through the ages and outlast every rival. Free in your browser, no sign-up."
+    />
+    <meta property="og:image" content="<%- gameplayScreenshotUrl %>" />
+    <meta property="og:type" content="game" />
+
+    <!-- Injected from Server env -->
+    <script>
+      window.BOOTSTRAP_CONFIG = {
+        gitCommit: <%- gitCommit %>,
+        assetManifest: <%- assetManifest %>,
+        cdnBase: <%- cdnBase %>,
+        gameEnv: <%- gameEnv %>,
+        numWorkers: <%- numWorkers %>,
+        turnstileSiteKey: <%- turnstileSiteKey %>,
+        jwtAudience: <%- jwtAudience %>,
+        instanceId: <%- instanceId %>,
+      };
+      document.documentElement.style.setProperty(
+        "--background-image-url",
+        `url("<%- backgroundImageUrl %>")`,
+      );
+      // document.documentElement.style.setProperty(
+      //   "--desktop-logo-image-url",
+      //   `url("<%- desktopLogoImageUrl %>")`,
+      // );
+      document.documentElement.style.setProperty(
+        "--mobile-logo-image-url",
+        `url("<%- mobileLogoImageUrl %>")`,
+      );
+      window.__loadExternalScript = function (src, attrs) {
+        if (window.BOOTSTRAP_CONFIG?.gameEnv === "dev") return;
+        const script = document.createElement("script");
+        script.src = src;
+        for (const [name, value] of Object.entries(attrs || {})) {
+          if (value === true) {
+            script.setAttribute(name, "");
+          } else if (value !== false && value !== undefined && value !== null) {
+            script.setAttribute(name, String(value));
+          }
+        }
+        document.head.appendChild(script);
+      };
+      window.__loadAfterAppReady = function (src, attrs) {
+        const load = function () {
+          const appendScript = function () {
+            window.__loadExternalScript(src, attrs);
+          };
+          if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(appendScript, { timeout: 2000 });
+          } else {
+            setTimeout(appendScript, 0);
+          }
+        };
+
+        if (document.documentElement.classList.contains("preload")) {
+          document.addEventListener("primalfront-app-ready", load, {
+            once: true,
+          });
+        } else {
+          load();
+        }
+      };
+    </script>
+
+    <!-- CrazyGames SDK -->
+    <script>
+      window.__loadExternalScript(
+        "https://sdk.crazygames.com/crazygames-sdk-v3.js",
+        { async: true },
+      );
+    </script>
+
+    <!-- Cloudflare Turnstile -->
+    <script>
+      window.__loadExternalScript(
+        "https://challenges.cloudflare.com/turnstile/v0/api.js",
+        { async: true, defer: true },
+      );
+    </script>
+  </head>
+
+  <body
+    class="h-full select-none font-sans min-h-screen bg-surface-0 transition-opacity duration-300 ease-in-out flex flex-row overflow-hidden"
+  >
+    <div id="startup-shell" role="status" aria-live="polite">
+      <div class="startup-shell__brand">Primalfront</div>
+      <div class="startup-shell__status">
+        <h1>Loading live battles</h1>
+        <p>Preparing the battlefield and active matches.</p>
+        <div class="startup-shell__track" aria-hidden="true">
+          <div class="startup-shell__progress"></div>
+        </div>
+        <a class="startup-shell__retry" href="/">Retry loading</a>
+      </div>
+    </div>
+
+    <div id="hex-grid" class="menu-bg fixed inset-0 -z-50 pointer-events-none">
+      <div
+        id="background-layer"
+        class="absolute inset-0 bg-cover bg-center"
+        style="
+          background-image: var(--background-image-url);
+          background-position: center calc(50% + 2cm);
+        "
+      ></div>
+      <!-- Tactical Command: recede the world map behind a soft accent bloom + vignette -->
+      <div class="menu-bg__bloom absolute inset-0"></div>
+      <div class="menu-bg__vignette absolute inset-0"></div>
+      <div
+        class="absolute inset-0 bg-center bg-no-repeat bg-contain hidden lg:block"
+        style="background-image: var(--desktop-logo-image-url); opacity: 0.22"
+      ></div>
+      <div
+        class="absolute inset-0 bg-center bg-no-repeat bg-contain lg:hidden"
+        style="background-image: var(--mobile-logo-image-url); opacity: 0.16"
+      ></div>
+    </div>
+
+    <!-- LEFT SIDEBAR MENU -->
+
+    <div
+      id="mobile-menu-backdrop"
+      class="lg:hidden! in-[.in-game]:hidden hidden pointer-events-none [&.open]:block [&.open]:pointer-events-auto [&.open]:fixed [&.open]:inset-0 [&.open]:bg-black/60 [&.open]:z-[40000] transition-opacity"
+      role="presentation"
+      aria-hidden="true"
+    ></div>
+
+    <mobile-nav-bar
+      id="sidebar-menu"
+      class="peer [.in-game_&]:hidden z-[40001] fixed left-0 top-0 h-full flex flex-col justify-start overflow-hidden invisible pointer-events-none bg-surface-1/85 backdrop-blur-xl border-r border-hairline shadow-2 transition-transform duration-500 ease-out transform -translate-x-full w-[70%] [&.open]:translate-x-0 [&.open]:overflow-visible [&.open]:visible [&.open]:pointer-events-auto lg:hidden"
+      role="dialog"
+      aria-hidden="true"
+      data-i18n-aria-label="main.menu"
+    ></mobile-nav-bar>
+
+    <!-- MAIN CONTENT AREA -->
+    <div
+      class="in-[.in-game]:hidden flex-1 relative overflow-x-hidden overflow-y-auto h-full transition-[margin] duration-500 ease-out will-change-[margin-left] flex flex-col"
+    >
+      <!-- Desktop Top Bar -->
+      <desktop-nav-bar></desktop-nav-bar>
+
+      <div
+        id="turnstile-container"
+        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-99999"
+      ></div>
+
+      <homepage-promos></homepage-promos>
+
+      <!-- Main container with responsive padding -->
+      <main-layout class="contents">
+        <play-page class="contents"></play-page>
+        <matchmaking-modal
+          id="page-matchmaking"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></matchmaking-modal>
+        <news-modal
+          id="page-news"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></news-modal>
+        <single-player-modal
+          id="page-single-player"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></single-player-modal>
+        <host-lobby-modal
+          id="page-host-lobby"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></host-lobby-modal>
+        <join-lobby-modal
+          id="page-join-lobby"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></join-lobby-modal>
+        <store-modal
+          id="page-item-store"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></store-modal>
+        <user-setting
+          id="page-settings"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></user-setting>
+        <leaderboard-modal
+          id="page-leaderboard"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></leaderboard-modal>
+        <troubleshooting-modal
+          id="page-troubleshooting"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></troubleshooting-modal>
+
+        <clan-modal
+          id="page-clan"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></clan-modal>
+        <account-modal
+          id="page-account"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></account-modal>
+        <help-modal
+          id="page-help"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></help-modal>
+        <language-modal
+          id="page-language"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></language-modal>
+        <flag-input-modal
+          id="flag-input-modal"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></flag-input-modal>
+        <territory-patterns-modal
+          id="territory-patterns-modal"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></territory-patterns-modal>
+        <ranked-modal
+          id="page-ranked"
+          inline
+          class="hidden w-full h-full page-content relative z-50"
+        ></ranked-modal>
+      </main-layout>
+
+      <div class="[.in-game_&]:hidden mt-auto flex flex-col shrink-0">
+        <page-footer></page-footer>
+      </div>
+
+      <!-- Global Modals -->
+    </div>
+
+    <!-- Game components -->
+    <div id="app"></div>
+
+    <!-- Bottom HUD: <sm=column, sm..lg=2col (HUD left | events right), lg+=3col grid centered -->
+    <div
+      class="fixed bottom-0 left-0 w-full z-[200] flex flex-col pointer-events-none sm:flex-row sm:items-end lg:grid lg:grid-cols-[1fr_500px_1fr] lg:items-end min-[1200px]:px-4"
+      style="
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      "
+    >
+      <!-- HUD: <sm contents (children join outer flex), sm+ flex-col 460px, lg+ col-2 -->
+      <div
+        class="contents sm:flex sm:flex-col sm:pointer-events-none w-full sm:w-[500px] lg:col-start-2 sm:z-10"
+      >
+        <attacks-display
+          class="w-full pointer-events-auto order-1 sm:order-none"
+        ></attacks-display>
+        <div
+          class="tc-hud-main pointer-events-auto sm:rounded-tr-lg lg:rounded-t-lg min-[1200px]:rounded-lg shadow-lg order-3 sm:order-none"
+        >
+          <control-panel class="w-full"></control-panel>
+          <unit-display class="hidden lg:block w-full"></unit-display>
+        </div>
+      </div>
+
+      <!-- events+chat: <sm between attacks and control (order-2), sm+ right side, lg+ col-3 -->
+      <div
+        class="flex flex-col pointer-events-none items-end order-2 sm:order-none sm:flex-1 lg:col-start-3 lg:self-end lg:justify-end"
+      >
+        <chat-display
+          class="w-full sm:w-auto pointer-events-auto"
+        ></chat-display>
+        <events-display
+          class="w-full sm:w-auto pointer-events-auto"
+        ></events-display>
+        <actionable-events
+          class="w-full sm:w-auto pointer-events-auto"
+        ></actionable-events>
+      </div>
+    </div>
+
+    <!-- Game modals and overlays -->
+    <emoji-table></emoji-table>
+    <build-menu></build-menu>
+    <win-modal></win-modal>
+    <game-starting-modal></game-starting-modal>
+    <div
+      class="flex flex-col items-end fixed top-0 right-0 min-[1200px]:top-4 min-[1200px]:right-4 z-1000 gap-2"
+    >
+      <game-right-sidebar></game-right-sidebar>
+      <replay-panel></replay-panel>
+    </div>
+    <settings-modal></settings-modal>
+    <graphics-settings-modal></graphics-settings-modal>
+    <player-panel></player-panel>
+    <spawn-timer></spawn-timer>
+    <immunity-timer></immunity-timer>
+    <in-game-promo></in-game-promo>
+    <game-info-modal></game-info-modal>
+    <alert-frame></alert-frame>
+    <chat-modal></chat-modal>
+    <multi-tab-modal></multi-tab-modal>
+    <game-left-sidebar></game-left-sidebar>
+    <performance-overlay></performance-overlay>
+    <player-info-overlay></player-info-overlay>
+    <leader-board></leader-board>
+    <team-stats></team-stats>
+    <heads-up-message></heads-up-message>
+
+    <script>
+      // Fallback sidebar toggle so hamburger works even if module bundle fails to load
+      window.__toggleSidebar = function (e) {
+        try {
+          const sidebar = document.getElementById("sidebar-menu");
+          const backdrop = document.getElementById("mobile-menu-backdrop");
+          if (!sidebar || !backdrop) return;
+
+          const isOpen = sidebar.classList.contains("open");
+
+          if (isOpen) {
+            sidebar.classList.remove("open");
+            backdrop.classList.remove("open");
+            document.documentElement.classList.remove("overflow-hidden");
+            sidebar.setAttribute("aria-hidden", "true");
+            sidebar.removeAttribute("aria-modal");
+            backdrop.setAttribute("aria-hidden", "true");
+          } else {
+            sidebar.classList.add("open");
+            backdrop.classList.add("open");
+            document.documentElement.classList.add("overflow-hidden");
+            sidebar.setAttribute("aria-hidden", "false");
+            sidebar.setAttribute("aria-modal", "true");
+            backdrop.setAttribute("aria-hidden", "false");
+          }
+
+          const hb = document.getElementById("hamburger-btn");
+          if (hb) hb.setAttribute("aria-expanded", (!isOpen).toString());
+        } catch (err) {
+          console.error("Toggle failed", err);
+        }
+      };
+
+      // Wire up the hamburger button inline
+      const hamburger = document.getElementById("hamburger-btn");
+      if (hamburger) {
+        hamburger.onclick = window.__toggleSidebar;
+        hamburger.setAttribute("aria-expanded", "false");
+      }
+
+      // Wire up backdrop click to close menu
+      const backdrop = document.getElementById("mobile-menu-backdrop");
+      if (backdrop) {
+        backdrop.onclick = function (e) {
+          const sidebar = document.getElementById("sidebar-menu");
+          if (sidebar && sidebar.classList.contains("open")) {
+            window.__toggleSidebar(e);
+          }
+        };
+      }
+
+      // Wire up Escape key to close menu
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" || e.key === "Esc") {
+          const sidebar = document.getElementById("sidebar-menu");
+          if (sidebar && sidebar.classList.contains("open")) {
+            window.__toggleSidebar(e);
+          }
+        }
+      });
+    </script>
+    <script type="module" src="/src/client/Main.ts"></script>
+  </body>
+</html>

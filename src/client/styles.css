@@ -1,0 +1,1827 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant hover (&:hover);
+
+/*
+ * ============================================================================
+ * PRIMALFRONT — dark primal design tokens
+ * ----------------------------------------------------------------------------
+ * Obsidian, bone, ember, moss, and ritual cyan command surfaces. The
+ * --age-accent spine
+ * walks 7 vivid era colors. Legacy Tailwind utility tokens re-mapped here.
+ * ============================================================================
+ */
+@theme {
+  --default-ring-width: 1px;
+  --default-ring-color: var(--age-accent);
+
+  /* ---- Type system (Oxanium display, Inter body, JetBrains Mono numerics) ---- */
+  --font-display: "Oxanium", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Inter", ui-monospace, monospace;
+
+  /* ---- Surface ladder — obsidian / charred hide panels ---- */
+  --color-surface-0: #0b0d0c; /* near-black — page frame / behind map */
+  --color-surface-1: #15120e; /* panels, lobby cards */
+  --color-surface-2: #211910; /* raised / hover / nested */
+  --color-surface-3: #302414; /* popovers, menus */
+  --color-overlay: #2e261d; /* modal overlay bg */
+
+  /* ---- Lines / dividers ---- */
+  --color-hairline: rgba(239, 230, 210, 0.1);
+  --color-hairline-strong: rgba(239, 230, 210, 0.22);
+  --color-bevel-hi: rgba(255, 244, 214, 0.08);
+
+  /* ---- Text (off-white on near-black) ---- */
+  --color-text: #efe6d2;
+  --color-text-dim: #b9ad96;
+  --color-text-lo: #786d5b;
+
+  /* ---- Supporting accents ---- */
+  --color-bone: #efe6d2;
+  --color-hide: #8b5b35;
+  --color-obsidian: #0b0d0c;
+  --color-gold: #c59b45;
+  --color-gold-deep: #7a5f2c;
+  --color-gold-bright: #e1bd62;
+  --color-moss: #71a65b;
+  --color-teal: #1eb6a5;
+  --color-teal-deep: #24796f;
+
+  /* ---- State / faction ---- */
+  --color-gain: #77c96b;
+  --color-loss: #e15a4f;
+  --color-ember: #e86b32;
+  --color-faction-you: #e0a33d;
+  --color-faction-enemy: #43b7c7;
+
+  /* ---- Per-age accent spine (primal -> alien), vivid era tones ---- */
+  --color-age-0: #e05f2f; /* Primitive — ember */
+  --color-age-1: #c0392b; /* Imperial — crimson */
+  --color-age-2: #b8923c; /* Feudal — gold */
+  --color-age-3: #7d5fb2; /* Enlightened — violet */
+  --color-age-4: #68706c; /* Industrial — steel */
+  --color-age-5: #1eb6a5; /* Modern — teal */
+  --color-age-6: #45f0c0; /* Alien — bio-cyan */
+
+  --color-age-menu: #c9742e;
+
+  --color-age-accent: var(--age-accent);
+
+  /* ---- Legacy brand token re-maps ---- */
+  --color-malibu-blue: var(--color-teal);
+  --color-aquarius: var(--color-teal-deep);
+  --color-dawn-blue: #8ea9ae;
+  --color-bright-white: #efe6d2;
+  --color-cyber-yellow: var(--color-gold);
+  --color-limestone: #786d5b;
+  --color-deep-navy: #0b0d0c;
+  --color-hex-cyan: var(--color-teal);
+  --color-frame-orange: var(--color-gold);
+  --color-surface: #15120e;
+
+  /* ---- Radii ---- */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 8px;
+
+  /* ---- Shadows / elevation (dark panels, strong depth) ---- */
+  --shadow-1: 0 2px 10px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 16px 52px rgba(0, 0, 0, 0.75);
+  --shadow-3: 0 24px 56px rgba(0, 0, 0, 0.7);
+
+  --shadow-malibu-blue: 0 0 15px var(--age-glow);
+  --shadow-malibu-blue-soft: 0 0 12px var(--age-glow);
+  --shadow-malibu-blue-strong: 0 0 15px var(--age-glow);
+  --shadow-malibu-blue-pill: 0 0 6px var(--age-glow);
+  --shadow-malibu-blue-ring-sm: 0 0 0 4px var(--age-glow);
+  --shadow-malibu-blue-ring-lg: 0 0 0 6px var(--age-glow);
+  --shadow-lobby-card-hover:
+    0 0 0 2px var(--age-accent), 0 0 20px var(--age-glow);
+  --shadow-action-card-hover:
+    0 0 0 1px var(--age-accent), 0 0 12px var(--age-glow);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  input,
+  textarea,
+  select {
+    background-color: var(--surface-2);
+    color: var(--text);
+    border-color: var(--hairline-strong);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  dialog {
+    margin: auto;
+  }
+}
+
+/* Ensure the main page never scrolls; modals handle internal scrolling */
+html {
+  height: 100%; /* Fallback */
+  height: 100dvh;
+}
+
+body {
+  height: 100%;
+  overflow: hidden !important;
+  /* Safe area padding for notched devices */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+* {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+/* Hide scrollbar on mobile, show on larger screens */
+@media (max-width: 1023px) {
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+}
+
+/* Add custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 12px;
+    display: block;
+  }
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+.start-game-button {
+  width: 100%;
+  max-width: 300px;
+  padding: 15px 20px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: var(--age-accent);
+  color: var(--surface-0);
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--ring-accent);
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+  display: inline-block;
+  margin: 0 0 20px 0;
+}
+
+.start-game-button:not(:disabled):hover {
+  background-color: var(--age-accent-hi);
+}
+
+.start-game-button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.start-game-button:disabled {
+  background: linear-gradient(to right, #4a4a4a, #3d3d3d);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.options-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+
+.option-cards {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.option-card {
+  width: 100%;
+  min-width: 100px;
+  max-width: 120px;
+  padding: 4px 4px 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--dur-micro) var(--ease);
+}
+
+.option-card:hover:not(.disabled) {
+  transform: translateY(-2px);
+  border-color: var(--hairline-strong);
+  background: var(--surface-2);
+}
+
+.option-card.selected {
+  border-color: var(--age-accent);
+  background: var(--age-accent-dim);
+  box-shadow: var(--ring-accent);
+}
+
+.option-card.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.option-card-title {
+  font-size: 14px;
+  color: var(--text-dim);
+  text-align: center;
+  margin: 0 0 4px 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.option-image {
+  width: 100%;
+  aspect-ratio: 4/2;
+  color: var(--text-dim);
+  transition: transform 0.2s ease-in-out;
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-card input[type="checkbox"] {
+  display: none;
+}
+
+label.option-card:hover {
+  transform: none;
+}
+
+.checkbox-icon {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--hairline-strong);
+  border-radius: 6px;
+  margin: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.option-card.selected .checkbox-icon {
+  border-color: var(--age-accent);
+  background: var(--age-accent);
+}
+
+.option-card.selected .checkbox-icon::after {
+  content: "✓";
+  color: white;
+}
+
+/* HostLobbyModal css */
+.clipboard-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.visibility-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.copy-success {
+  position: relative;
+  color: var(--gain);
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.copy-success-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--gain);
+}
+
+#lobbyIdInput {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.lobby-id-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: all var(--dur-micro) var(--ease);
+}
+
+.lobby-id-button:hover {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  transform: translateY(-1px);
+}
+
+.lobby-id {
+  font-size: 14px;
+  color: var(--text);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.player-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.player-tag.current-player {
+  background: var(--age-accent-dim);
+  border: 1px solid var(--age-accent);
+  box-shadow: 0 0 10px var(--age-glow);
+}
+
+#bots-count,
+#private-lobby-bots-count {
+  width: 80%;
+  height: 16px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Firefox */
+#bots-count::-moz-range-track,
+#private-lobby-bots-count::-moz-range-track {
+  height: 8px;
+  background: var(--surface-3);
+}
+
+#bots-count::-moz-range-progress,
+#private-lobby-bots-count::-moz-range-progress {
+  height: 8px;
+  background-color: var(--age-accent);
+}
+
+#bots-count::-moz-range-thumb,
+#private-lobby-bots-count::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  background: var(--age-accent);
+  border: none;
+  border-radius: 50%;
+}
+
+/* Chrome */
+#bots-count::-webkit-slider-runnable-track,
+#private-lobby-bots-count::-webkit-slider-runnable-track {
+  height: 8px;
+  background: linear-gradient(
+    to right,
+    var(--age-accent) var(--progress, 0%),
+    var(--surface-3) var(--progress, 0%)
+  );
+}
+
+#bots-count::-webkit-slider-thumb,
+#private-lobby-bots-count::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  background: var(--age-accent);
+  border: none;
+  border-radius: 50%;
+  margin-top: -4px;
+}
+
+.random-map {
+  border: 1px solid var(--hairline);
+  background: var(--surface-1);
+}
+
+.random-map.selected {
+  border: 1px solid var(--age-accent);
+  background: var(--age-accent-dim);
+  box-shadow: var(--ring-accent);
+}
+
+#helpModal table {
+  border-collapse: collapse;
+}
+
+#helpModal table,
+#helpModal table th,
+#helpModal table td {
+  border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+#helpModal table th,
+#helpModal table td {
+  padding: 8px 16px;
+}
+
+#helpModal table td:first-of-type {
+  text-align: center;
+}
+
+#helpModal .default-image {
+  width: 12rem;
+  max-width: 12rem;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+#helpModal .info-panel-img {
+  width: 12rem;
+  max-width: 12rem;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+#helpModal .player-icon-img {
+  width: 14rem;
+  height: 14rem;
+  object-fit: contain;
+}
+
+#helpModal .icon {
+  background-color: white;
+  width: 32px;
+  height: 32px;
+}
+
+@media screen and (max-width: 768px) {
+  #helpModal .modal-content {
+    max-height: 90vh;
+    max-width: 100vw;
+    width: 100%;
+  }
+  #error-modal {
+    max-width: 575px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  #error-modal {
+    max-width: 350px;
+  }
+}
+
+#error-modal {
+  position: fixed;
+  padding: 20px;
+  background: white;
+  border: 1px solid black;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  width: 87%;
+  box-sizing: border-box;
+}
+
+#error-modal pre {
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+}
+
+#error-modal button.copy-btn {
+  padding: 8px 16px;
+  margin-top: 10px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#error-modal button.close-btn {
+  color: white;
+  top: 0px;
+  right: 0px;
+  cursor: pointer;
+  background: red;
+  margin-right: 0px;
+  position: fixed;
+  width: 40px;
+}
+
+.start-game-button-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.message-area {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.message-area.show {
+  opacity: 1;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.message-area.error {
+  background-color: color-mix(in srgb, var(--loss) 16%, transparent);
+  color: color-mix(in srgb, var(--loss) 82%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--loss) 36%, transparent);
+}
+
+.message-area.success {
+  background-color: color-mix(in srgb, var(--gain) 14%, transparent);
+  color: color-mix(in srgb, var(--gain) 86%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--gain) 34%, transparent);
+}
+
+.lobby-id-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  gap: 10px;
+  margin: 40px 0px 0px 0px;
+}
+
+.lobby-id-box input {
+  flex-grow: 1;
+  max-width: 200px;
+  outline: 0;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid var(--hairline-strong);
+  color: var(--text);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.lobby-id-paste-button {
+  display: flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: all var(--dur-micro) var(--ease);
+}
+
+.lobby-id-paste-button:hover {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  transform: translateY(-1px);
+}
+
+.lobby-id-paste-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.options-section {
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  border: 1px solid var(--hairline);
+  padding: 12px 24px 24px 24px;
+  border-radius: 12px;
+}
+
+.option-title {
+  margin: 0 0 16px 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--text);
+  text-align: center;
+}
+
+.players-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* News Button Notification */
+news-button .active button {
+  position: relative;
+  border-color: var(--age-accent) !important;
+  border-width: 2px !important;
+  box-shadow:
+    0 0 0 1px var(--age-accent),
+    0 0 8px var(--age-glow);
+}
+
+news-button .active button::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background: var(--ember);
+  border: 2px solid var(--surface-0);
+  border-radius: 50%;
+  animation: newsPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes newsPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.4);
+  }
+}
+
+.host-badge {
+  font-size: 11px;
+  color: var(--gain);
+  font-weight: bold;
+}
+
+.remove-player-btn {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: color-mix(in srgb, var(--loss) 88%, var(--surface-0));
+  color: var(--surface-0);
+  border-radius: 9999px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+}
+
+.remove-player-btn:hover {
+  background: var(--loss);
+}
+
+/*
+ * ============================================================================
+ * TACTICAL COMMAND — in-game HUD (see DESIGN_DIRECTION.md §5)
+ * ----------------------------------------------------------------------------
+ * Restrained glass command surface. Depth via the surface ladder + hairlines,
+ * numeric readouts in JetBrains Mono tabular-nums, the current AGE shown as a
+ * badge glowing the live --age-accent, the Advance-Age CTA in --age-accent,
+ * and a one-shot "regime change" flourish driven off [data-age] at age-up.
+ * ============================================================================
+ */
+
+/* The HUD dock (left sidebar <aside> + top-right control bar): forged glass.
+ * The hairline border + a faint inner edge pick up --climate-accent so the
+ * whole dock subtly reads as the local player's terrain/climate. */
+.tc-hud-dock {
+  background: var(
+    --glass-bg,
+    color-mix(in srgb, var(--surface-1) 78%, transparent)
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid
+    color-mix(in srgb, var(--climate-accent, transparent) 44%, var(--hairline));
+  border-top-color: color-mix(
+    in srgb,
+    var(--bone, #efe6d2) 20%,
+    var(--hairline)
+  );
+  box-shadow:
+    inset 0 1px 0 var(--bevel-hi),
+    inset 0 -10px 30px -24px var(--age-accent),
+    inset 0 0 24px -7px var(--climate-glow, transparent),
+    var(--shadow-1);
+  color: var(--text);
+}
+
+/* The MAIN bottom-centre HUD box (control-panel + unit-display).
+ *
+ * This slab sits dead centre over the bottom of the map, which is exactly where
+ * fighting happens — so it must stay readable WITHOUT becoming a wall. Two
+ * constraints do that work and both are load-bearing:
+ *   1. a translucent fill + real blur, so terrain/borders/units read through it
+ *      instead of being erased (it was bg-gray-800/92 — effectively opaque);
+ *   2. a hard max-height, so no amount of era prose, triumphs or drama cards can
+ *      ever grow the box past a third of the viewport.
+ *
+ * The cap applies to the WHOLE box but only the readouts scroll: unit-display
+ * carries the build buttons, so it is pinned and the control panel above it is
+ * the flex child that gives way. Putting overflow on this wrapper instead
+ * scrolls the build row off-screen entirely.
+ */
+/* AI-NOTE: fill alpha is a playability constraint not taste — above ~70% the map under the box is erased and players lose the fight at screen-bottom; fix legibility with text contrast, never more opacity. | evidence: 2026-07-31 HUD occlusion audit, pf-clutter-audit.mjs coverage% */
+/* AI-NOTE: scroll lives on control-panel, NOT this wrapper — wrapper-level overflow pushed unit-display (the build buttons) out of view behind a scroll. | evidence: 2026-07-31 after-shot t1, BUILD row absent */
+.tc-hud-main {
+  display: flex;
+  max-height: 34vh;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--surface-1) 58%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  backdrop-filter: blur(14px) saturate(115%);
+  border: 1px solid
+    color-mix(in srgb, var(--climate-accent, transparent) 34%, var(--hairline));
+  box-shadow:
+    inset 0 1px 0 var(--bevel-hi),
+    var(--shadow-1);
+  /* Text sits on live terrain now, so give every glyph its own contrast floor
+   * rather than relying on the panel fill to provide it. */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  scrollbar-width: thin;
+}
+/* The readouts absorb the cap; min-height:0 is what lets a flex child actually
+ * shrink below its content size and scroll. */
+.tc-hud-main > control-panel {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+/* Fades the last rows when content continues below the fold, so a clipped chip
+ * reads as "scroll for more" instead of a half-drawn bug. Set by ControlPanel
+ * only while actually overflowing AND not yet scrolled to the bottom. */
+.tc-hud-main > control-panel[data-scroll-fade] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+}
+/* The build row never scrolls away — it is a primary control, not a readout. */
+.tc-hud-main > unit-display {
+  flex: 0 0 auto;
+}
+.tc-hud-main > control-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.tc-hud-main > control-panel::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text-lo) 45%, transparent);
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .tc-hud-main {
+    /* On touch, the command slab is a bottom sheet, not a second map. Keep
+       enough room for the objective and one combat readout while the panel's
+       own scroll exposes era/reference detail on demand. */
+    max-height: 28vh;
+  }
+}
+
+/* Unified HUD icon button — one consistent hit-area for every in-game control.
+   Desktop gets a comfortable pointer target; coarse/mobile layouts reach the
+   44px touch minimum without making the icon itself visually heavy. */
+.tc-hud-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease);
+}
+.tc-hud-icon-btn:hover {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  border-color: var(--hairline-strong);
+}
+.tc-hud-icon-btn:active {
+  transform: scale(0.96);
+}
+.tc-hud-icon-btn:focus-visible {
+  outline: 2px solid var(--age-accent);
+  outline-offset: 2px;
+}
+.tc-hud-icon-btn > img,
+.tc-hud-icon-btn > svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.tc-attack-slider {
+  --tc-slider-track: color-mix(in srgb, var(--text) 28%, transparent);
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 5rem;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.tc-attack-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--tc-slider-track);
+}
+.tc-attack-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -7px;
+  border: 2px solid var(--surface-1);
+  border-radius: 9999px;
+  background: var(--aquarius);
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+.tc-attack-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--tc-slider-track);
+}
+.tc-attack-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--surface-1);
+  border-radius: 9999px;
+  background: var(--aquarius);
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+.tc-attack-slider:focus-visible {
+  outline: 2px solid var(--age-accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .tc-hud-icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .tc-hud-icon-btn > img,
+  .tc-hud-icon-btn > svg {
+    width: 22px;
+    height: 22px;
+  }
+  .tc-game-controls {
+    gap: 2px;
+    padding: 4px 6px;
+    min-height: 54px;
+  }
+  .tc-game-timer {
+    min-width: 3.25rem;
+    margin-right: 0;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+  .tc-attack-slider {
+    height: 44px;
+  }
+  .tc-attack-slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -9px;
+  }
+  .tc-attack-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* A readout cell: uppercase micro-label + tabular mono value, hairline frame. */
+.tc-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--hide, #8b5b35) 12%, transparent),
+      transparent 62%
+    ),
+    color-mix(in srgb, var(--surface-2) 55%, transparent);
+  color: var(--text);
+  padding: 3px 10px;
+  font-weight: 600;
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    background-color var(--dur-micro) var(--ease);
+}
+
+/* Numeric value styling: mono + tabular so HUD counters never jitter. */
+.tc-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.tc-label {
+  font-size: var(--fz-label, 0.7rem);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label, 0.12em);
+  color: var(--text-lo);
+  font-weight: 600;
+}
+
+/* Era runway: one unframed information band, split by hairlines rather than
+ * nested cards. It makes the current era, optional Triumphs, and transition
+ * consequences readable in one scan. */
+.tc-era-runway {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px 12px;
+  align-items: stretch;
+  margin-top: 8px;
+  padding: 10px 0 8px;
+  border-top: 1px solid
+    color-mix(in srgb, var(--age-accent) 45%, var(--hairline));
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--age-accent) 10%, transparent),
+    transparent 42%
+  );
+}
+.tc-era-identity,
+.tc-era-focus,
+.tc-triumphs,
+.tc-era-transition {
+  min-width: 0;
+}
+.tc-era-focus,
+.tc-era-transition {
+  border-left: 1px solid var(--hairline);
+  padding-left: 12px;
+}
+.tc-triumphs,
+.tc-era-transition {
+  border-top: 1px solid var(--hairline);
+  padding-top: 8px;
+}
+.tc-era-kicker {
+  color: var(--age-accent-hi);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+/* Relative era standing, sat beside the numeral. Quieter than the era name: it
+ * is context for the numeral, not a second headline. */
+.tc-era-standing {
+  margin-left: 4px;
+  color: var(--text-lo);
+}
+.tc-era-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+.tc-era-title {
+  overflow-wrap: anywhere;
+  color: var(--age-accent-hi);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+/* Expander for the era reference copy. Deliberately quiet — it is a disclosure
+ * affordance, not a call to action competing with the advance button. */
+.tc-era-expander {
+  flex: 0 0 auto;
+  padding: 0 3px;
+  border: 0;
+  background: none;
+  color: var(--text-lo);
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+.tc-era-expander:hover,
+.tc-era-expander:focus-visible {
+  color: var(--age-accent-hi);
+}
+/* Collapsed: identity + transition are all that remain, so they sit on ONE row
+ * instead of stacking. Stacking them cost ~40px of map for no information, and
+ * pushed the advance button below the panel's scroll fold, which hid the
+ * primary progression action. */
+.tc-era-runway--compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0 6px;
+}
+.tc-era-runway--compact .tc-era-identity {
+  flex: 0 0 auto;
+}
+.tc-era-runway--compact .tc-era-transition {
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  border-top: 0;
+  border-left: 1px solid var(--hairline);
+  padding-top: 0;
+  padding-left: 12px;
+}
+.tc-era-runway--compact .tc-era-next {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+.tc-era-runway--compact .tc-era-transition .tc-advance-btn {
+  width: auto;
+  flex: 1 1 auto;
+}
+.tc-era-tagline,
+.tc-era-focus,
+.tc-era-unlock,
+.tc-transition-timing,
+.tc-era-final {
+  overflow-wrap: anywhere;
+  color: var(--text-mid);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+.tc-era-focus {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.tc-era-unlock {
+  color: var(--text-lo);
+}
+.tc-triumphs {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+.tc-triumphs-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tc-triumph-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.tc-triumph {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-lo);
+  font-size: 0.65rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.tc-triumph-mark {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  color: var(--surface-0);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 11px;
+  text-align: center;
+}
+.tc-triumph--complete {
+  color: var(--age-accent-hi);
+}
+.tc-triumph--complete .tc-triumph-mark {
+  border-color: var(--age-accent);
+  background: var(--age-accent);
+}
+.tc-triumph--blocked:not(.tc-triumph--complete) {
+  color: var(--loss);
+}
+.tc-era-transition {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.tc-era-next {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tc-era-next strong {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+.tc-transition-tempo {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.tc-transition-grade {
+  color: var(--age-accent-hi);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.tc-era-transition .tc-advance-btn {
+  width: 100%;
+  min-width: 0;
+}
+.tc-era-resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .tc-era-runway {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 7px 8px;
+    padding: 8px 0 6px;
+  }
+  .tc-era-focus,
+  .tc-era-transition {
+    padding-left: 8px;
+  }
+  .tc-triumphs,
+  .tc-era-transition {
+    padding-top: 7px;
+  }
+  .tc-era-title {
+    font-size: 1.05rem;
+  }
+  .tc-era-tagline,
+  .tc-era-focus,
+  .tc-era-unlock,
+  .tc-transition-timing,
+  .tc-era-final {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+  .tc-triumph-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tc-triumph {
+    font-size: 0.62rem;
+  }
+  .tc-era-transition .tc-advance-btn {
+    min-height: 40px;
+    padding: 4px 6px;
+    font-size: 0.72rem;
+  }
+}
+
+/* Gold cell — keep the faction-gold readout but on the new surface. */
+.tc-chip--gold {
+  color: var(--faction-you);
+  border-color: color-mix(in srgb, var(--faction-you) 45%, var(--hairline));
+}
+.tc-chip--gold .tc-num {
+  color: var(--faction-you);
+}
+
+/* Tech cell — neutral surface, mono value. */
+.tc-chip--tech {
+  border-color: color-mix(in srgb, var(--age-accent) 35%, var(--hairline));
+}
+
+/* The current-AGE badge: glows the live --age-accent (transitions at age-up). */
+.tc-age-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--age-accent);
+  border-radius: var(--radius-sm);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--age-accent) 18%, transparent) 0 1px,
+      transparent 1px 7px
+    ),
+    var(--age-accent-dim);
+  color: var(--age-accent-hi);
+  padding: 3px 11px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--age-accent) 40%, transparent),
+    0 0 14px var(--age-glow);
+  transition:
+    border-color var(--dur-age) var(--ease),
+    background-color var(--dur-age) var(--ease),
+    color var(--dur-age) var(--ease),
+    box-shadow var(--dur-age) var(--ease);
+}
+.tc-age-badge .tc-age-label {
+  font-size: var(--fz-label, 0.7rem);
+  letter-spacing: var(--tracking-label, 0.12em);
+  color: color-mix(in srgb, var(--age-accent-hi) 70%, var(--text-lo));
+}
+
+/* Advance-Age CTA — the one accent-fill action in the HUD. */
+.tc-advance-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--age-accent);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--age-accent-hi) 20%, transparent),
+      transparent
+    ),
+    color-mix(in srgb, var(--age-accent) 16%, transparent);
+  color: var(--age-accent-hi);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease),
+    border-color var(--dur-age) var(--ease);
+}
+.tc-advance-btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--age-accent) 28%, transparent);
+  box-shadow: 0 0 16px var(--age-glow);
+}
+.tc-advance-btn:not(:disabled):active {
+  transform: scale(0.97);
+}
+.tc-advance-btn:disabled {
+  border-color: var(--hairline);
+  background: color-mix(in srgb, var(--surface-2) 50%, transparent);
+  color: var(--text-lo);
+  cursor: not-allowed;
+}
+.tc-advance-btn .tc-cost {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.9;
+}
+
+/* ---- Age-up "regime change" flourish ----
+ * ControlPanel toggles .tc-age-up on the dock root when [data-age] advances;
+ * a one-shot radial bloom in the new --age-accent sweeps the HUD, then clears.
+ * (The 600ms token cross-fade on every accented element does the recolor.) */
+.tc-age-up::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--age-glow) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  z-index: 1;
+  animation: tc-age-bloom var(--dur-age) var(--ease) 1;
+}
+.tc-age-up .tc-era-title {
+  animation: tc-age-badge-pulse var(--dur-age) var(--ease) 1;
+}
+@keyframes tc-age-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+@keyframes tc-age-badge-pulse {
+  0% {
+    box-shadow:
+      inset 0 0 0 1px var(--age-accent),
+      0 0 0 0 var(--age-glow);
+  }
+  40% {
+    box-shadow:
+      inset 0 0 0 1px var(--age-accent),
+      0 0 26px 6px var(--age-accent);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--age-accent) 40%, transparent),
+      0 0 14px var(--age-glow);
+  }
+}
+
+/* ---- Golden Age chip — a breathing gold glow while the buff runs ---- */
+.tc-chip--golden {
+  border-color: #d4af37;
+  animation: tc-golden-breathe 2.2s var(--ease) infinite;
+}
+.tc-chip--golden .tc-label {
+  color: #ecd287;
+}
+@keyframes tc-golden-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 0 rgba(212, 175, 55, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px rgba(212, 175, 55, 0.55);
+  }
+}
+
+/* ---- Great Work ritual chip — live shimmer + one-shot sabotage flash ----
+ * Single-row like its dock siblings; the progress bar is an edge strip pinned
+ * to the chip's bottom so the chip keeps the shared height and baseline. */
+.tc-gw-chip {
+  position: relative;
+  overflow: hidden;
+  min-width: 6.5rem;
+}
+.tc-gw-chip .tc-label {
+  color: var(--age-accent, #d4af37);
+}
+.tc-gw-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.tc-gw-fill {
+  position: relative;
+  height: 100%;
+  background: var(--age-accent, #d4af37);
+  transition: width 0.3s;
+  overflow: hidden;
+}
+/* A light band sweeps the fill so the ritual visibly "works". */
+.tc-gw-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: tc-gw-shimmer 1.8s linear infinite;
+}
+@keyframes tc-gw-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+/* Raid knockback: ControlPanel toggles .tc-gw-setback for ~700ms. */
+.tc-gw-setback {
+  animation: tc-gw-hit 0.7s var(--ease) 1;
+}
+@keyframes tc-gw-hit {
+  0% {
+    border-color: #e04434;
+    box-shadow: 0 0 18px 3px rgba(224, 68, 52, 0.6);
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-3px);
+  }
+  30% {
+    transform: translateX(3px);
+  }
+  45% {
+    transform: translateX(-2px);
+  }
+  60% {
+    transform: translateX(0);
+  }
+  100% {
+    border-color: var(--hairline);
+    box-shadow: none;
+  }
+}
+
+/* ---- Leaderboard ⚒ — flags a player running a (raidable) Great Work ---- */
+.tc-gw-marker {
+  color: var(--age-accent, #d4af37);
+  animation: tc-gw-marker-pulse 1.6s var(--ease) infinite;
+}
+@keyframes tc-gw-marker-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---- Win/lose modal — an arrival, not a toggle ----
+ * Tactical Command treatment: near-black tinted slab + colored ring/glow so
+ * the outcome reads before the words do; a dimming backdrop keeps the HUD
+ * beneath from bleeding through the panel. */
+.win-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10009;
+  background: rgba(6, 8, 10, 0.55);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  animation: win-backdrop-in 340ms var(--ease) 1;
+}
+@keyframes win-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.win-modal-enter {
+  animation: win-modal-in 340ms var(--ease-forge) 1;
+}
+@keyframes win-modal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.win-modal-kicker {
+  font-family: var(--font-display);
+  font-size: var(--fz-label, 0.7rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.win-modal--win {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(212, 175, 55, 0.16),
+      rgba(212, 175, 55, 0.03) 55%
+    ),
+    rgba(14, 16, 18, 0.94);
+  border: 1px solid rgba(212, 175, 55, 0.75);
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 175, 55, 0.25),
+    0 0 60px rgba(212, 175, 55, 0.35),
+    0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+.win-modal--win .win-modal-kicker {
+  color: #ecd287;
+}
+.win-modal--lose {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(224, 68, 52, 0.14),
+      rgba(224, 68, 52, 0.03) 55%
+    ),
+    rgba(14, 16, 18, 0.94);
+  border: 1px solid rgba(224, 68, 52, 0.6);
+  box-shadow:
+    inset 0 0 0 1px rgba(224, 68, 52, 0.2),
+    0 0 50px rgba(224, 68, 52, 0.25),
+    0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+.win-modal--lose .win-modal-kicker {
+  color: #e88a7d;
+}
+
+.win-modal-summary {
+  margin: -6px 0 16px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* ---- Result strip — the match, as four numbers worth repeating ----
+ * Era reached, peak territory, tribes outlasted, time survived. This is the
+ * only screen in the game a player has any reason to show someone else, so the
+ * numbers lead and the labels get out of the way. */
+.win-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 1px;
+  margin: 0 0 18px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.win-stat {
+  background: rgba(6, 8, 10, 0.72);
+  padding: 10px 8px;
+  text-align: center;
+}
+.win-stat__value {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 4vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #f4f1e8;
+  white-space: nowrap;
+}
+.win-modal--win .win-stat__value {
+  color: #ecd287;
+}
+.win-stat__label {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: var(--fz-label, 0.7rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+/* Four cells across a 390px phone puts "173 of 205" into ~70px. Two rows of
+ * two keeps every value legible instead of shrinking them all to fit. */
+@media (max-width: 430px) {
+  .win-modal-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+/* Host-level filter so the confirmation reads through o-button's shadow root. */
+.win-modal-share.is-copied {
+  filter: saturate(0.55) brightness(1.18);
+}
+
+/* ---- Event feed — new rows ease in instead of popping ---- */
+.events-row-enter {
+  animation: events-row-in var(--dur-panel) var(--ease-forge) 1;
+}
+@keyframes events-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-age-up::after,
+  .tc-age-up .tc-era-title,
+  .tc-chip--golden,
+  .tc-gw-fill::after,
+  .tc-gw-setback,
+  .events-row-enter,
+  .win-modal-enter,
+  .tc-gw-marker {
+    animation: none !important;
+  }
+}
+
+/*
+ * ============================================================================
+ * TACTICAL COMMAND — in-game MAP treatment (see DESIGN_DIRECTION.md §B map)
+ * ----------------------------------------------------------------------------
+ * The map is a Pixi/WebGL canvas (#webgl-debug-canvas). We do NOT touch its
+ * render logic — instead we (a) push it back with a CSS filter (desaturate +
+ * brightness/contrast trim) so the HUD owns the foreground, and (b) stack
+ * cosmetic overlay layers (#tc-map-overlay → bloom / vignette / grain) just
+ * above it, below every HUD layer, never intercepting pointer events.
+ * Only active while <body class="in-game">.
+ * ============================================================================
+ */
+
+/* (a) Civ map is a BRIGHT cartographic centrepiece — lift saturation &
+   warmth slightly instead of pushing it back. The bilinear-filtered terrain
+   (TerrainPass LINEAR + canvas MSAA) already reads as a painted living map. */
+body.in-game #webgl-debug-canvas {
+  filter: saturate(1.14) brightness(0.97) contrast(1.1) sepia(0.04);
+}
+
+/* Overlay stack: fixed full-viewport, pinned just above the map canvas and
+   below all HUD (HUD docks sit at z-200..z-40001), pointer-events off. */
+#tc-map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1; /* above #webgl-debug-canvas, below the bottom HUD (z-200) */
+  pointer-events: none;
+  display: none;
+}
+body.in-game #tc-map-overlay {
+  display: block;
+}
+#tc-map-overlay > div {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* (b) Corner vignette: radial fade to the recessed void at the edges. */
+.tc-map-vignette {
+  background: radial-gradient(
+    ellipse 120% 120% at 50% 48%,
+    transparent 62%,
+    color-mix(in srgb, var(--surface-0) 32%, transparent) 86%,
+    color-mix(in srgb, var(--surface-0) 78%, transparent) 118%
+  );
+}
+
+/* (c) Soft top-left age bloom — screen-blended, recolors on [data-age] change. */
+.tc-map-bloom {
+  background: linear-gradient(110deg, var(--age-glow) 0%, transparent 46%);
+  mix-blend-mode: screen;
+  opacity: 0.34;
+  transition: background var(--dur-age) var(--ease);
+}
+
+/* Touch users need to know why a dimmed radial action cannot fire; a hover
+ * tooltip is not a usable interaction model on a phone. */
+.radial-tooltip-disabled-message {
+  max-width: min(270px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-ember) 58%, transparent);
+  border-radius: 999px;
+  background: rgba(11, 13, 12, 0.94);
+  color: var(--color-gold-bright);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  text-align: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.42);
+}
+
+/* (d) Faint grain/scrim: a low-opacity overlay-blended noise wash (~2%). */
+.tc-map-grain {
+  opacity: 0.018;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-map-bloom {
+    transition: none !important;
+  }
+}
+
+/*
+ * ============================================================================
+ * TACTICAL COMMAND — in-game spawn HUD message ("Choose a starting location")
+ * ----------------------------------------------------------------------------
+ * Reskins the default white pill (<heads-up-message>) as a frosted glass chip:
+ * glass + backdrop-blur + 1px hairline + --text in --font-ui + radius, with a
+ * subtle --age-accent left edge. Targets the .tc-spawn-chip hook on the pill.
+ * ============================================================================
+ */
+.tc-spawn-chip {
+  background: var(
+    --glass-bg,
+    color-mix(in srgb, var(--surface-1) 78%, transparent)
+  ) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  border-left: 2px solid var(--age-accent);
+  border-radius: var(--radius);
+  box-shadow:
+    inset 0 1px 0 var(--bevel-hi),
+    var(--shadow-1),
+    -6px 0 16px -10px var(--age-glow);
+  color: var(--text);
+  font-family: var(--font-ui);
+  letter-spacing: 0.01em;
+}

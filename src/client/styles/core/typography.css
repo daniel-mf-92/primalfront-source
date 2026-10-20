@@ -1,0 +1,17 @@
+/* TACTICAL COMMAND — shared text utilities. Dimmed-by-default links that lift
+ * to the live age-accent on hover; muted body text on the surface ladder. */
+.t-link {
+  color: var(--text-dim);
+  transition:
+    color var(--dur-micro) var(--ease),
+    text-shadow var(--dur-micro) var(--ease);
+
+  &:hover {
+    color: var(--age-accent-hi);
+    text-shadow: 0 0 12px var(--age-glow);
+  }
+}
+
+.t-text-white {
+  color: var(--text-dim);
+}

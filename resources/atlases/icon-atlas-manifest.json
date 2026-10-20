@@ -1,0 +1,23 @@
+{
+  "atlas": "icon-atlas.png",
+  "cellSize": 64,
+  "rows": 1,
+  "cols": 11,
+  "width": 704,
+  "height": 64,
+  "glyphType": "white-silhouette-rgba-alpha-aa",
+  "note": "Pure white #FFFFFF RGB everywhere; antialiasing carried in the alpha channel so the structure shader can multiply by the owner's player color. Columns 0-5 are the legacy structure glyphs; columns 6-10 are Primitive-era/permanent-settlement glyphs.",
+  "columns": [
+    { "index": 0, "name": "city" },
+    { "index": 1, "name": "port" },
+    { "index": 2, "name": "factory" },
+    { "index": 3, "name": "defensePost" },
+    { "index": 4, "name": "sam" },
+    { "index": 5, "name": "silo" },
+    { "index": 6, "name": "hut" },
+    { "index": 7, "name": "permanentSettlement" },
+    { "index": 8, "name": "tradeOutpost" },
+    { "index": 9, "name": "scoutLookout" },
+    { "index": 10, "name": "primitiveFarm" }
+  ]
+}

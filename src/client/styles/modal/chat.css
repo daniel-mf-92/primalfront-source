@@ -1,0 +1,154 @@
+/*
+ * TACTICAL COMMAND — in-game chat / quick-phrase modal (see DESIGN_DIRECTION.md
+ * §B, checklist "Chat / overlays"). Surface command palette: hairline-bordered
+ * option chips that pick up the live age-accent on selection, a frosted preview
+ * strip and an accent send button. Consumed by ChatModal.ts.
+ */
+
+.chat-columns {
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-3);
+  overflow-x: auto;
+}
+
+.chat-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 140px;
+}
+
+.column-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-lo);
+  margin-bottom: var(--sp-1);
+}
+
+/* Option / phrase / player chips — hairline command buttons. */
+.chat-option-button {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  color: var(--text-dim);
+  border: 1px solid var(--hairline);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition:
+    color var(--dur-micro) var(--ease),
+    background-color var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+}
+
+.chat-option-button:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+}
+
+.chat-option-button.selected {
+  color: var(--age-accent-hi);
+  background: var(--age-accent-dim);
+  border-color: var(--age-accent);
+  box-shadow: 0 0 10px var(--age-glow);
+}
+
+/* Live preview of the assembled phrase — frosted strip. */
+.chat-preview {
+  margin: var(--sp-3);
+  padding: var(--sp-3);
+  background: color-mix(in srgb, var(--surface-0) 78%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.chat-send {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--sp-3) var(--sp-3);
+}
+
+/* Send = primary accent action. */
+.chat-send-button {
+  background: var(--age-accent);
+  color: var(--surface-0);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: var(--ring-accent);
+  transition:
+    background-color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+
+.chat-send-button:not(:disabled):hover {
+  background: var(--age-accent-hi);
+}
+
+.chat-send-button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.chat-send-button:disabled {
+  background: var(--surface-2);
+  color: var(--text-lo);
+  border-color: var(--hairline);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.player-search-input {
+  padding: var(--sp-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  font-size: 14px;
+  font-family: var(--font-ui);
+  outline: none;
+  background: var(--surface-2);
+  color: var(--text);
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+}
+
+.player-search-input::placeholder {
+  color: var(--text-lo);
+}
+
+.player-search-input:focus {
+  border-color: var(--age-accent);
+  box-shadow: var(--ring-accent);
+}
+
+.player-scroll-area {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-right: var(--sp-1);
+}
+
+.phrase-scroll-area {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-right: var(--sp-1);
+}
