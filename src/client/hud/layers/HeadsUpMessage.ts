@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { GameMode, GameType } from "../../../core/game/Game";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { Controller } from "../../Controller";
+import { needsSpawnPrompt } from "../../SpawnClick";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
 
@@ -125,8 +126,13 @@ export class HeadsUpMessage extends LitElement implements Controller {
     this.isStuckCatchingUp =
       this.catchingUpTicks >= HeadsUpMessage.CATCHING_UP_STUCK_THRESHOLD;
 
+    const me = this.game.myPlayer();
     this.isVisible =
-      this.game.inSpawnPhase() ||
+      needsSpawnPrompt({
+        inSpawnPhase: this.game.inSpawnPhase(),
+        isRandomSpawn: this.game.config().isRandomSpawn(),
+        hasSpawned: me ? me.hasSpawned() : null,
+      }) ||
       this.isPaused ||
       this.isImmunityActive ||
       this.isCatchingUp;

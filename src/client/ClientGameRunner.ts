@@ -51,6 +51,7 @@ import {
   ToggleRenderDebugGuiEvent,
 } from "./InputHandler";
 import { endGame, startGame, startTime } from "./LocalPersistantStats";
+import { shouldSendSpawnIntent } from "./SpawnClick";
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 import { GoToPlayerEvent } from "./TransformHandler";
 import {
@@ -1004,11 +1005,17 @@ export class ClientGameRunner {
     }
     console.log(`clicked cell ${cell}`);
     const tile = this.gameView.ref(cell.x, cell.y);
+    const me = this.clientID
+      ? (this.myPlayer ?? this.gameView.playerByClientID(this.clientID))
+      : null;
     if (
-      this.gameView.isLand(tile) &&
-      !this.gameView.hasOwner(tile) &&
-      this.gameView.inSpawnPhase() &&
-      !this.gameView.config().isRandomSpawn()
+      shouldSendSpawnIntent({
+        isLand: this.gameView.isLand(tile),
+        hasOwner: this.gameView.hasOwner(tile),
+        inSpawnPhase: this.gameView.inSpawnPhase(),
+        isRandomSpawn: this.gameView.config().isRandomSpawn(),
+        hasSpawned: this.clientID ? (me?.hasSpawned() ?? false) : null,
+      })
     ) {
       this.eventBus.emit(new SendSpawnIntentEvent(tile));
       return;
