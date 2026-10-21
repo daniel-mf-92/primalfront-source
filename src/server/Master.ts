@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { parseChallenge } from "../core/ChallengeLink";
 import { GameEnv } from "../core/configuration/Config";
 import { logger } from "./Logger";
 import { MapPlaylist } from "./MapPlaylist";
@@ -34,6 +35,7 @@ app.use(async (req, res, next) => {
       await renderAppShell(
         res,
         path.join(__dirname, "../../static/index.html"),
+        parseChallenge(req.originalUrl.split("?")[1] ?? ""),
       );
     } catch (error) {
       log.error("Error rendering index.html:", error);

@@ -31,6 +31,7 @@ import { EventsDisplay } from "./layers/EventsDisplay";
 import { GameLeftSidebar } from "./layers/GameLeftSidebar";
 import { GameRightSidebar } from "./layers/GameRightSidebar";
 import { GraphicsSettingsModal } from "./layers/GraphicsSettingsModal";
+import { GuideBeacon } from "./layers/GuideBeacon";
 import { HeadsUpMessage } from "./layers/HeadsUpMessage";
 import { ImmunityTimer } from "./layers/ImmunityTimer";
 import { InGamePromo } from "./layers/InGamePromo";
@@ -248,6 +249,15 @@ export function createRenderer(
     console.error("heads-up message not found");
   }
   headsUpMessage.game = game;
+  headsUpMessage.eventBus = eventBus;
+
+  const guideBeacon = document.querySelector("guide-beacon") as GuideBeacon;
+  if (!(guideBeacon instanceof GuideBeacon)) {
+    console.error("guide beacon not found");
+  }
+  guideBeacon.game = game;
+  guideBeacon.eventBus = eventBus;
+  guideBeacon.transformHandler = transformHandler;
 
   const performanceOverlay = document.querySelector(
     "performance-overlay",
@@ -336,6 +346,7 @@ export function createRenderer(
     teamStats,
     playerPanel,
     headsUpMessage,
+    guideBeacon,
     multiTabModal,
     inGamePromo,
     alertFrame,

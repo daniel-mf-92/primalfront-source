@@ -2,6 +2,8 @@ import ejs from "ejs";
 import type { Response } from "express";
 import fs from "fs/promises";
 import { buildAssetUrl } from "../core/AssetUrls";
+import { Challenge } from "../core/ChallengeLink";
+import { applyChallengePreview } from "./ChallengePreview";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { getRuntimeAssetManifest } from "./RuntimeAssetManifest";
 import { ServerEnv } from "./ServerEnv";
@@ -46,7 +48,11 @@ export async function renderHtmlContent(htmlPath: string): Promise<string> {
       assetManifest,
       cdnBase,
     ),
-    mobileLogoImageUrl: buildAssetUrl("images/PrimalfrontLogo.svg", assetManifest, cdnBase),
+    mobileLogoImageUrl: buildAssetUrl(
+      "images/PrimalfrontLogo.svg",
+      assetManifest,
+      cdnBase,
+    ),
   });
 }
 
@@ -80,8 +86,14 @@ export function setHtmlNoCacheHeaders(res: Response): void {
 export async function renderAppShell(
   res: Response,
   htmlPath: string,
+  challenge: Challenge | null = null,
 ): Promise<void> {
-  const rendered = await getAppShellContent(htmlPath);
+  let rendered = await getAppShellContent(htmlPath);
+  if (challenge !== null) {
+    // A shared result: the preview tags carry the score. The shell cache is
+    // untouched (this is a per-request string rewrite of the cached copy).
+    rendered = applyChallengePreview(rendered, challenge);
+  }
   setAppShellCacheHeaders(res);
   res.send(rendered);
 }

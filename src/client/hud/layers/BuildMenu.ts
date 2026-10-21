@@ -376,6 +376,15 @@ export class BuildMenu extends LitElement implements Controller {
     .build-button:disabled .build-cost {
       color: var(--loss, #f87171);
     }
+    .build-reason {
+      display: block;
+      margin-top: 2px;
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--loss, #f87171);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
     .build-icon {
       font-size: 40px;
       margin-bottom: 5px;
@@ -536,6 +545,42 @@ export class BuildMenu extends LitElement implements Controller {
     return true;
   }
 
+  // Why a button is greyed, in the player's words. A disabled button with no
+  // reason reads as broken (real-screen audit 2026-10-21: every item grey,
+  // nothing said why). Touch has no hover, so this is rendered, not a tooltip.
+  public disabledReason(buildableUnit: BuildableUnit): string {
+    const player = this.game?.myPlayer();
+    if (!player) return translateText("build_menu.reason_place");
+    const gold = player.gold();
+    if (buildableUnit.cost > gold) {
+      return translateText("build_menu.reason_gold", {
+        gold: renderNumber(buildableUnit.cost - gold),
+      });
+    }
+    const config = this.game.config();
+    if (buildableUnit.type === UnitType.Hut) {
+      const minDist = config.hutMinSpacing();
+      const tooClose = player
+        .units(UnitType.Hut)
+        .some(
+          (hut) =>
+            this.game.euclideanDistSquared(hut.tile(), this.clickedTile) <
+            minDist * minDist,
+        );
+      if (tooClose) return translateText("build_menu.reason_hut_spacing");
+    }
+    if (
+      buildableUnit.type === UnitType.TradeOutpost &&
+      player.units(UnitType.TradeOutpost).length >=
+        config.tradeOutpostMaxCount()
+    ) {
+      return translateText("build_menu.reason_outpost_cap", {
+        n: String(config.tradeOutpostMaxCount()),
+      });
+    }
+    return translateText("build_menu.reason_place");
+  }
+
   public cost(item: BuildItemDisplay): Gold {
     for (const bu of this.playerBuildables ?? []) {
       if (bu.type === item.unitType) {
@@ -610,12 +655,10 @@ export class BuildMenu extends LitElement implements Controller {
           @click=${() =>
             this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
           ?disabled=${!enabled}
-          title=${!enabled ? translateText("build_menu.not_enough_money") : ""}
+          title=${!enabled ? this.disabledReason(buildableUnit) : ""}
         >
           <img src=${item.icon} alt="${item.unitType}" width="44" height="44" />
-          <span class="build-name"
-            >${item.key && translateText(item.key)}</span
-          >
+          <span class="build-name">${item.key && translateText(item.key)}</span>
           <span class="build-description"
             >${item.description && translateText(item.description)}</span
           >
@@ -631,6 +674,11 @@ export class BuildMenu extends LitElement implements Controller {
               class="align-middle"
             />
           </span>
+          ${!enabled
+            ? html`<span class="build-reason"
+                >${this.disabledReason(buildableUnit)}</span
+              >`
+            : ""}
           ${item.countable
             ? html`<div class="build-count-chip">
                 <span class="build-count">${this.count(item)}</span>
@@ -676,9 +724,7 @@ export class BuildMenu extends LitElement implements Controller {
                     @click=${() =>
                       this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
                     ?disabled=${!enabled}
-                    title=${!enabled
-                      ? translateText("build_menu.not_enough_money")
-                      : ""}
+                    title=${!enabled ? this.disabledReason(buildableUnit) : ""}
                   >
                     <img
                       src=${item.icon}
@@ -705,6 +751,11 @@ export class BuildMenu extends LitElement implements Controller {
                         class="align-middle"
                       />
                     </span>
+                    ${!enabled
+                      ? html`<span class="build-reason"
+                          >${this.disabledReason(buildableUnit)}</span
+                        >`
+                      : ""}
                     ${item.countable
                       ? html`<div class="build-count-chip">
                           <span class="build-count">${this.count(item)}</span>

@@ -440,7 +440,9 @@ export class UserSettings {
   }
 
   soundEffectsVolume(): number {
-    return this.getFloat("settings.soundEffectsVolume", 0);
+    // Was 0: every click, order and gold event was silent for a new player
+    // unless they found the slider (real-screen audit 2026-10-21).
+    return this.getFloat("settings.soundEffectsVolume", 0.5);
   }
 
   setSoundEffectsVolume(volume: number): void {

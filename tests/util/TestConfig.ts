@@ -99,6 +99,15 @@ export class TestConfig extends Config {
   }
 }
 export class UseRealAttackLogic extends TestConfig {
+  // The migration/roaming expectations in PrimitiveEraGameplay were tuned with
+  // the test rows deep inside the ice sheet. The production sheet shrank on
+  // 2026-10-21 (polar fifth instead of nearly everything); keep these mechanics
+  // tests on the old, harsher sheet so a warped feather edge never straddles
+  // their rows and nudges capacities by a few tiles.
+  climateIcePoleReach(): number {
+    return 0.42;
+  }
+
   attackLogic(
     gm: Game,
     attackTroops: number,

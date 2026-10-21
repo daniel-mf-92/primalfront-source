@@ -2,7 +2,7 @@ import { html, LitElement, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { translateText } from "../../../client/Utils";
 import { EventBus } from "../../../core/EventBus";
-import { GameType, RankedType } from "../../../core/game/Game";
+import { GameMapSize, GameType, RankedType } from "../../../core/game/Game";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { getUserMe } from "../../Api";
 import "../../components/CosmeticButton";
@@ -16,6 +16,7 @@ import { crazyGamesSDK } from "../../CrazyGamesSDK";
 import { buildChallengeUrl } from "../../HomeChallenge";
 import { Platform } from "../../Platform";
 import { SendWinnerEvent } from "../../Transport";
+import { getMapName } from "../../Utils";
 import { GameView } from "../../view";
 import {
   computeMatchOutcome,
@@ -135,6 +136,17 @@ export class WinModal extends LitElement implements Controller {
                     class="flex-1"
                     translationKey="win_modal.practice"
                     @click=${this._handlePractice}
+                  ></o-button>
+                `
+              : null}
+            ${this.isSinglePlayer
+              ? html`
+                  <o-button
+                    variant="secondary"
+                    width="block"
+                    class="flex-1 win-modal-friends"
+                    translationKey="win_modal.play_with_friend"
+                    @click=${this._handlePlayWithFriend}
                   ></o-button>
                 `
               : null}
@@ -312,15 +324,23 @@ export class WinModal extends LitElement implements Controller {
 
   private async _handleShare() {
     if (this.outcome === null) return;
-    const text = formatShareText(this.outcome);
-    // The link carries the result, so whoever opens it lands on the score they
-    // were sent rather than on a lobby list that explains nothing.
+    const gameConfig = this.game.config().gameConfig();
+    const text = formatShareText(this.outcome, getMapName(gameConfig.gameMap));
+    // The link carries the result AND the setup, so whoever opens it lands on
+    // the score they were sent with a one-tap way to play the same match.
     const url = buildChallengeUrl(window.location.origin, {
       era: this.outcome.era,
       tiles: this.outcome.peakTiles,
       outlasted: this.outcome.outlasted,
       rivals: this.outcome.rivals,
       seconds: Math.floor(this.outcome.survivedTicks / TICKS_PER_SECOND),
+      ...(this.isSinglePlayer
+        ? {
+            map: gameConfig.gameMap,
+            difficulty: gameConfig.difficulty,
+            compact: gameConfig.gameMapSize === GameMapSize.Compact,
+          }
+        : {}),
     });
     const nav = navigator as Navigator & {
       share?: (data: {
@@ -386,6 +406,13 @@ export class WinModal extends LitElement implements Controller {
   private _handlePractice() {
     this.hide();
     window.location.href = "/#modal=single-player";
+  }
+
+  // From a solo match to a private lobby in one tap: the home page opens the
+  // host-lobby flow, which creates the lobby and copies the invite link.
+  private _handlePlayWithFriend() {
+    this.hide();
+    window.location.href = "/?friends";
   }
 
   init() {}

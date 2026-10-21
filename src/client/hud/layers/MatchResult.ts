@@ -123,11 +123,17 @@ export function prefersNativeShare(
  * the ladder length if it ever carried a denominator | evidence:
  * tests/client/MatchResult.test.ts asserts both
  */
-export function formatShareText(outcome: MatchOutcome): string {
+export function formatShareText(
+  outcome: MatchOutcome,
+  mapName: string | null = null,
+): string {
   const headline = outcome.won
     ? `Won Primalfront at Era ${outcome.eraNumeral}`
     : `Fell at Era ${outcome.eraNumeral} in Primalfront`;
   const parts = [headline, `${formatTiles(outcome.peakTiles)} tiles`];
+  if (mapName !== null && mapName !== "") {
+    parts.push(`on ${mapName}`);
+  }
   // Outlasting nobody is noise, not a brag: "outlasted 0 of 283 tribes" is a
   // worse line to paste than no line at all.
   if (outcome.outlasted > 0) {

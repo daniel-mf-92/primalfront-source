@@ -61,7 +61,10 @@
       "trade_outpost": "A temporary trading post — speeds resources into gold while it stands, then decays away. Not upgradeable.",
       "warship": "Captures trade ships, destroys ships and boats"
     },
-    "not_enough_money": "Not enough money",
+    "reason_gold": "Need {gold} more gold",
+    "reason_hut_spacing": "Too close to another Hut",
+    "reason_outpost_cap": "Max {n} trading posts",
+    "reason_place": "Can't build here",
     "warship_shift_hint": "Hold Shift and drag to select multiple warships at once"
   },
   "chat": {
@@ -415,20 +418,20 @@
     "next_age": "Next",
     "objective_advance_age": "Advance Age",
     "objective_advance_age_detail": "You have met the gate; advance before rivals punish the window.",
-    "objective_build_economy": "Build economy",
-    "objective_build_economy_detail": "Use temporary farms or trade outposts to turn the tribe into a settlement.",
+    "objective_build_economy": "Build your first Hut",
+    "objective_build_economy_detail": "Right-click or long-press your own land, open Build and place a Hut. It holds land around it; farms and trading posts speed up gold.",
     "objective_build_keystone": "Build keystone",
     "objective_build_keystone_detail": "The next age needs its keystone structure before the gate opens.",
-    "objective_convert_resources": "Convert resources",
-    "objective_convert_resources_detail": "Keep resources flowing into gold until a permanent settlement is affordable.",
+    "objective_convert_resources": "Wood is turning into gold",
+    "objective_convert_resources_detail": "Stay on the stand and save for your first Hut. When a stand runs dry, walk to the next one.",
     "objective_expand_defend": "Expand and defend",
     "objective_expand_defend_detail": "Hold efficient land, defend borders, and prepare the next age spike.",
     "objective_final_age": "Dominate the endgame",
     "objective_final_age_detail": "You are at the final age; win through renown, territory, or decisive strikes.",
-    "objective_find_resources": "Find a resource frontier",
-    "objective_find_resources_detail": "Tap or click an unowned forest or jungle tile beside your border. Forest and jungle generate resources; other land may cost territory.",
+    "objective_find_resources": "Walk to the wood stand",
+    "objective_find_resources_detail": "Tap the glowing wood stand near your tribe. Your camp drifts there and gathers wood, which turns into gold.",
     "objective_found_city": "Found a Permanent Settlement",
-    "objective_found_city_detail": "A permanent settlement anchors the tribe and unlocks the first age advance.",
+    "objective_found_city_detail": "Save for the Permanent Settlement in the Build menu. It anchors the tribe and unlocks the next era.",
     "objective_generate_tech": "Generate tech",
     "objective_generate_tech_detail": "Grow knowledge from Cities, Granaries, and time before advancing.",
     "objective_label": "Objective",
@@ -463,7 +466,8 @@
     "triumph_prosperity_detail": "Stockpile 150% of the era's base gold toll.",
     "triumphs": "Triumphs",
     "unrest": "Unrest",
-    "unrest_tooltip": "Overextension from ungoverned conquered tiles weakens your economy and troop regen."
+    "unrest_tooltip": "Overextension from ungoverned conquered tiles weakens your economy and troop regen.",
+    "wood": "Wood"
   },
   "cosmetics": {
     "adfree": "ad-free for life!",
@@ -676,6 +680,10 @@
     "territory_sat_label": "Territory saturation",
     "title": "Graphics Settings"
   },
+  "guide_beacon": {
+    "move": "Camp moving here",
+    "wood": "Wood · {tiles} tiles"
+  },
   "heads_up_message": {
     "catching_up": "Catching up...",
     "choose_spawn": "Click a land tile to spawn your tribe",
@@ -683,6 +691,7 @@
     "dont_show_again": "Don't show again",
     "ffa_collusion": "Reminder: teaming up before the game is not allowed in FFA",
     "multiplayer_game_paused": "Game paused by Lobby Creator",
+    "pick_spawn": "Pick a spot for me",
     "pvp_immunity_active": "PVP immunity active for {seconds}s",
     "random_spawn": "Random spawn is enabled. Selecting starting location for you...",
     "singleplayer_game_paused": "Game paused"
@@ -738,6 +747,14 @@
     "exit_confirmation": "Are you sure you want to exit the game?",
     "game_id_tooltip": "Game ID",
     "hotkeys": "Hotkeys",
+    "how_to_play_1": "Tap land to move your camp. Your tribe drifts there; it cannot hold much ground yet.",
+    "how_to_play_2": "Walk onto a glowing wood stand. Wood inside your borders turns into gold by itself.",
+    "how_to_play_3": "Build a Hut on your own land (right-click or long-press, then Build). It holds the land around it. Farms and trading posts speed up gold.",
+    "how_to_play_4": "Save for the Permanent Settlement, then press Advance. Your tribe becomes a kingdom and can hold far more land.",
+    "how_to_play_5": "Tap a rival's land to attack it. The slider sets how many troops you send.",
+    "how_to_play_intro": "You start as a roaming tribe in the Stone Age. In the first ten minutes:",
+    "how_to_play_later": "Later eras unlock harbours, fleets, factories, missiles and more. Everything below applies once you get there.",
+    "how_to_play_title": "How to play",
     "icon_ally": "Handshake - Ally. This player is your ally.",
     "icon_alt_player_leaderboard": "Player Leaderboard Icon",
     "icon_alt_team_leaderboard": "Team Leaderboard Icon",
@@ -1069,6 +1086,8 @@
     "waiting_for_game": "Waiting for game to start..."
   },
   "mode_selector": {
+    "challenge_accept": "Accept: play {map} on {difficulty}",
+    "challenge_accept_generic": "Accept the challenge",
     "challenge_kicker": "You were challenged",
     "challenge_line": "The result you were sent: Era {era} · {tiles} tiles · outlasted {outlasted} of {rivals} · {time}. Beat it.",
     "challenge_line_solo": "The result you were sent: Era {era} · {tiles} tiles · {time}. Beat it.",
@@ -1607,6 +1626,7 @@
     "nation_won": "Nation {nation} has won!",
     "other_team": "{team} team has won!",
     "other_won": "{player} has won!",
+    "play_with_friend": "Play with a friend",
     "practice": "Practice",
     "requeue": "Play Again",
     "result_summary_loss": "You reached Era {era} and held {tiles} tiles before the map closed around you.",

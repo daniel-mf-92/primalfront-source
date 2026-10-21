@@ -466,6 +466,11 @@ function mountWebGLFrameLoop(
   eventBus.on(SendAttackIntentEvent, () => {
     eventBus.emit(new PlaySoundEffectEvent("attack-order"));
   });
+  // A Primitive land click is a camp move, not an attack: give it its own
+  // acknowledgement (the on-map marker is drawn by GuideBeacon).
+  eventBus.on(SendPrimitiveMigrationIntentEvent, () => {
+    eventBus.emit(new PlaySoundEffectEvent("click"));
+  });
   eventBus.on(SendBoatAttackIntentEvent, (e) => {
     eventBus.emit(new PlaySoundEffectEvent("attack-order"));
     // Boats also get a destination marker so the order visibly landed.

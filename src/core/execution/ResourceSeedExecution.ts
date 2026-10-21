@@ -39,24 +39,28 @@ export class ResourceSeedExecution implements Execution {
   // Owner tuning: larger cells + fewer stands + wider spacing ⇒ resources are
   // LESS FREQUENT and more AGGLOMERATED into distinct clumps (not a polka-dot
   // carpet). | tuned at render-verify on a desktop GPU test machine.
-  private static readonly WOOD_CELL = 26;
+  // 2026-10-21: the owner tuning above left the World map with 83 wood
+  // stands for 650,000 land tiles (median 56 tiles to the nearest one), and a
+  // tribe that never meets wood never leaves the Stone Age. Stands are now
+  // smaller and far more common; they still read as discrete clumps.
+  private static readonly WOOD_CELL = 18;
   private static readonly ROCK_CELL = 36;
   // Fraction of patch-cells that bear the resource (richness), before biome/terrain
   // modulation. Worley value is uniform [0,1), so value < frac ≈ that fraction of cells.
-  private static readonly WOOD_STAND_FRAC = 0.18;
+  private static readonly WOOD_STAND_FRAC = 0.45;
   private static readonly ROCK_STAND_FRAC = 0.08;
   private static readonly FISH_CELL = 22;
   private static readonly FISH_SHOAL_FRAC = 0.16;
   // Within-stand density gate: place only where value-noise exceeds this (sparser
   // toward edges); plus a patch-core radius so cell borders feather out.
-  private static readonly WOOD_DENSITY = 0.64;
-  private static readonly WOOD_CORE = 0.78;
+  private static readonly WOOD_DENSITY = 0.5;
+  private static readonly WOOD_CORE = 0.84;
   private static readonly ROCK_DENSITY = 0.68;
   private static readonly ROCK_CORE = 0.82;
   private static readonly FISH_DENSITY = 0.62;
   private static readonly FISH_CORE = 0.86;
   // Blue-noise spacing between individual nodes (tiles).
-  private static readonly WOOD_SPACING = 5;
+  private static readonly WOOD_SPACING = 4;
   private static readonly ROCK_SPACING = 7;
   private static readonly FISH_SPACING = 5;
   // Density-field frequency (lattice cells per tile) — smaller ⇒ broader blobs.

@@ -1,7 +1,10 @@
 import { expect, test } from "vitest";
 import { HutExecution } from "../src/core/execution/HutExecution";
 import { PlayerExecution } from "../src/core/execution/PlayerExecution";
-import { primitiveTerrainAdjustedCapacity } from "../src/core/execution/PrimitiveSupport";
+import {
+  primitiveTerrainAdjustedCapacity,
+  primitiveTerrainCapacityScale,
+} from "../src/core/execution/PrimitiveSupport";
 import { PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
 import { setup } from "./util/Setup";
 
@@ -15,8 +18,8 @@ test("climate clock: ice fraction + mults recede with game.ticks()", async () =>
   const config = game.config();
 
   expect(config.climateIceFraction(game)).toBeCloseTo(1, 5);
-  expect(config.climateBuildCostMult(game)).toBeCloseTo(3, 5);
-  expect(config.climateSettlementCostMult(game)).toBeCloseTo(8, 5);
+  expect(config.climateBuildCostMult(game)).toBeCloseTo(1.5, 5);
+  expect(config.climateSettlementCostMult(game)).toBeCloseTo(2, 5);
   expect(config.climateLandScale(game)).toBeCloseTo(0.6, 5);
 
   // Tick-based variant (used by the render overlay) matches the game-based one,
@@ -25,7 +28,7 @@ test("climate clock: ice fraction + mults recede with game.ticks()", async () =>
   expect(config.climateIceFractionAtTick(game.ticks())).toBe(
     config.climateIceFraction(game),
   );
-  expect(config.climateIcePoleReach()).toBeGreaterThan(0.35);
+  expect(config.climateIcePoleReach()).toBeGreaterThan(0.2);
   expect(config.climateIcePoleReach()).toBeLessThan(0.5); // equator stays ice-free
   expect(config.climateIceExtentAtTick(0)).toBeCloseTo(
     config.climateIcePoleReach(),
@@ -80,14 +83,14 @@ test("climate clock: ice sheet front is warped, not a straight latitude line", a
   expect(mixedFrontRow).toBe(true);
 });
 
-test("climate clock: a Hut costs 3× under full ice and 1× once receded", async () => {
+test("climate clock: a Hut costs 1.5× under full ice and 1× once receded", async () => {
   const p = new PlayerInfo("p", PlayerType.Bot, null, "p");
   const game = await setup("plains", {}, [p]);
   const player = game.player("p");
   const hutInfo = game.unitInfo(UnitType.Hut);
 
   const iceCost = Number(hutInfo.cost(game, player));
-  expect(iceCost).toBe(3 * game.config().hutCost());
+  expect(iceCost).toBe(Math.floor(1.5 * game.config().hutCost()));
 
   const melt = game.config().climateMeltTicks();
   while (game.ticks() <= melt) game.executeNextTick();
@@ -120,7 +123,8 @@ test("carrying capacity: icy territory itself thaws open tile-by-tile", async ()
   const game = await setup("big_plains", { infiniteTroops: true }, [bot]);
   const config = game.config();
   const tribe = game.player("tribe");
-  const sampleY = Math.max(2, Math.floor(game.height() * 0.18));
+  // Deep inside the polar sheet: iced at the start, feathering at half melt.
+  const sampleY = Math.max(2, Math.floor(game.height() * 0.08));
   const sampleX = Math.floor(game.width() / 2);
   for (let dx = -3; dx <= 3; dx++) {
     for (let dy = -2; dy <= 2; dy++) {
@@ -128,9 +132,7 @@ test("carrying capacity: icy territory itself thaws open tile-by-tile", async ()
     }
   }
 
-  const raw = config.carryingCapacityTiles(tribe);
-  const capIce = primitiveTerrainAdjustedCapacity(
-    raw,
+  const scaleIce = primitiveTerrainCapacityScale(
     tribe,
     game.map(),
     config,
@@ -138,16 +140,27 @@ test("carrying capacity: icy territory itself thaws open tile-by-tile", async ()
     0,
   );
   const melt = config.climateMeltTicks();
-  const capMid = primitiveTerrainAdjustedCapacity(
-    raw,
+  // The sheet's edge is warped per column, so "half melt" is not guaranteed to
+  // be half-thawed at this row. Find the first tick where the row is in the
+  // feather (0 < ice < 1) and sample there.
+  const sampleTile = game.ref(sampleX, sampleY);
+  let midTick = 0;
+  for (let t = 0; t <= melt; t += 50) {
+    const ice = config.climateTileIceFractionAtTick(game.map(), sampleTile, t);
+    if (ice > 0 && ice < 1) {
+      midTick = t;
+      break;
+    }
+  }
+  expect(midTick).toBeGreaterThan(0);
+  const scaleMid = primitiveTerrainCapacityScale(
     tribe,
     game.map(),
     config,
     [],
-    melt / 2,
+    midTick,
   );
-  const capThaw = primitiveTerrainAdjustedCapacity(
-    raw,
+  const scaleThaw = primitiveTerrainCapacityScale(
     tribe,
     game.map(),
     config,
@@ -155,8 +168,29 @@ test("carrying capacity: icy territory itself thaws open tile-by-tile", async ()
     melt,
   );
 
-  expect(capIce).toBeLessThan(capMid);
-  expect(capMid).toBeLessThan(capThaw);
+  // The unclamped per-tile scale (the carrying floor hides small differences
+  // on a 35-tile tribe) opens up as the sheet passes over the rows.
+  expect(scaleIce).toBeLessThan(scaleMid);
+  expect(scaleMid).toBeLessThan(scaleThaw);
+  expect(
+    primitiveTerrainAdjustedCapacity(
+      config.carryingCapacityTiles(tribe),
+      tribe,
+      game.map(),
+      config,
+      [],
+      melt,
+    ),
+  ).toBeGreaterThanOrEqual(
+    primitiveTerrainAdjustedCapacity(
+      config.carryingCapacityTiles(tribe),
+      tribe,
+      game.map(),
+      config,
+      [],
+      0,
+    ),
+  );
 });
 
 test("hut seizure: animal pack razes instantly, Neanderthal does not", async () => {

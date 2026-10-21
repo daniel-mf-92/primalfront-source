@@ -868,6 +868,18 @@ news-button .active button::after {
     max-height: 28vh;
   }
 }
+/* A phone held sideways has ~390px of height: 28vh is one row, and the
+   objective card was cut through its roadmap (audit 2026-10-21). Give the bar
+   the room it needs and drop the explanatory copy instead. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .tc-hud-main {
+    max-height: 58vh;
+  }
+  .tc-objective-detail,
+  .tc-objective-roadmap {
+    display: none !important;
+  }
+}
 
 /* Unified HUD icon button — one consistent hit-area for every in-game control.
    Desktop gets a comfortable pointer target; coarse/mobile layouts reach the

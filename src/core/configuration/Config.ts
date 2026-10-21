@@ -1474,7 +1474,12 @@ export class Config {
   // is shared by sim + render: the caps start near the map centre with an
   // equatorial corridor left open, then recede back toward the poles.
   climateIcePoleReach(): number {
-    return 0.42;
+    // 0.42 iced over everything but a thin equatorial band at game start, so
+    // a tribe spawning in Europe or North America spent its first five
+    // minutes frozen (3x hut cost, 8x settlement, heavy migration friction)
+    // with nothing to do. The sheet now starts over the polar fifth of the
+    // map and still recedes to nothing over climateMeltTicks().
+    return 0.26;
   }
 
   // Feather width for the sheet edge, expressed as latitude fraction. Tiles deep
@@ -1589,14 +1594,14 @@ export class Config {
 
   // Primitive building (Hut/Scout) cost multiplier: 3× under full ice → 1× receded.
   climateBuildCostMult(game: Game): number {
-    return 1 + 2 * this.climateIceFraction(game);
+    return 1 + 0.5 * this.climateIceFraction(game);
   }
 
   // Permanent-settlement (City) cost multiplier: prohibitive under full ice (8×,
   // which with the 20×-hut base pins toward the 1,000,000 cap = unaffordable in the
   // deep ice age) declining to 1× as the caps recede.
   climateSettlementCostMult(game: Game): number {
-    return 1 + 7 * this.climateIceFraction(game);
+    return 1 + this.climateIceFraction(game);
   }
 
   // The ice caps cap how much land ANYONE can hold: 0.6× the §7 carrying capacity
@@ -2225,6 +2230,12 @@ export class Config {
   }
 
   // --- Wood + woodland (Primitive resource economy) ---
+
+  // Every human spawn gets a small wood stand within a short walk when none is
+  // nearby (StarterStand.ts), so the first objective is always reachable.
+  primitiveStarterStand(): boolean {
+    return true;
+  }
 
   // Wood gained for each woodland (forest/jungle) tile a player captures.
   woodPerWoodlandTile(): number {

@@ -2,6 +2,7 @@ import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { ClientEnv } from "src/client/ClientEnv";
 import {
+  Difficulty,
   Duos,
   GameMapType,
   GameMode,
@@ -24,6 +25,7 @@ import {
 import { JoinLobbyModal } from "./JoinLobbyModal";
 import { PublicLobbySocket } from "./LobbySocket";
 import type { JoinLobbyEvent } from "./Main";
+import { launchPractice } from "./PracticeLaunch";
 import { SinglePlayerModal } from "./SinglePlayerModal";
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 import { UsernameInput } from "./UsernameInput";
@@ -233,6 +235,25 @@ export class GameModeSelector extends LitElement {
     )?.open();
   };
 
+  // The sharer's exact match, one tap away. Without a setup in the link the
+  // button still works: it opens practice on the default map.
+  private acceptChallenge = () => {
+    if (!this.validateUsername()) return;
+    const challenge = this.challenge;
+    trackAnalyticsEvent("play_intent", { entry_point: "challenge" });
+    if (challenge?.map === undefined) {
+      (
+        document.querySelector("single-player-modal") as SinglePlayerModal
+      )?.open();
+      return;
+    }
+    void launchPractice(this, {
+      map: challenge.map,
+      difficulty: challenge.difficulty ?? Difficulty.Easy,
+      compact: challenge.compact === true,
+    });
+  };
+
   private openHostLobby = () => {
     if (!this.validateUsername()) return;
     trackAnalyticsEvent("play_intent", { entry_point: "create_lobby" });
@@ -429,6 +450,25 @@ export class GameModeSelector extends LitElement {
             values,
           )}
         </p>
+        <button
+          type="button"
+          class="pf-challenge-accept"
+          data-play-path="challenge"
+          ?disabled=${!this.inputValid}
+          @click=${this.acceptChallenge}
+        >
+          <span>
+            ${challenge.map !== undefined
+              ? translateText("mode_selector.challenge_accept", {
+                  map: getMapName(challenge.map) ?? challenge.map,
+                  difficulty: translateText(
+                    `difficulty.${(challenge.difficulty ?? Difficulty.Easy).toLowerCase()}`,
+                  ),
+                })
+              : translateText("mode_selector.challenge_accept_generic")}
+          </span>
+          <span aria-hidden="true">&#8594;</span>
+        </button>
         ${pitch}
       </div>
     `;

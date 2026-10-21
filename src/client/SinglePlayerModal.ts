@@ -1,5 +1,4 @@
 import { TemplateResult, html } from "lit";
-import { ACCOUNTS_ENABLED } from "./Features";
 import { customElement, state } from "lit/decorators.js";
 import { translateText } from "../client/Utils";
 import { UserMeResponse } from "../core/ApiSchemas";
@@ -23,6 +22,7 @@ import "./components/ToggleInputCard";
 import { modalHeader } from "./components/ui/ModalHeader";
 import { getPlayerCosmetics } from "./Cosmetics";
 import { crazyGamesSDK } from "./CrazyGamesSDK";
+import { ACCOUNTS_ENABLED } from "./Features";
 import { JoinLobbyEvent } from "./Main";
 import { UsernameInput } from "./UsernameInput";
 import {
@@ -45,10 +45,13 @@ const DEFAULT_OPTIONS = {
   // 133 (was 400): every bot's AI is simulated client-side each tick in lockstep
   // with the server, so a high count permanently backlogs weak/CPU-busy devices
   // ("Catching up…" that never clears). Player can raise it via the slider.
-  bots: 133,
+  // 33 on a compact map (toggling compact off restores the 133 of a full
+  // map). A first practice match on the full World map put the player one
+  // speck among 200 tribes with nobody in reach (real-screen audit 2026-10-21).
+  bots: 33,
   infiniteGold: false,
   infiniteTroops: false,
-  compactMap: false,
+  compactMap: true,
   maxTimer: false,
   maxTimerValue: undefined as number | undefined,
   instantBuild: false,

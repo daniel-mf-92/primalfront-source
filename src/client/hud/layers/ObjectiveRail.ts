@@ -335,6 +335,33 @@ export function computePrimitiveGoldPipeline(
   };
 }
 
+/** What a Hut costs right now (the ice age inflates it early on). */
+export function hutCostNow(config: Config, ticks: number): number {
+  const ice = config.climateIceFractionAtTick(ticks);
+  return Math.floor(config.hutCost() * (1 + 0.5 * ice));
+}
+
+/**
+ * What the next Permanent Settlement costs right now: 20 huts, doubling per
+ * City already built, capped, and inflated by the ice age. Mirrors
+ * Config.unitInfo(City).cost without needing a Game handle.
+ */
+export function settlementCostNow(
+  config: Config,
+  player: ObjectivePlayer,
+  ticks: number,
+): number {
+  const cities = countBuiltUnits(player, UnitType.City);
+  const base = Math.min(1_000_000, Math.pow(2, cities) * 20 * config.hutCost());
+  const ice = config.climateIceFractionAtTick(ticks);
+  return Math.floor(base * (1 + ice));
+}
+
+function goldProgress(player: ObjectivePlayer, cost: number): number {
+  if (cost <= 0) return 1;
+  return Math.max(0, Math.min(1, Number(player.gold()) / cost));
+}
+
 export function chooseObjective(
   player: ObjectivePlayer,
   config: Config,
@@ -343,6 +370,7 @@ export function chooseObjective(
     player,
     config,
   ),
+  ticks: number = 0,
 ): ObjectiveRailItem {
   const completeGates = gates.filter((gate) => gate.complete).length;
   const gateProgress =
@@ -380,20 +408,27 @@ export function chooseObjective(
   const economyBuildings =
     countBuiltUnits(player, UnitType.PrimitiveFarm) +
     countBuiltUnits(player, UnitType.TradeOutpost);
+  // Each step's bar measures the one number that step is waiting on, so it
+  // visibly climbs instead of sitting at a fixed figure.
+  const hutCost = hutCostNow(config, ticks);
+  const cityProgress = goldProgress(
+    player,
+    settlementCostNow(config, player, ticks),
+  );
   if (cityGate && !cityGate.complete) {
     if (stockpile === 0 && pipeline.totalGoldPerSecond === 0n) {
       return objective("find_resources", 0);
     }
-    if (economyBuildings === 0 && player.gold() >= BigInt(config.hutCost())) {
-      return objective("build_economy", 0.25);
+    if (economyBuildings === 0 && player.gold() >= BigInt(hutCost)) {
+      return objective("build_economy", 1);
     }
     if (pipeline.totalGoldPerSecond > 0n || stockpile > 0) {
-      return objective("convert_resources", 0.5);
+      return objective("convert_resources", goldProgress(player, hutCost));
     }
-    return objective("found_city", gateProgress);
+    return objective("found_city", cityProgress);
   }
 
-  return objective("found_city", gateProgress);
+  return objective("found_city", cityProgress);
 }
 
 function objective(id: ObjectiveID, progress: number): ObjectiveRailItem {

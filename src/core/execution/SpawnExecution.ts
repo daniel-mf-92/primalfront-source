@@ -14,6 +14,7 @@ import { PseudoRandom } from "../PseudoRandom";
 import { GameID } from "../Schemas";
 import { simpleHash } from "../Util";
 import { PlayerExecution } from "./PlayerExecution";
+import { ensureStarterStand, wantsStarterStand } from "./StarterStand";
 import { TribeExecution } from "./TribeExecution";
 import { getSpawnTiles } from "./Util";
 
@@ -84,6 +85,13 @@ export class SpawnExecution implements Execution {
     }
 
     player.setSpawnTile(spawn.center);
+
+    // A fresh human tribe always has a wood stand within one short walk (see
+    // StarterStand.ts). Seeded from this execution's own PseudoRandom, so every
+    // lockstep peer places the same nodes.
+    if (wantsStarterStand(this.mg, this.playerInfo.playerType)) {
+      ensureStarterStand(this.mg, spawn.center, this.random, ticks);
+    }
 
     // Module §1 taxonomy — ONLY animal-pack bots take a predator-tribe identity
     // (the biome flavor is kept for them: Cold→Wolf, Green→Bear, …). Normal

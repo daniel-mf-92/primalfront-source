@@ -80,6 +80,45 @@ export class HelpModal extends BaseModal {
           [&_li]:text-gray-300 [&_li]:leading-relaxed
           [&_p]:text-gray-300 [&_p]:mb-3 [&_strong]:text-white [&_strong]:font-bold"
       >
+          <!-- How to play (the Primitive loop) -->
+          <div class="flex items-center gap-3 mb-3">
+            <div class="text-blue-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-5 h-5 text-blue-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <h3
+              class="text-xl font-bold uppercase tracking-widest text-white/90"
+            >
+              ${translateText("help_modal.how_to_play_title")}
+            </h3>
+            <div
+              class="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"
+            ></div>
+          </div>
+          <section class="mb-8">
+            <p>${translateText("help_modal.how_to_play_intro")}</p>
+            <ol class="pl-5 list-decimal space-y-2">
+              <li>${translateText("help_modal.how_to_play_1")}</li>
+              <li>${translateText("help_modal.how_to_play_2")}</li>
+              <li>${translateText("help_modal.how_to_play_3")}</li>
+              <li>${translateText("help_modal.how_to_play_4")}</li>
+              <li>${translateText("help_modal.how_to_play_5")}</li>
+            </ol>
+            <p class="mt-3">${translateText("help_modal.how_to_play_later")}</p>
+          </section>
+
           <!-- Troubleshooting Section -->
           <div class="flex items-center gap-3 mb-3">
             <div class="text-blue-400">

@@ -244,6 +244,11 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _goldGain: bigint | null = null;
+  // Wood arriving is the first thing that happens to a new tribe; it gets the
+  // same pop as gold so the player sees the stand working.
+  private _woodGain: number | null = null;
+  private _woodGainPulseId: number = 0;
+  private _woodGainTimeoutId: ReturnType<typeof setTimeout> | null = null;
   @state()
   private _goldGainPulseId: number = 0;
   private _goldGainTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -339,7 +344,11 @@ export class ControlPanel extends LitElement implements Controller {
       document.documentElement.setAttribute("data-climate", climate);
     }
     this._techPoints = Math.floor(player.techPoints());
+    const prevResources = this._resources;
     this._resources = Math.floor(player.resources());
+    if (this._resources > prevResources && prevResources >= 0) {
+      this.addWoodGain(this._resources - prevResources);
+    }
     this._advanceCost = config.advanceAgeCost(player);
     this._ageGates = computeAgeGates(player, config);
     this._eraTriumphs = computeEraTriumphs(player, config);
@@ -364,6 +373,7 @@ export class ControlPanel extends LitElement implements Controller {
       config,
       this._ageGates,
       this._primitivePipeline ?? undefined,
+      this.game.ticks(),
     );
     this._canAdvanceAge = canAdvanceFromGates(this._ageGates);
 
@@ -461,6 +471,19 @@ export class ControlPanel extends LitElement implements Controller {
     }
 
     this.requestUpdate();
+  }
+
+  private addWoodGain(amount: number) {
+    this._woodGain = amount;
+    this._woodGainPulseId++;
+    if (this._woodGainTimeoutId !== null) {
+      clearTimeout(this._woodGainTimeoutId);
+    }
+    this._woodGainTimeoutId = setTimeout(() => {
+      this._woodGain = null;
+      this._woodGainTimeoutId = null;
+      this.requestUpdate();
+    }, 1500);
   }
 
   // Last-wins: when multiple gold events arrive in one tick, the pip shows
@@ -889,12 +912,21 @@ export class ControlPanel extends LitElement implements Controller {
   // Module §4 — primitive pile readout. The sim may remember tile kinds, but the
   // player-facing economy is one Resources pool plus separate Gold.
   private renderResourcePile() {
-    if (this._resources <= 0) {
+    if (this._resources <= 0 && this._woodGain === null) {
       return html``;
     }
     return html`
-      <div class="tc-chip text-sm" translate="no">
-        <span class="tc-num" title="Resources"
+      <div class="tc-chip text-sm relative" translate="no">
+        ${this._woodGain !== null
+          ? keyed(
+              this._woodGainPulseId,
+              html`<span
+                class="gold-gain-pop absolute -top-5 right-[5px] text-gain text-sm font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
+                >+${renderNumber(this._woodGain)}</span
+              >`,
+            )
+          : ""}
+        <span class="tc-num" title=${translateText("control_panel.wood")}
           >◆ ${renderNumber(this._resources)}</span
         >
       </div>
@@ -1163,9 +1195,10 @@ export class ControlPanel extends LitElement implements Controller {
               </div>
             </div>
           </div>
-          <span class="tc-num text-sm text-age-accent shrink-0"
-            >${progress}%</span
-          >
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${this._age === Age.Primitive ? this.renderResourcePile() : ""}
+            <span class="tc-num text-sm text-age-accent">${progress}%</span>
+          </div>
         </div>
         ${html`<div
           class="tc-objective-detail text-xs text-text-mid mt-1 lg:mt-0.5 ${isFirstMove ||

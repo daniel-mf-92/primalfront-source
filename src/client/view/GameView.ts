@@ -50,7 +50,9 @@ const TRAIL_TYPES: ReadonlySet<UnitType> = new Set<UnitType>([
   UnitType.MIRVWarhead,
 ]);
 
-const PRIMITIVE_SIGHT_RADIUS = 26;
+// 26 left the next stand invisible more often than not (median 29 tiles to
+// the nearest one on the World map); the tribe still cannot see far.
+const PRIMITIVE_SIGHT_RADIUS = 36;
 
 export const PRIMITIVE_FOG_UNSEEN = 0;
 export const PRIMITIVE_FOG_REMEMBERED = 128;

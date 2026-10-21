@@ -1,9 +1,11 @@
 import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { EventBus } from "../../../core/EventBus";
 import { GameMode, GameType } from "../../../core/game/Game";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { Controller } from "../../Controller";
 import { needsSpawnPrompt } from "../../SpawnClick";
+import { SendSpawnIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
 
@@ -12,6 +14,7 @@ const COLLUSION_WARNING_CLOSED_KEY = "hasClosedCollusionWarning";
 @customElement("heads-up-message")
 export class HeadsUpMessage extends LitElement implements Controller {
   public game: GameView;
+  public eventBus: EventBus;
 
   @state()
   private isVisible = false;
@@ -164,6 +167,38 @@ export class HeadsUpMessage extends LitElement implements Controller {
       : translateText("heads_up_message.choose_spawn");
   }
 
+  // On a phone the whole world is a thumbnail at spawn time; a tap on it is a
+  // lottery. This picks a free land tile so the player is in the game in one
+  // tap, and the sim still validates it like any other spawn click.
+  private pickSpawnForMe = (): void => {
+    if (!this.game || !this.eventBus) return;
+    const w = this.game.width();
+    const h = this.game.height();
+    for (let i = 0; i < 4000; i++) {
+      const x = Math.floor(Math.random() * w);
+      const y = Math.floor(Math.random() * h);
+      const tile = this.game.ref(x, y);
+      if (!this.game.isLand(tile) || this.game.hasOwner(tile)) continue;
+      if (this.game.isBorder(tile)) continue;
+      this.eventBus.emit(new SendSpawnIntentEvent(tile));
+      return;
+    }
+  };
+
+  private showPickSpawn(): boolean {
+    const me = this.game?.myPlayer();
+    return (
+      this.game !== undefined &&
+      !this.game.config().isRandomSpawn() &&
+      needsSpawnPrompt({
+        inSpawnPhase: this.game.inSpawnPhase(),
+        isRandomSpawn: this.game.config().isRandomSpawn(),
+        hasSpawned: me ? me.hasSpawned() : null,
+      }) &&
+      (me === null || !me.hasSpawned())
+    );
+  }
+
   private onCloseCollusionWarning = (): void => {
     localStorage.setItem(COLLUSION_WARNING_CLOSED_KEY, "true");
     this.hasClosedCollusionWarning = true;
@@ -210,6 +245,18 @@ export class HeadsUpMessage extends LitElement implements Controller {
               >
                 ${this.getMessage()}
               </div>
+              ${this.showPickSpawn()
+                ? html`
+                    <button
+                      type="button"
+                      class="tc-spawn-chip fixed top-[15%] mt-14 lg:mt-16 left-1/2 -translate-x-1/2 z-[799] px-4 py-2 text-sm lg:text-base font-bold uppercase tracking-wide text-white"
+                      style="pointer-events: auto;"
+                      @click=${this.pickSpawnForMe}
+                    >
+                      ${translateText("heads_up_message.pick_spawn")}
+                    </button>
+                  `
+                : null}
             `
           : null}
         ${this.game?.inSpawnPhase() &&

@@ -830,6 +830,26 @@ class Client {
     if (this.consumeRequeueUrl()) {
       document.dispatchEvent(new CustomEvent("open-matchmaking"));
     }
+    if (this.consumeSearchFlag("friends")) {
+      (
+        document.querySelector("host-lobby-modal") as HostPrivateLobbyModal
+      )?.open();
+    }
+  }
+
+  /** Strip a one-shot flag from the URL; true if it was there. */
+  private consumeSearchFlag(flag: string): boolean {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (!searchParams.has(flag)) {
+      return false;
+    }
+    searchParams.delete(flag);
+    const newUrl =
+      window.location.pathname +
+      (searchParams.toString() ? `?${searchParams.toString()}` : "") +
+      window.location.hash;
+    history.replaceState(null, "", newUrl);
+    return true;
   }
 
   private consumeRequeueUrl(): boolean {
