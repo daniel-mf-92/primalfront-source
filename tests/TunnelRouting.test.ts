@@ -19,3 +19,32 @@ describe.skipIf(!hasConfig)("tunnel routing", () => {
     }
   });
 });
+
+// Marta, 2026-10-21 (option A, "keep it warm"): the game server never scales to
+// zero, because the first visitor after a quiet spell used to wait 15-20 s or
+// hit a Cloudflare 524 while the hub node re-pulled the image. The manifest
+// is deploy-only too, so this guard is skipped in the public source copy.
+const SCALER = path.join(__dirname, "..", "k8s", "httpscaledobject.yaml");
+const hasScaler = fs.existsSync(SCALER);
+const scaler = hasScaler ? fs.readFileSync(SCALER, "utf8") : "";
+const WORKFLOW = path.join(
+  __dirname,
+  "..",
+  ".github",
+  "workflows",
+  "deploy.yml",
+);
+const workflow = fs.existsSync(WORKFLOW)
+  ? fs.readFileSync(WORKFLOW, "utf8")
+  : "";
+
+describe.skipIf(!hasScaler)("warm game server", () => {
+  test("the scaler keeps at least one game pod running", () => {
+    expect(scaler).toMatch(/replicas:\s*\n\s*min:\s*1\b/);
+    expect(scaler).toMatch(/kind:\s*HTTPScaledObject/);
+  });
+
+  test("every deploy re-applies the scaler manifest", () => {
+    expect(workflow).toContain("k8s/httpscaledobject.yaml");
+  });
+});
