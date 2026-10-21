@@ -19,7 +19,9 @@ test("climate clock: ice fraction + mults recede with game.ticks()", async () =>
 
   expect(config.climateIceFraction(game)).toBeCloseTo(1, 5);
   expect(config.climateBuildCostMult(game)).toBeCloseTo(1.5, 5);
-  expect(config.climateSettlementCostMult(game)).toBeCloseTo(2, 5);
+  // 8x under full ice is the Stone Age exit clock (see the AI-NOTE on
+  // climateSettlementCostMult): a 2x ramp let the first tribe leave at 7:40.
+  expect(config.climateSettlementCostMult(game)).toBeCloseTo(8, 5);
   expect(config.climateLandScale(game)).toBeCloseTo(0.6, 5);
 
   // Tick-based variant (used by the render overlay) matches the game-based one,

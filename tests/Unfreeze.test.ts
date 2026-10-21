@@ -39,7 +39,7 @@ test("era gate: a City is prohibitive under full ice, reachable once it recedes"
     }
   }
   expect(tribe.isAnimalPack()).toBe(false);
-  // Enough for a baseline (ice-receded) City + toll, but NOT the 2× ice-age
+  // Enough for a baseline (ice-receded) City + toll, but NOT the 8× ice-age
   // settlement cost — so settlement is gated by the climate clock.
   const iceCost = game.unitInfo(UnitType.City).cost(game, tribe);
   tribe.addGold((iceCost * 3n) / 4n);

@@ -431,7 +431,7 @@
     "objective_find_resources": "Walk to the wood stand",
     "objective_find_resources_detail": "Tap the glowing wood stand near your tribe. Your camp drifts there and gathers wood, which turns into gold.",
     "objective_found_city": "Found a Permanent Settlement",
-    "objective_found_city_detail": "Save for the Permanent Settlement in the Build menu. It anchors the tribe and unlocks the next era.",
+    "objective_found_city_detail": "Save for the Permanent Settlement in the Build menu. Its price falls as the ice recedes; it anchors the tribe and unlocks the next era.",
     "objective_generate_tech": "Generate tech",
     "objective_generate_tech_detail": "Grow knowledge from Cities, Granaries, and time before advancing.",
     "objective_label": "Objective",

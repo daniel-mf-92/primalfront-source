@@ -47,13 +47,13 @@ export class ResourceSeedExecution implements Execution {
   private static readonly ROCK_CELL = 36;
   // Fraction of patch-cells that bear the resource (richness), before biome/terrain
   // modulation. Worley value is uniform [0,1), so value < frac ≈ that fraction of cells.
-  private static readonly WOOD_STAND_FRAC = 0.45;
+  private static readonly WOOD_STAND_FRAC = 0.3;
   private static readonly ROCK_STAND_FRAC = 0.08;
   private static readonly FISH_CELL = 22;
   private static readonly FISH_SHOAL_FRAC = 0.16;
   // Within-stand density gate: place only where value-noise exceeds this (sparser
   // toward edges); plus a patch-core radius so cell borders feather out.
-  private static readonly WOOD_DENSITY = 0.5;
+  private static readonly WOOD_DENSITY = 0.58;
   private static readonly WOOD_CORE = 0.84;
   private static readonly ROCK_DENSITY = 0.68;
   private static readonly ROCK_CORE = 0.82;

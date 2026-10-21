@@ -7,7 +7,10 @@ import { TestConfig } from "./util/TestConfig";
 // Regression guard for the Primitive economy's one input. Before 2026-10-21 the
 // World map seeded 83 wood stands (1 per 7,853 land tiles; median 56 tiles from
 // a random spot to the nearest one). Any retune that drifts back toward that
-// starves every tribe that is not sitting on its starter stand.
+// starves every tribe that is not sitting on its starter stand. The other
+// direction is guarded by LoopVitals, not here: at 1 per ~1,200 tiles the first
+// tribe left the Stone Age at 7:40 (owner target 8-14 min); the shipped density
+// (~1 per 2,600, median ~39 tiles) exits at 10:00-11:40 across seeds and maps.
 test("the world map seeds wood within reach of most land", async () => {
   const game = await setup("world", { bots: 0 }, [], undefined, TestConfig);
   game.addExecution(new ResourceSeedExecution("density_game"));
@@ -18,7 +21,7 @@ test("the world map seeds wood within reach of most land", async () => {
     if (game.isLand(t)) land++;
     if (game.resourceAt(t).kind === ResourceKind.Wood) woods.push(t);
   });
-  expect(land / woods.length).toBeLessThan(2000);
+  expect(land / woods.length).toBeLessThan(3000);
 
   const rand = new PseudoRandom(42);
   const dists: number[] = [];

@@ -1370,7 +1370,12 @@ export class Config {
       case Age.Primitive: // -> Classical (found your first City = become a Kingdom)
         return { gold: 8000n, techPoints: 200 };
       case Age.Classical: // -> Imperial (consolidate a stable kingdom into an empire)
-        return { gold: 28500n, techPoints: 400 };
+        // 28500 was bisected against the pre-2026-10-21 income (Imperial at
+        // 15:20 vs 14:00); the denser wood of the lovable-opening retune pays
+        // ~2x faster, so the toll scales with it to keep a kingdom a kingdom
+        // for a while (LoopVitals 2026-10-21, world/133 x3 seeds + compact/33:
+        // Classical 10:00-11:40, Imperial 12:00-17:20, dwell 1:20-6:00).
+        return { gold: 60000n, techPoints: 400 };
       case Age.Imperial: // -> Feudal
         return { gold: 18000n, techPoints: 450 };
       case Age.Feudal: // -> Enlightened
@@ -1600,8 +1605,16 @@ export class Config {
   // Permanent-settlement (City) cost multiplier: prohibitive under full ice (8×,
   // which with the 20×-hut base pins toward the 1,000,000 cap = unaffordable in the
   // deep ice age) declining to 1× as the caps recede.
+  // AI-NOTE: this ramp is the Stone Age exit CLOCK, keep it steep. The 2026-10-21
+  // lovable-opening retune briefly cut it to 2× and the first tribe left the
+  // Stone Age at 7:40 instead of ~13:00 (LoopVitals, world/133/vitals-1) against
+  // the owner's 8-14 min target; a gold-only gate (200K City) was seed-dependent
+  // (seed 2 and the compact practice map never left Primitive at all). The
+  // clock makes the window seed-independent. The HUT ramp (climateBuildCostMult)
+  // stays gentle so the first minutes have something to build. | evidence:
+  // docs/PRIMAL_META.md, tests/IceAgeClimate.test.ts
   climateSettlementCostMult(game: Game): number {
-    return 1 + this.climateIceFraction(game);
+    return 1 + 7 * this.climateIceFraction(game);
   }
 
   // The ice caps cap how much land ANYONE can hold: 0.6× the §7 carrying capacity
