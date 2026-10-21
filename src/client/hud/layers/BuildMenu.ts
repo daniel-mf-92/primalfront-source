@@ -4,6 +4,7 @@ import { translateText } from "../../../client/Utils";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
 import {
+  Age,
   BuildableUnit,
   BuildMenus,
   Gold,
@@ -551,6 +552,21 @@ export class BuildMenu extends LitElement implements Controller {
   public disabledReason(buildableUnit: BuildableUnit): string {
     const player = this.game?.myPlayer();
     if (!player) return translateText("build_menu.reason_place");
+    if (
+      buildableUnit.type === UnitType.City &&
+      player.age() === Age.Primitive
+    ) {
+      const cfg = this.game.config();
+      const meltTick = Math.ceil(
+        cfg.climateMeltTicks() * (1 - cfg.settlementMaxIceFraction()),
+      );
+      const left = meltTick - this.game.ticks();
+      if (left > 0) {
+        return translateText("build_menu.reason_ice", {
+          seconds: String(Math.ceil(left / 10)),
+        });
+      }
+    }
     const gold = player.gold();
     if (buildableUnit.cost > gold) {
       return translateText("build_menu.reason_gold", {

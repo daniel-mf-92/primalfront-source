@@ -1501,6 +1501,15 @@ export class Config {
     const bp = Math.floor(((melt - t) * 10000) / melt);
     return bp / 10000;
   }
+  // Stone Age exit gate: a Permanent Settlement can only be founded once the
+  // ice covers at most this fraction of its full-ice reach (0.1 of a 10-minute
+  // melt = from minute 9). Added 2026-10-21 with the nomadic-attrition
+  // gradient: bands that expand by attack gather gold faster, and a price ramp
+  // alone let the first tribe out at 5:00-6:40 against the 10-minute target.
+  settlementMaxIceFraction(): number {
+    return 0.1;
+  }
+
   climateIceFraction(game: Game): number {
     return this.climateIceFractionAtTick(game.ticks());
   }
@@ -1644,7 +1653,10 @@ export class Config {
   // stays gentle so the first minutes have something to build. | evidence:
   // docs/PRIMAL_META.md, tests/IceAgeClimate.test.ts
   climateSettlementCostMult(game: Game): number {
-    return 1 + 7 * this.climateIceFraction(game);
+    // 1+15 (was 1+7) since the nomadic-attrition gradient of 2026-10-21: bands
+    // that expand by attack hold more wood, and 1+7 let the first tribe out at
+    // 5:00-9:00 (LoopVitals world/133 seeds 1-3) against the 10-minute target.
+    return 1 + 15 * this.climateIceFraction(game);
   }
 
   // The ice caps cap how much land ANYONE can hold: 0.6× the §7 carrying capacity
@@ -1830,49 +1842,128 @@ export class Config {
     }
   }
 
-  // Rewild (frontier revolt / overextension bleed) applies in the Primitive AND
-  // Classical (Kingdom) eras. A Primitive tribe drifts as a roving glob; a
-  // Classical kingdom holds a settled realm but its unsupported frontier still
-  // trims (dialed down — see classicalRewild* knobs) so the map does not snap
-  // full. Imperial+ hold territory freely.
+  // --- Nomadic attrition gradient (owner direction, Marta 2026-10-21) ---
+  // Expansion is OpenFront's click-to-attack in EVERY age, humans and tribes
+  // alike (the old "click = the whole camp drifts over" migration is retired).
+  // What changes per age is how much land a player can KEEP: the early ages
+  // shed whatever lies beyond their carrying capacity, most-exposed first, so a
+  // tribe that pushes forward leaves its tail to the wild (nomads); each age
+  // multiplies that capacity, widens the held radius and slows the shed; from
+  // the Modern age on land is held indefinitely with no attrition at all,
+  // exactly like OpenFront. Applied in PlayerExecution.rewildUnsupportedFrontier.
   rewildEnabled(age: Age): boolean {
-    return age === Age.Primitive || age === Age.Classical;
+    return age < Age.Modern;
   }
 
-  // Owner direction 2026-08-03: "whole primitive era should be roaming ... next
-  // era after that should not fill map neither, simply larger carrying capacity
-  // 3x and 6x slower to move borders by clicking."
-  //
-  // So the mobile-camp mechanic does NOT end at Primitive. A Classical kingdom
-  // still moves its borders by clicking; it is simply three times larger and six
-  // times more ponderous. Without this, advancing dropped the player into
-  // ordinary conquest expansion and the map snapped full within two minutes of
-  // the first advance.
+  // The roaming-floor machinery (terrain-adjusted capacity, the subsistence
+  // floor, the migration capacity readout) still shapes the two nomadic ages;
+  // later ages are bounded by the plain carrying capacity times landCapacityMult.
   roamsByMigration(age: Age): boolean {
     return age === Age.Primitive || age === Age.Classical;
   }
 
-  /** A Classical band holds 3x the ground a primitive one does. */
-  migrationCapacityMult(age: Age): number {
-    return age === Age.Classical ? 3 : 1;
+  /** Carrying-capacity multiplier per age. Primitive 1x, Classical 3x (owner
+   * direction 2026-08-03), then it keeps climbing; Modern+ is unbounded. */
+  landCapacityMult(age: Age): number {
+    switch (age) {
+      case Age.Primitive:
+        return 1;
+      case Age.Classical:
+        return 3;
+      case Age.Imperial:
+        return 8;
+      case Age.Feudal:
+        return 20;
+      case Age.Enlightened:
+        return 50;
+      case Age.Industrial:
+        return 120;
+      default:
+        return Number.POSITIVE_INFINITY;
+    }
   }
 
-  /** ...and shifts that ground 6x more slowly. Applied as a tick stride so the
-   * factor is exact, rather than rounding a 2-3 tiles/tick rate down to 1. */
+  /** A Classical band holds 3x the ground a primitive one does (same table). */
+  migrationCapacityMult(age: Age): number {
+    return this.landCapacityMult(age);
+  }
+
+  /** Legacy camp-migration stride (only the retired migration execution reads
+   * it; kept so old replays still resolve). */
   migrationTickStride(age: Age): number {
     return age === Age.Classical ? 6 : 1;
   }
 
-  // --- Classical (Kingdom) era rewild tuning ---
-  // A settled kingdom holds more land than a nomad camp and sheds it more slowly
-  // than a Primitive tribe. Its city/camp support radii are widened by this
-  // multiplier and its per-tick shed budget is scaled down — so the frontier
-  // trims gently instead of pulsing. (Applied in PlayerExecution.rewildUnsupportedFrontier.)
+  /** How far from the camp centroid / each building land counts as held. */
+  supportRadiusMult(age: Age): number {
+    switch (age) {
+      case Age.Primitive:
+        return 1;
+      case Age.Classical:
+        return 2;
+      case Age.Imperial:
+        return 3;
+      case Age.Feudal:
+        return 4.5;
+      case Age.Enlightened:
+        return 6;
+      default:
+        return 8;
+    }
+  }
+
+  /** Per-pass shed budget multiplier: the later the age, the gentler the trim.
+   * Zero from Modern on (rewild is off there anyway). */
+  rewildBudgetMult(age: Age): number {
+    switch (age) {
+      case Age.Primitive:
+        return 1;
+      case Age.Classical:
+        return 0.4;
+      case Age.Imperial:
+        return 0.25;
+      case Age.Feudal:
+        return 0.15;
+      case Age.Enlightened:
+        return 0.1;
+      case Age.Industrial:
+        return 0.05;
+      default:
+        return 0;
+    }
+  }
+
+  /** Directed expansion: priority cost per tile of distance between a tile
+   * under attack and the tile the player clicked (AttackExecution). Higher =
+   * the front follows the click more tightly; 0 = OpenFront's even spread. */
+  attackFocusWeight(): number {
+    // Measured 2026-10-21 (big_plains, 4000 troops, 200 ticks): 1.5 barely
+    // moves the camp, 3 draws a five-wide spike; 2.5 walks as a compact wedge.
+    return 2.5;
+  }
+  attackFocusMaxDist(): number {
+    return 80;
+  }
+
+  /** Most tiles the carrying-cap shed removes per pass (every 10 ticks) from
+   * a roaming band that is over capacity: 4 tiles/tick, about an attack's
+   * pace, so the front can advance while the back goes wild. */
+  nomadShedPerPass(): number {
+    return 40;
+  }
+
+  /** A roaming-age wilderness attack stops (troops come home) once the band
+   * holds this many times its carrying capacity; the back then goes wild, so
+   * the band walks rather than swells. */
+  nomadOvershootMult(): number {
+    return 1.25;
+  }
+
   classicalSupportRadiusMult(): number {
-    return 2.0;
+    return this.supportRadiusMult(Age.Classical);
   }
   classicalRewildBudgetMult(): number {
-    return 0.4;
+    return this.rewildBudgetMult(Age.Classical);
   }
 
   // --- Classical (Kingdom) civil war / secession (docs/CLASSICAL_ERA.md) ---
@@ -1986,7 +2077,11 @@ export class Config {
     // tribe deletes 90 tiles of capacity and the winner sheds the land it just
     // took - conquest is net-negative and no empire can form | evidence:
     // land claimed fell 66.8% -> 38.7% as 2,885 tribes died (LoopVitals)
-    return 90 * (1 + (_p?.absorbedTribes() ?? 0));
+    // 250 (was 90) since the nomadic-attrition gradient of 2026-10-21: with
+    // expansion by attack, this floor IS the roaming band. A spawn blob is
+    // ~250 tiles; a floor below that trimmed a fresh tribe - and the wood
+    // stand it had just claimed - in its first minute.
+    return 250 * (1 + (_p?.absorbedTribes() ?? 0));
   }
   // Max tiles the carrying-cap sheds per tick (bounds iteration; high enough to
   // HOLD the cap against fast expansion so tribes stay small roving blobs).
@@ -1998,7 +2093,10 @@ export class Config {
   // direction x2): with Primitive starts ~10k-35k troops this yields ~230-390
   // tiles — a serious homeland; cities remain the real expansion lever.
   carryingPopPerTile(): number {
-    return 150;
+    // 600 (was 150): a 150K-troop Primitive band holds ~500 tiles, not ~1,100.
+    // Measured 2026-10-21 with attack-based expansion: at 150 the World map was
+    // 88% claimed by minute 40 (baseline 39-46%) and the leader held 19%.
+    return 600;
   }
   // Extra cap tiles per temporary settlement (Hut / Scout Lookout).
   carryingTempSettlementBonus(): number {

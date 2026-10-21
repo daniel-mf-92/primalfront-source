@@ -86,6 +86,9 @@ export class SendAttackIntentEvent implements GameEvent {
   constructor(
     public readonly targetID: PlayerID | null,
     public readonly troops: number,
+    // The land tile that was clicked, when the attack came from a map click:
+    // the sim grows the attack toward it, and the HUD marks it.
+    public readonly tile: TileRef | null = null,
   ) {}
 }
 
@@ -540,6 +543,7 @@ export class Transport {
       type: "attack",
       targetID: event.targetID,
       troops: event.troops,
+      ...(event.tile !== null ? { focus: event.tile } : {}),
     });
   }
 

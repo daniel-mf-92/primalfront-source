@@ -28,10 +28,12 @@ describe("PlayerExecution Annexation Bug", () => {
     largePlayer = game.player("large_id");
     smallPlayer = game.player("small_id");
     // This exercises annexation at empire scale (one player owns most of the
-    // map). That is a civilized-age scenario; keep both out of the Primitive
-    // era so the Primitive-only settlement rewild doesn't shed frontier tiles.
-    largePlayer.setAge(Age.Imperial);
-    smallPlayer.setAge(Age.Imperial);
+    // map). Land is held indefinitely only from the Modern age on (nomadic
+    // attrition gradient, 2026-10-21); every earlier age sheds what lies
+    // beyond its carrying capacity, which a map-sized empire with test-sized
+    // troops would trip. Keep both in Modern so only annexation is measured.
+    largePlayer.setAge(Age.Modern);
+    smallPlayer.setAge(Age.Modern);
 
     game.addExecution(new PlayerExecution(largePlayer));
     game.addExecution(new PlayerExecution(smallPlayer));

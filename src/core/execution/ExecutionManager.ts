@@ -18,12 +18,14 @@ import { EmbargoAllExecution } from "./EmbargoAllExecution";
 import { EmbargoExecution } from "./EmbargoExecution";
 import { EmojiExecution } from "./EmojiExecution";
 import { HarvestExecution } from "./HarvestExecution";
+import { MammothHerdExecution } from "./MammothHerdExecution";
 import { MarkDisconnectedExecution } from "./MarkDisconnectedExecution";
 import { MoveWarshipExecution } from "./MoveWarshipExecution";
 import { NationExecution } from "./NationExecution";
 import { NoOpExecution } from "./NoOpExecution";
 import { PauseExecution } from "./PauseExecution";
 import { PrimitiveMigrationExecution } from "./PrimitiveMigrationExecution";
+import { PrimitiveRepopulationExecution } from "./PrimitiveRepopulationExecution";
 import { QuickChatExecution } from "./QuickChatExecution";
 import { RaidExecution } from "./RaidExecution";
 import { ResourceSeedExecution } from "./ResourceSeedExecution";
@@ -32,8 +34,6 @@ import { RetreatExecution } from "./RetreatExecution";
 import { SpawnExecution } from "./SpawnExecution";
 import { TargetPlayerExecution } from "./TargetPlayerExecution";
 import { TransportShipExecution } from "./TransportShipExecution";
-import { MammothHerdExecution } from "./MammothHerdExecution";
-import { PrimitiveRepopulationExecution } from "./PrimitiveRepopulationExecution";
 import { TribeSpawner } from "./TribeSpawner";
 import { UpgradeStructureExecution } from "./UpgradeStructureExecution";
 import { PlayerSpawner } from "./utils/PlayerSpawner";
@@ -70,6 +70,8 @@ export class Executor {
           player,
           intent.targetID,
           null,
+          true,
+          intent.focus ?? null,
         );
       }
       case "cancel_attack":

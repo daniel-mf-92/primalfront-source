@@ -390,9 +390,10 @@ describe("Hard/Impossible troop floor", () => {
     );
     testGame.addPlayer(nationInfo);
     const nation = testGame.player("lone_id");
-    // Keep this fixture focused on land-attack troop caps. Primitive nations
-    // migrate into wilderness instead of creating an AttackExecution.
-    nation.setAge(Age.Classical);
+    // Keep this fixture focused on land-attack troop caps: half the map is far
+    // past any roaming age's carrying capacity (a capped tribe sends no
+    // wilderness attack at all), so use the Modern age, where land is unbounded.
+    nation.setAge(Age.Modern);
     let assigned = 0;
     testGame.map().forEachTile((tile) => {
       if (!testGame.map().isLand(tile)) return;

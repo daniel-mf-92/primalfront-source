@@ -1983,6 +1983,17 @@ export class PlayerImpl implements Player {
     if (this.mg.config().isUnitDisabled(unitType)) {
       return false;
     }
+    // The Stone Age exit gate: no Permanent Settlement until the ice has
+    // mostly receded (see Config.settlementMaxIceFraction). Pure function of
+    // the tick - lockstep-safe.
+    if (
+      unitType === UnitType.City &&
+      this.age() === Age.Primitive &&
+      this.mg.config().climateIceFractionAtTick(this.mg.ticks()) >
+        this.mg.config().settlementMaxIceFraction()
+    ) {
+      return false;
+    }
     const cost = knownCost ?? this.mg.unitInfo(unitType).cost(this.mg, this);
     if (this._gold < cost) {
       return false;

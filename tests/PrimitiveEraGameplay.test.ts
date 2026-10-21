@@ -257,7 +257,7 @@ describe("Primitive Era gameplay", () => {
     expect(bounds.fillRatio).toBeGreaterThanOrEqual(0.45);
   });
 
-  test("primitive bot wilderness expansion uses migration instead of attack heartbeat", async () => {
+  test("primitive bot wilderness expansion attacks like every other age (migration retired)", async () => {
     const game = await setup(
       "big_plains",
       { infiniteGold: true, instantBuild: true },
@@ -268,6 +268,9 @@ describe("Primitive Era gameplay", () => {
     const info = new PlayerInfo("bot", PlayerType.Bot, null, "bot");
     const bot = game.addPlayer(info);
     conquerBlock(game, bot, 40, 40, 10, 5);
+    // Above the bot's own expansion reserve (35% of its troop cap), or it
+    // would not send anything.
+    bot.setTroops(60_000);
 
     const behavior = new AiAttackBehavior(
       new PseudoRandom(7),
@@ -280,26 +283,12 @@ describe("Primitive Era gameplay", () => {
     expect(behavior.sendAttack(game.terraNullius())).toBe(true);
 
     game.executeNextTick();
-    const target = bot.migrationTarget();
-    expect(target).not.toBeNull();
-    if (target === null) {
-      throw new Error("expected primitive bot migration target");
-    }
-    expect(bot.outgoingAttacks()).toHaveLength(0);
-    const distanceAfterStart = closestOwnedDistance(game, bot, target);
-
-    for (let i = 0; i < 20; i++) {
-      game.executeNextTick();
-    }
-
-    expect(
-      bot.tiles().has(target) ||
-        closestOwnedDistance(game, bot, target) < distanceAfterStart,
-    ).toBe(true);
-    expect(bot.numTilesOwned()).toBe(effectiveMigrationCapacity(game, bot));
+    // No camp migration any more: the tribe sends a real attack onto the wild.
+    expect(bot.migrationTarget()).toBeNull();
+    expect(bot.outgoingAttacks().length).toBeGreaterThan(0);
   });
 
-  test("primitive nation wilderness expansion uses migration instead of old static growth", async () => {
+  test("primitive nation wilderness expansion attacks like every other age", async () => {
     const game = await setup(
       "big_plains",
       { infiniteGold: true, instantBuild: true },
@@ -310,6 +299,7 @@ describe("Primitive Era gameplay", () => {
     const info = new PlayerInfo("nation", PlayerType.Nation, null, "nation");
     const nation = game.addPlayer(info);
     conquerBlock(game, nation, 40, 40, 10, 5);
+    nation.setTroops(60_000);
 
     const behavior = new AiAttackBehavior(
       new PseudoRandom(9),
@@ -322,12 +312,8 @@ describe("Primitive Era gameplay", () => {
     behavior.forceSendAttack(game.terraNullius());
 
     game.executeNextTick();
-    const target = nation.migrationTarget();
-    expect(target).not.toBeNull();
-    expect(nation.outgoingAttacks()).toHaveLength(0);
-    expect(nation.numTilesOwned()).toBeLessThanOrEqual(
-      game.config().primitiveMigrationCapacity(nation),
-    );
+    expect(nation.migrationTarget()).toBeNull();
+    expect(nation.outgoingAttacks().length).toBeGreaterThan(0);
   });
 
   test("primitive bots keep the same basic roaming floor as humans after settling", async () => {
@@ -350,6 +336,9 @@ describe("Primitive Era gameplay", () => {
     game.addExecution(new PrimitiveMigrationExecution(bot, game.ref(70, 42)));
 
     let minOwned = bot.numTilesOwned();
+    // The floor only protects land a tribe already holds: a seed blob smaller
+    // than the (2026-10-21, 250-tile) base is never trimmed, but not grown.
+    const floor = Math.min(base, bot.numTilesOwned());
     // Bots roam on alternate ticks and advance as a compact face
     // (2026-07-02) — give the journey a proportionally longer window.
     for (let i = 0; i < 340; i++) {
@@ -358,8 +347,8 @@ describe("Primitive Era gameplay", () => {
     }
 
     expect(bot.migrationTarget()).toBeNull();
-    expect(minOwned).toBeGreaterThanOrEqual(base);
-    expect(bot.numTilesOwned()).toBeGreaterThanOrEqual(base);
+    expect(minOwned).toBeGreaterThanOrEqual(floor);
+    expect(bot.numTilesOwned()).toBeGreaterThanOrEqual(floor);
   });
 
   test("primitive bot encampment movement does not stack old Hut land behind the roam", async () => {
@@ -601,7 +590,9 @@ describe("Primitive Era gameplay", () => {
     // capacity floor. Seed a compact blob ABOVE the floor (capacity raised
     // 2026-07-02) so it must ease DOWN to the floor without dipping below.
     player.setTroops(600);
-    conquerBlock(game, player, 40, 40, 15, 14);
+    // 432 tiles: well past the 250-tile roaming band (2026-10-21), so the
+    // over-cap shed has something to do.
+    conquerBlock(game, player, 40, 40, 24, 18);
 
     const startOwned = player.numTilesOwned();
     const base = effectiveMigrationCapacity(game, player);

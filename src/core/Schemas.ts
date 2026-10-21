@@ -372,6 +372,8 @@ export const AttackIntentSchema = z.object({
   type: z.literal("attack"),
   targetID: ID.nullable(),
   troops: z.number().nonnegative().nullable(),
+  // The clicked land tile: the attack grows toward it (nomadic direction).
+  focus: z.number().int().nonnegative().optional(),
 });
 
 export const PrimitiveMigrationIntentSchema = z.object({

@@ -426,22 +426,22 @@ export class PlayerExecution implements Execution {
     // Classical (Kingdom) era anchors MORE land than a Primitive nomad: cities
     // project a wider hinterland, so widen both. (Packs shrink them instead — a
     // pack/Classical state are mutually exclusive: packs stay Primitive.)
-    const isClassical = this.player.age() === Age.Classical;
-    const classicalMult = this.config.classicalSupportRadiusMult();
+    // Nomadic attrition gradient: every age before Modern holds a radius and
+    // sheds at a rate set per age (Config.supportRadiusMult / rewildBudgetMult);
+    // Primitive is the 1x reference, Classical the old 2x / 0.4x kingdom.
+    const age = this.player.age();
+    const ageRadiusMult = this.config.supportRadiusMult(age);
     let campRadius = this.config.nomadCampSupportRadius();
     const radiusFor = (r: number): number => {
       if (isPack) {
         return Math.max(1, Math.floor(r / mult));
       }
-      if (isClassical) {
-        return Math.round(r * classicalMult);
-      }
-      return r;
+      return Math.round(r * ageRadiusMult);
     };
     if (isPack) {
       campRadius = Math.max(1, Math.floor(campRadius / mult));
-    } else if (isClassical) {
-      campRadius = Math.round(campRadius * classicalMult);
+    } else {
+      campRadius = Math.round(campRadius * ageRadiusMult);
     }
     const campR2 = campRadius ** 2;
 
@@ -526,10 +526,10 @@ export class PlayerExecution implements Execution {
     let budget = this.config.maxRewildTilesPerTick();
     if (isPack) {
       budget = Math.max(1, Math.round(budget * mult));
-    } else if (isClassical) {
+    } else {
       budget = Math.max(
         1,
-        Math.round(budget * this.config.classicalRewildBudgetMult()),
+        Math.round(budget * this.config.rewildBudgetMult(age)),
       );
     }
     for (let i = 0; i < candidates.length && i < budget; i++) {
@@ -559,7 +559,11 @@ export class PlayerExecution implements Execution {
     // NPC tribes use the same population+settlement carrying capacity as
     // humans — the migration-capacity floor below applies to all Primitive
     // roamers, so the old NPC-only fixed-blob path is gone.
-    const rawCarryingCapacity = this.config.carryingCapacityTiles(this.player);
+    // Each age multiplies what population + settlements can hold
+    // (landCapacityMult); the two nomadic ages also get the roaming floor below.
+    const rawCarryingCapacity =
+      this.config.carryingCapacityTiles(this.player) *
+      this.config.landCapacityMult(age);
     const terrainAdjustedCarryingCapacity = this.config.roamsByMigration(
       this.player.age(),
     )
@@ -619,6 +623,10 @@ export class PlayerExecution implements Execution {
         if (anchoredByBuilding(tile, this.map, anchors)) {
           continue;
         }
+        // A wood stand is why the tribe came: the cap sheds plain land first.
+        if (this.map.resourceAt(tile).quantity > 0) {
+          continue;
+        }
         // Fresh conquests are spared (capture-grace): the cap sheds OLD
         // trailing land instead, so fighting for ground relocates the blob
         // toward the front rather than reverting the battle.
@@ -634,8 +642,23 @@ export class PlayerExecution implements Execution {
       // fast expansion can't balloon them into mass auto-splits. Primitive roamers
       // settle GENTLY instead (a few tiles/tick) so a roam that ends slightly
       // over-cap eases back into shape rather than snap-popping a chunk of land.
-      const capBudget = isPrimitiveRoamer
-        ? this.config.maxRewildTilesPerTick()
+      // The band TRANSLATES: whatever an attack adds at the front beyond the
+      // cap is shed from the back at the same order of speed - proportional to
+      // the overage, bounded by nomadShedPerPass - so a tribe walks instead of
+      // swelling, and a slightly over-cap roam still eases back without a snap.
+      // Later ages scale it down by their shed multiplier.
+      const gentle =
+        isPrimitiveRoamer || this.player.type() === PlayerType.Human;
+      const capBudget = gentle
+        ? Math.max(
+            1,
+            Math.round(
+              Math.min(
+                Math.max(this.config.maxRewildTilesPerTick(), owned - cap),
+                this.config.nomadShedPerPass(),
+              ) * this.config.rewildBudgetMult(age),
+            ),
+          )
         : Math.max(
             this.config.maxRewildTilesPerTick(),
             Math.min(owned - cap, this.config.maxCarryingShedPerTick()),

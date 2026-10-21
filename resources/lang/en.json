@@ -63,6 +63,7 @@
     },
     "reason_gold": "Need {gold} more gold",
     "reason_hut_spacing": "Too close to another Hut",
+    "reason_ice": "The ice must recede first ({seconds}s)",
     "reason_outpost_cap": "Max {n} trading posts",
     "reason_place": "Can't build here",
     "warship_shift_hint": "Hold Shift and drag to select multiple warships at once"
@@ -383,7 +384,7 @@
     "era_focus_imperial": "Trade, administer conquest, and project force through harbors and fleets.",
     "era_focus_industrial": "Factories and transport networks turn wealth into relentless tempo.",
     "era_focus_modern": "Balance air power, missiles, coalitions, and nuclear deterrence.",
-    "era_focus_primitive": "Harvest, migrate, raid, and found one permanent settlement.",
+    "era_focus_primitive": "Harvest, roam, raid, and found one permanent settlement.",
     "era_number": "Age {numeral}",
     "era_standing_highest": "Highest",
     "era_standing_rank": "{ordinal} highest",
@@ -423,13 +424,13 @@
     "objective_build_keystone": "Build keystone",
     "objective_build_keystone_detail": "The next age needs its keystone structure before the gate opens.",
     "objective_convert_resources": "Wood is turning into gold",
-    "objective_convert_resources_detail": "Stay on the stand and save for your first Hut. When a stand runs dry, walk to the next one.",
+    "objective_convert_resources_detail": "Hold the stand and save for your first Hut. When a stand runs dry, claim the next one.",
     "objective_expand_defend": "Expand and defend",
     "objective_expand_defend_detail": "Hold efficient land, defend borders, and prepare the next age spike.",
     "objective_final_age": "Dominate the endgame",
     "objective_final_age_detail": "You are at the final age; win through renown, territory, or decisive strikes.",
-    "objective_find_resources": "Walk to the wood stand",
-    "objective_find_resources_detail": "Tap the glowing wood stand near your tribe. Your camp drifts there and gathers wood, which turns into gold.",
+    "objective_find_resources": "Claim the wood stand",
+    "objective_find_resources_detail": "Tap the glowing wood stand near your tribe: your troops spread onto it and the wood turns into gold.",
     "objective_found_city": "Found a Permanent Settlement",
     "objective_found_city_detail": "Save for the Permanent Settlement in the Build menu. Its price falls as the ice recedes; it anchors the tribe and unlocks the next age.",
     "objective_generate_tech": "Generate tech",
@@ -687,7 +688,7 @@
     "title": "Graphics Settings"
   },
   "guide_beacon": {
-    "move": "Camp moving here",
+    "move": "Claiming here",
     "wood": "Wood · {tiles} tiles"
   },
   "heads_up_message": {
@@ -730,8 +731,8 @@
     "exit_confirmation": "Are you sure you want to exit the game?",
     "game_id_tooltip": "Game ID",
     "hotkeys": "Hotkeys",
-    "how_to_play_1": "Tap land to move your camp. Your tribe drifts there; it cannot hold much ground yet.",
-    "how_to_play_2": "Walk onto a glowing wood stand. Wood inside your borders turns into gold by itself.",
+    "how_to_play_1": "Tap land to claim it: your troops spread onto it, growing toward where you tapped. A Stone Age tribe cannot hold much, so the land far behind you slowly goes wild again. Keep claiming toward what you need.",
+    "how_to_play_2": "Claim a glowing wood stand. Wood inside your borders turns into gold by itself.",
     "how_to_play_3": "Build a Hut on your own land (right-click or long-press, then Build). It holds the land around it. Farms and trading posts speed up gold.",
     "how_to_play_4": "Save for the Permanent Settlement, then press Advance. Your tribe becomes a kingdom and can hold far more land.",
     "how_to_play_5": "Tap a rival's land to attack it. The slider sets how many troops you send.",

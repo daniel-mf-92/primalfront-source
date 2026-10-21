@@ -690,15 +690,16 @@ describe("[6] Glob drift: an oversized Primitive bot sheds its unsupported front
     expect(player.type()).toBe(PlayerType.Bot);
     expect(player.age()).toBe(Age.Primitive);
 
-    // A solid 16x16 = 256-tile blob, all contiguous. With no settlement, only
+    // A solid 24x24 = 576-tile blob, all contiguous (16x16 fit inside the camp
+    // radius and under the 250-tile roaming band of 2026-10-21, so nothing shed). With no settlement, only
     // land within nomadCampSupportRadius (11) of the centroid is supported, so
     // the exposed corners/far frontier re-wild while the core is held.
     const camR = game.config().nomadCampSupportRadius();
     expect(camR).toBeGreaterThan(0);
     const x0 = 20;
     const y0 = 20;
-    const W = 16;
-    const H = 16;
+    const W = 24;
+    const H = 24;
     for (let y = y0; y < y0 + H; y++) {
       for (let x = x0; x < x0 + W; x++) {
         player.conquer(game.ref(x, y));

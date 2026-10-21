@@ -23,7 +23,7 @@ describe("carrying-capacity floor is inherited, not destroyed", () => {
   test("a fresh tribe still gets exactly one subsistence floor", async () => {
     const [game, a] = await twoTribes();
     expect(a.absorbedTribes()).toBe(0);
-    expect(game.config().carryingBaseTiles(a)).toBe(90);
+    expect(game.config().carryingBaseTiles(a)).toBe(250);
   });
 
   test("the law keeps its shape: base plus population", async () => {
@@ -40,7 +40,7 @@ describe("carrying-capacity floor is inherited, not destroyed", () => {
     const [game, a, b] = await twoTribes();
     game.conquerPlayer(a, b);
     expect(a.absorbedTribes()).toBe(1);
-    expect(game.config().carryingBaseTiles(a)).toBe(180);
+    expect(game.config().carryingBaseTiles(a)).toBe(500);
   });
 
   test("a chain of conquests conserves world capacity", async () => {
@@ -50,7 +50,7 @@ describe("carrying-capacity floor is inherited, not destroyed", () => {
     game.conquerPlayer(a, b);
     // 1 (b itself) + 2 (what b held) = 3 inherited, plus a's own floor.
     expect(a.absorbedTribes()).toBe(3);
-    expect(game.config().carryingBaseTiles(a)).toBe(360);
+    expect(game.config().carryingBaseTiles(a)).toBe(1000);
   });
 
   test("conquest is no longer net-negative on capacity", async () => {

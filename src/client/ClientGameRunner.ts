@@ -13,7 +13,6 @@ import {
 } from "../core/Schemas";
 import { createPartialGameRecord, findClosestBy, replacer } from "../core/Util";
 import {
-  Age,
   BuildableUnit,
   PlayerType,
   Structures,
@@ -62,7 +61,6 @@ import {
   SendBoatAttackIntentEvent,
   SendBreakAllianceIntentEvent,
   SendHashEvent,
-  SendPrimitiveMigrationIntentEvent,
   SendRaidIntentEvent,
   SendSpawnIntentEvent,
   SendUpgradeStructureIntentEvent,
@@ -442,7 +440,8 @@ function mountWebGLFrameLoop(
     view.showMoveIndicator(tx, ty, firstUnit.owner().smallID());
   });
 
-  eventBus.on(SendPrimitiveMigrationIntentEvent, (e) => {
+  eventBus.on(SendAttackIntentEvent, (e) => {
+    if (e.tile === null) return;
     const player = gameView.myPlayer();
     if (player === null) return;
     view.showMoveIndicator(
@@ -465,11 +464,6 @@ function mountWebGLFrameLoop(
   // raid path above has its own ring FX; this covers land + boat attacks.
   eventBus.on(SendAttackIntentEvent, () => {
     eventBus.emit(new PlaySoundEffectEvent("attack-order"));
-  });
-  // A Primitive land click is a camp move, not an attack: give it its own
-  // acknowledgement (the on-map marker is drawn by GuideBeacon).
-  eventBus.on(SendPrimitiveMigrationIntentEvent, () => {
-    eventBus.emit(new PlaySoundEffectEvent("click"));
   });
   eventBus.on(SendBoatAttackIntentEvent, (e) => {
     eventBus.emit(new PlaySoundEffectEvent("attack-order"));
@@ -1034,20 +1028,16 @@ export class ClientGameRunner {
       if (myPlayer === null) return;
       this.myPlayer = myPlayer;
     }
-    if (
-      this.myPlayer.age() === Age.Primitive &&
-      this.gameView.isLand(tile) &&
-      !this.gameView.hasOwner(tile)
-    ) {
-      this.eventBus.emit(new SendPrimitiveMigrationIntentEvent(tile));
-      return;
-    }
+    // Every age expands the OpenFront way: a land click sends troops onto
+    // that land, growing toward the clicked tile. (The Stone Age used to turn
+    // this into a slow camp migration instead - retired 2026-10-21.)
     this.myPlayer.actions(tile, [UnitType.TransportShip]).then((actions) => {
       if (actions.canAttack) {
         this.eventBus.emit(
           new SendAttackIntentEvent(
             this.gameView.owner(tile).id(),
             this.myPlayer!.troops() * this.renderer.uiState.attackRatio,
+            tile,
           ),
         );
       } else if (this.canAutoBoat(actions.buildableUnits, tile)) {

@@ -5,7 +5,7 @@ import { Age, Cell, ResourceKind } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { Controller } from "../../Controller";
 import { TransformHandler } from "../../TransformHandler";
-import { SendPrimitiveMigrationIntentEvent } from "../../Transport";
+import { SendAttackIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
 import { chooseObjective } from "./ObjectiveRail";
@@ -18,8 +18,8 @@ import { chooseObjective } from "./ObjectiveRail";
 //    resource income. Before this, the objective said "find a resource
 //    frontier" and nothing on the map said where (real-screen audit
 //    2026-10-21: ten minutes, objective pinned at 0%).
-//  - MOVE: where the camp was just told to go. A land click in the Primitive
-//    era is a slow camp migration, not an attack, and used to give no
+//  - MOVE: where the tribe was just told to go. A land click sends troops
+//    toward that tile (every age, since 2026-10-21) and used to give no
 //    acknowledgement at all.
 //
 // Positions are re-derived every animation frame from the camera, so the
@@ -124,7 +124,8 @@ export class GuideBeacon extends LitElement implements Controller {
   }
 
   init() {
-    this.eventBus.on(SendPrimitiveMigrationIntentEvent, (e) => {
+    this.eventBus.on(SendAttackIntentEvent, (e) => {
+      if (e.tile === null) return;
       this.moveTile = e.tile;
       this.moveSetTick = this.game.ticks();
       this.move = { x: this.game.x(e.tile), y: this.game.y(e.tile) };

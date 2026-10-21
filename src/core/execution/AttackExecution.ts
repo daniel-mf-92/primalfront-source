@@ -48,6 +48,11 @@ export class AttackExecution implements Execution {
     private _targetID: PlayerID | null,
     private sourceTile: TileRef | null = null,
     private removeTroops: boolean = true,
+    // Nomadic direction (Marta 2026-10-21): the land tile the player clicked.
+    // Tiles nearer to it are taken first, so the front grows toward the click
+    // and the attrition behind sheds the far side - a tribe that WALKS where
+    // you point instead of swelling evenly. Null = classic even expansion.
+    private focusTile: TileRef | null = null,
   ) {}
 
   public targetID(): PlayerID | null {
@@ -266,6 +271,25 @@ export class AttackExecution implements Execution {
       this.retreat();
       return;
     }
+    // Nomadic attrition: a roaming-age tribe stops claiming wilderness once it
+    // holds nomadOvershootMult x its carrying capacity. The troops come home
+    // and the back of the band goes wild (PlayerExecution's shed), so the
+    // tribe walks where it was pointed instead of swelling. Pure function of
+    // replicated state - lockstep-safe.
+    if (!targetIsPlayer) {
+      const cfg = this.mg.config();
+      const age = this._owner.age();
+      if (cfg.rewildEnabled(age)) {
+        const cap =
+          cfg.carryingCapacityTiles(this._owner) *
+          cfg.landCapacityMult(age) *
+          cfg.climateLandScale(this.mg);
+        if (this._owner.numTilesOwned() >= cap * cfg.nomadOvershootMult()) {
+          this.retreat();
+          return;
+        }
+      }
+    }
 
     const numTilesPerTick = this.mg
       .config()
@@ -453,9 +477,19 @@ export class AttackExecution implements Execution {
           break;
       }
 
-      const priority =
+      let priority =
         (this.random.nextInt(0, 7) + 10) * (1 - numOwnedByMe * 0.5 + mag / 2) +
         tickNow;
+      if (this.focusTile !== null) {
+        // Directed expansion: each tile of distance from the clicked tile costs
+        // attackFocusWeight() of priority (same unit as the tick term), capped
+        // so a far click does not freeze the near front.
+        priority +=
+          Math.min(
+            this.mg.config().attackFocusMaxDist(),
+            this.mg.manhattanDist(neighbor, this.focusTile),
+          ) * this.mg.config().attackFocusWeight();
+      }
 
       this.toConquer.enqueue(neighbor, priority);
     }

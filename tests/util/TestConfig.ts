@@ -9,6 +9,12 @@ import {
 import { TileRef } from "../../src/core/game/GameMap";
 
 export class TestConfig extends Config {
+  // Tests build Cities at tick 0; the Stone Age ice gate (minute 9) is
+  // covered on its own in tests/NomadicAttrition.test.ts.
+  settlementMaxIceFraction(): number {
+    return 1;
+  }
+
   private _proximityBonusPortsNb: number = 0;
   private _defaultNukeSpeed: number = 4;
   private _spawnImmunityDuration: number = 0;

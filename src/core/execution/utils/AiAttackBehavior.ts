@@ -1,5 +1,4 @@
 import {
-  Age,
   Difficulty,
   Game,
   GameMode,
@@ -9,7 +8,6 @@ import {
   PlayerID,
   PlayerType,
   Relation,
-  ResourceKind,
   Structures,
   TerraNullius,
   UnitType,
@@ -32,7 +30,6 @@ import {
   EMOJI_ASSIST_TARGET_ME,
   NationEmojiBehavior,
 } from "../nation/NationEmojiBehavior";
-import { PrimitiveMigrationExecution } from "../PrimitiveMigrationExecution";
 import { TransportShipExecution } from "../TransportShipExecution";
 import { closestTwoTiles } from "../Util";
 
@@ -734,8 +731,23 @@ export class AiAttackBehavior {
     return traitors.length > 0 ? this.random.randElement(traitors) : null;
   }
 
+  // A roaming-age tribe at its carrying capacity gains nothing from more
+  // wilderness: the shed would hand it straight back. Spare the troops (and
+  // the per-tick cost of a pointless attack) and let the tribe fight or settle
+  // instead. Pure function of replicated state - lockstep-safe.
+  private atLandCapacity(): boolean {
+    const config = this.game.config();
+    const age = this.player.age();
+    if (!config.rewildEnabled(age)) return false;
+    const cap =
+      config.carryingCapacityTiles(this.player) *
+      config.landCapacityMult(age) *
+      config.climateLandScale(this.game);
+    return this.player.numTilesOwned() >= cap;
+  }
+
   forceSendAttack(target: Player | TerraNullius) {
-    if (!target.isPlayer() && this.sendPrimitiveTerraNulliusMigration()) {
+    if (!target.isPlayer() && this.atLandCapacity()) {
       return;
     }
     this.game.addExecution(
@@ -757,8 +769,8 @@ export class AiAttackBehavior {
         return this.sendBoatAttack(target);
       }
     } else {
-      if (this.sendPrimitiveTerraNulliusMigration()) {
-        return true;
+      if (this.atLandCapacity()) {
+        return false;
       }
       // sharesBorderWith(TerraNullius) counts water tiles as TN (ownerID 0 = TN smallID),
       // so use a land-only adjacency check to decide land vs boat attack.
@@ -768,140 +780,6 @@ export class AiAttackBehavior {
         return this.sendBoatAttackToNearbyTerraNullius();
       }
     }
-  }
-
-  private sendPrimitiveTerraNulliusMigration(): boolean {
-    if (
-      this.player.type() === PlayerType.Human ||
-      this.player.age() !== Age.Primitive
-    ) {
-      return false;
-    }
-    if (this.player.isMigrating()) {
-      return true;
-    }
-    const target = this.findPrimitiveMigrationTarget();
-    if (target === null) {
-      return false;
-    }
-    this.game.addExecution(
-      new PrimitiveMigrationExecution(this.player, target),
-    );
-    return true;
-  }
-
-  private findPrimitiveMigrationTarget(): TileRef | null {
-    const center = this.playerTileCenter();
-    if (center === null) {
-      return null;
-    }
-
-    let best: TileRef | null = null;
-    let bestScore = -Infinity;
-    for (const border of this.player.borderTiles()) {
-      for (const neighbor of this.game.neighbors(border)) {
-        if (!this.canPrimitiveMigrateInto(neighbor)) {
-          continue;
-        }
-        const target = this.projectPrimitiveMigrationTarget(
-          neighbor,
-          center.x,
-          center.y,
-        );
-        const dx = this.game.x(target) - center.x;
-        const dy = this.game.y(target) - center.y;
-        // Resource attraction (owner direction 2026-07-04: tribes should roam
-        // "looking for resources"). A wild node on the frontier seed strongly
-        // biases the chosen roam direction, so NPC tribes drift toward wood /
-        // rock / meat stands instead of clumping on the nearest open ground.
-        const resource = this.game.resourceAt(neighbor);
-        const resourcePull =
-          resource.kind === ResourceKind.None
-            ? 0
-            : Math.min(12, resource.quantity) * 3200;
-        const score =
-          (dx * dx + dy * dy) * 1000 +
-          this.openPrimitiveNeighborCount(neighbor) * 100 +
-          resourcePull -
-          target;
-        if (score > bestScore) {
-          best = target;
-          bestScore = score;
-        }
-      }
-    }
-    return best;
-  }
-
-  private playerTileCenter(): { x: number; y: number } | null {
-    let x = 0;
-    let y = 0;
-    let count = 0;
-    for (const tile of this.player.tiles()) {
-      x += this.game.x(tile);
-      y += this.game.y(tile);
-      count++;
-    }
-    if (count === 0) {
-      return null;
-    }
-    return { x: x / count, y: y / count };
-  }
-
-  private projectPrimitiveMigrationTarget(
-    seed: TileRef,
-    centerX: number,
-    centerY: number,
-  ): TileRef {
-    const seedX = this.game.x(seed);
-    const seedY = this.game.y(seed);
-    let stepX = Math.sign(seedX - centerX);
-    let stepY = Math.sign(seedY - centerY);
-    if (Math.abs(seedX - centerX) >= Math.abs(seedY - centerY)) {
-      stepY = 0;
-    } else {
-      stepX = 0;
-    }
-    if (stepX === 0 && stepY === 0) {
-      return seed;
-    }
-
-    const maxSteps = Math.max(
-      8,
-      this.game.config().nomadCampSupportRadius() * 2,
-    );
-    let best = seed;
-    for (let i = 1; i <= maxSteps; i++) {
-      const x = seedX + stepX * i;
-      const y = seedY + stepY * i;
-      if (!this.game.isValidCoord(x, y)) {
-        break;
-      }
-      const tile = this.game.ref(x, y);
-      if (!this.canPrimitiveMigrateInto(tile)) {
-        break;
-      }
-      best = tile;
-    }
-    return best;
-  }
-
-  private canPrimitiveMigrateInto(tile: TileRef): boolean {
-    return (
-      this.game.isLand(tile) &&
-      !this.game.hasOwner(tile) &&
-      !this.game.hasFallout(tile)
-    );
-  }
-
-  private openPrimitiveNeighborCount(tile: TileRef): number {
-    let count = 0;
-    for (const neighbor of this.game.neighbors(tile)) {
-      if (this.canPrimitiveMigrateInto(neighbor)) {
-        count++;
-      }
-    }
-    return count;
   }
 
   private hasLandBorderWithTerraNullius(): boolean {
