@@ -94,6 +94,6 @@ describe("era ladder length stays hidden", () => {
     const en = JSON.parse(
       fs.readFileSync(path.join(repoRoot, "resources/lang/en.json"), "utf8"),
     );
-    expect(en.control_panel.era_number).toBe("Era {numeral}");
+    expect(en.control_panel.era_number).toBe("Age {numeral}");
   });
 });

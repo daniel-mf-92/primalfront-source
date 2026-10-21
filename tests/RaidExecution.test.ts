@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { RaidExecution } from "../src/core/execution/RaidExecution";
 import { Game, Player, PlayerInfo, PlayerType } from "../src/core/game/Game";
+import { GameUpdateType } from "../src/core/game/GameUpdates";
 import { setup } from "./util/Setup";
 
 // Build a 2-player game with the attacker/defender given tiles, gold and troops.
@@ -144,4 +145,39 @@ test("RaidExecution: cannot raid self (no-op)", async () => {
   game.addExecution(new RaidExecution(attacker, attacker.id()));
   game.executeNextTick();
   expect(attacker.gold()).toBe(goldBefore);
+});
+
+test("RaidExecution: both sides are told, and the victim hears how much gold left", async () => {
+  const { game, attacker, defender } = await raidWorld({
+    attackerGold: 1000n,
+    defenderGold: 10_000n,
+    attackerTroops: 50_000,
+    defenderTroops: 100,
+  });
+  game.addExecution(new RaidExecution(attacker, defender.id()));
+  const updates = game.executeNextTick();
+  const events = updates[GameUpdateType.DisplayEvent] ?? [];
+  const toDefender = events.filter((e) => e.playerID === defender.smallID());
+  const toAttacker = events.filter((e) => e.playerID === attacker.smallID());
+  // Whichever way the roll went, each side got exactly one line about it.
+  expect(
+    toDefender.filter((e) =>
+      /^events_display\.raid(ed_by|_repelled)$/.test(e.message),
+    ),
+  ).toHaveLength(1);
+  expect(
+    toAttacker.filter((e) =>
+      /^events_display\.raid_(success|failed)$/.test(e.message),
+    ),
+  ).toHaveLength(1);
+  const raided = toDefender.find(
+    (e) => e.message === "events_display.raided_by",
+  );
+  if (raided !== undefined) {
+    // The gold on the message is the gold that actually left the victim.
+    expect(raided.goldAmount).toBe(10_000n - defender.gold());
+    expect(raided.goldAmount).toBeGreaterThan(0n);
+    expect(raided.params?.name).toBe(attacker.displayName());
+    expect(raided.focusPlayerID).toBe(attacker.smallID());
+  }
 });

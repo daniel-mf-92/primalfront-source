@@ -283,6 +283,10 @@ export class SinglePlayerModal extends BaseModal {
                 selected: this.selectedDifficulty,
                 disabled: this.nations === 0,
               },
+              advanced: {
+                labelKey: "single_modal.more_options",
+                hintKey: "single_modal.more_options_hint",
+              },
               gameMode: {
                 selected: this.gameMode,
               },

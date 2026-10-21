@@ -868,6 +868,19 @@ news-button .active button::after {
     max-height: 28vh;
   }
 }
+/* Phone legibility (UX audit 2026-10-21, item 7): the HUD's label tier was
+   0.7rem in the dimmest ink and the era copy 0.62-0.68rem, which is 7-10px on
+   a 390px phone. On touch nothing in the HUD goes below 12px and labels use a
+   brighter ink. */
+@media (max-width: 767px), (pointer: coarse) {
+  :root {
+    --fz-label: 0.78rem;
+    --text-lo: #a99d86;
+  }
+  .tc-triumph-mark {
+    font-size: 11px;
+  }
+}
 /* A phone held sideways has ~390px of height: 28vh is one row, and the
    objective card was cut through its roadmap (audit 2026-10-21). Give the bar
    the room it needs and drop the explanatory copy instead. */
@@ -1278,19 +1291,19 @@ news-button .active button::after {
   .tc-era-unlock,
   .tc-transition-timing,
   .tc-era-final {
-    font-size: 0.68rem;
-    line-height: 1.25;
+    font-size: 0.8rem;
+    line-height: 1.3;
   }
   .tc-triumph-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .tc-triumph {
-    font-size: 0.62rem;
+    font-size: 0.76rem;
   }
   .tc-era-transition .tc-advance-btn {
     min-height: 40px;
     padding: 4px 6px;
-    font-size: 0.72rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -1687,6 +1700,11 @@ news-button .active button::after {
 @media (max-width: 430px) {
   .win-modal-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+  /* Three stats on a two-column grid left an empty cell with the map showing
+     through it; the odd one spans the row instead. */
+  .win-modal-stats .win-stat:nth-child(3):last-child {
+    grid-column: span 2;
   }
 }
 /* Host-level filter so the confirmation reads through o-button's shadow root. */

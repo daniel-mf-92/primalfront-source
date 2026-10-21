@@ -30,7 +30,7 @@ function duration(seconds: number): string {
 }
 
 export function challengePreviewTitle(c: Challenge): string {
-  return `Era ${ROMAN[c.era] ?? c.era} · ${c.tiles.toLocaleString("en-US")} tiles · ${duration(c.seconds)} — can you beat it?`;
+  return `Age ${ROMAN[c.era] ?? c.era} · ${c.tiles.toLocaleString("en-US")} tiles · ${duration(c.seconds)} — can you beat it?`;
 }
 
 export function challengePreviewDescription(c: Challenge): string {

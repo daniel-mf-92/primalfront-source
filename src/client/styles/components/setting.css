@@ -400,3 +400,39 @@
     0 2px 0 var(--surface-3),
     var(--ring-accent);
 }
+
+/* "More options" disclosure on the practice form (UX audit 2026-10-21, item 10). */
+.pf-advanced > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+.pf-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+.pf-advanced > summary::before {
+  content: "\25B8";
+  color: var(--text-dim);
+  transition: transform var(--dur-micro) var(--ease);
+}
+.pf-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+.pf-advanced__label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.pf-advanced__hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}

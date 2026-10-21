@@ -273,6 +273,7 @@ export function createRenderer(
     console.error("alert frame not found");
   }
   alertFrame.game = game;
+  alertFrame.eventBus = eventBus;
 
   const spawnTimer = document.querySelector("spawn-timer") as SpawnTimer;
   if (!(spawnTimer instanceof SpawnTimer)) {

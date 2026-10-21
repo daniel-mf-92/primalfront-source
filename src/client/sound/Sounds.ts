@@ -24,7 +24,8 @@ export type SoundEffect =
   | "great-work-setback"
   | "attack-order"
   | "message"
-  | "click";
+  | "click"
+  | "under-attack";
 
 export const soundEffectUrls: ReadonlyMap<SoundEffect, string> = new Map([
   ["ka-ching", assetUrl("sounds/effects/ka-ching.mp3")],
@@ -50,6 +51,7 @@ export const soundEffectUrls: ReadonlyMap<SoundEffect, string> = new Map([
   ["attack-order", assetUrl("sounds/effects/attack-order.wav")],
   ["message", assetUrl("sounds/effects/message.mp3")],
   ["click", assetUrl("sounds/effects/click.mp3")],
+  ["under-attack", assetUrl("sounds/effects/under-attack.wav")],
 ]);
 
 export class PlaySoundEffectEvent implements GameEvent {

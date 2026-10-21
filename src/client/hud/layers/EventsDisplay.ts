@@ -59,6 +59,8 @@ const TIER_1_TYPES: ReadonlySet<MessageType> = new Set([
   MessageType.CONQUERED_PLAYER,
   MessageType.CHAT,
   MessageType.DONATION_RECEIVED,
+  MessageType.RAID_SUFFERED,
+  MessageType.RAID_SUCCESS,
 ]);
 
 const isTier1 = (type: MessageType): boolean => TIER_1_TYPES.has(type);
@@ -252,7 +254,23 @@ export class EventsDisplay extends LitElement implements Controller {
 
     let description: string = event.message;
     if (event.message.startsWith("events_display.")) {
-      description = translateText(event.message, event.params ?? {});
+      const params: Record<string, string | number> = {
+        ...(event.params ?? {}),
+      };
+      if (event.goldAmount !== undefined && params.gold === undefined) {
+        params.gold = renderNumber(event.goldAmount);
+      }
+      description = translateText(event.message, params);
+    }
+    if (event.messageType === MessageType.RAID_SUFFERED) {
+      // A raid is the one hit that leaves no mark on the map: say it out loud
+      // and at the top of the screen, not only in the scrolling feed.
+      this.eventBus.emit(new PlaySoundEffectEvent("great-work-setback"));
+      window.dispatchEvent(
+        new CustomEvent("show-message", {
+          detail: { message: description, color: "red", duration: 3500 },
+        }),
+      );
     }
 
     const unitView =

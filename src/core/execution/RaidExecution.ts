@@ -94,7 +94,7 @@ export class RaidExecution implements Execution {
     if (success) {
       this.resolveSuccess(defender);
     } else {
-      this.resolveFailure();
+      this.resolveFailure(defender);
     }
     this.active = false;
   }
@@ -107,11 +107,32 @@ export class RaidExecution implements Execution {
     // the transfer is conserved even if the balance shifted.
     const lootBps = BigInt(Math.round(config.raidLootFraction() * 10000));
     const lootTarget = (defender.gold() * lootBps) / 10000n;
+    let seized = 0n;
     if (lootTarget > 0n) {
-      const seized = defender.removeGold(lootTarget);
+      seized = defender.removeGold(lootTarget);
       this.attacker.addGold(seized);
       this.mg.stats().goldWar(this.attacker, defender, seized);
     }
+    // Both sides hear about it. Gold leaving a tribe with no border change and
+    // no message read as "gold drains for no reason" on a real screen.
+    this.mg.displayMessage(
+      "events_display.raided_by",
+      MessageType.RAID_SUFFERED,
+      defender.id(),
+      seized,
+      { name: this.attacker.displayName() },
+      undefined,
+      this.attacker.id(),
+    );
+    this.mg.displayMessage(
+      "events_display.raid_success",
+      MessageType.RAID_SUCCESS,
+      this.attacker.id(),
+      seized,
+      { name: defender.displayName() },
+      undefined,
+      defender.id(),
+    );
 
     // Steal a small sliver of troops — half the loot fraction, deterministic
     // floor (no RNG, no float-cast of a bigint).
@@ -191,13 +212,31 @@ export class RaidExecution implements Execution {
     }
   }
 
-  private resolveFailure(): void {
+  private resolveFailure(defender: Player): void {
     // The raiding party is bloodied — a small flat troop loss. Deterministic,
     // no RNG (the only roll was the success check).
     const loss = Math.floor(this.attacker.troops() * 0.02);
     if (loss > 0) {
       this.attacker.removeTroops(loss);
     }
+    this.mg.displayMessage(
+      "events_display.raid_failed",
+      MessageType.RAID_FAILED,
+      this.attacker.id(),
+      undefined,
+      { name: defender.displayName() },
+      undefined,
+      defender.id(),
+    );
+    this.mg.displayMessage(
+      "events_display.raid_repelled",
+      MessageType.RAID_REPELLED,
+      defender.id(),
+      undefined,
+      { name: this.attacker.displayName() },
+      undefined,
+      this.attacker.id(),
+    );
   }
 
   tick(ticks: number): void {}

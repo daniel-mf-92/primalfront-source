@@ -21,7 +21,7 @@ describe("challenge link preview", () => {
     const c = parseChallenge("?c=3.1284.173.205.862&m=Europe&d=Hard&k=1")!;
     const html = applyChallengePreview(SHELL, c);
     expect(html).toContain(
-      '<meta property="og:title" content="Era III · 1,284 tiles · 14:22 — can you beat it?" />',
+      '<meta property="og:title" content="Age III · 1,284 tiles · 14:22 — can you beat it?" />',
     );
     expect(html).toContain("Outlasted 173 of 205 tribes");
     expect(html).toContain("on Europe (compact)");

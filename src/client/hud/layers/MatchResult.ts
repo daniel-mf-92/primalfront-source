@@ -128,8 +128,8 @@ export function formatShareText(
   mapName: string | null = null,
 ): string {
   const headline = outcome.won
-    ? `Won Primalfront at Era ${outcome.eraNumeral}`
-    : `Fell at Era ${outcome.eraNumeral} in Primalfront`;
+    ? `Won Primalfront at Age ${outcome.eraNumeral}`
+    : `Fell at Age ${outcome.eraNumeral} in Primalfront`;
   const parts = [headline, `${formatTiles(outcome.peakTiles)} tiles`];
   if (mapName !== null && mapName !== "") {
     parts.push(`on ${mapName}`);

@@ -200,6 +200,14 @@ export interface GameConfigSettingsData {
     titleKey: string;
     disabledUnits: UnitType[];
   };
+  // When set, everything after map + difficulty folds into one closed
+  // "More options" disclosure (UX audit 2026-10-21, item 10: a first practice
+  // form showed 20+ controls). The host lobby leaves it unset.
+  advanced?: {
+    labelKey: string;
+    hintKey?: string;
+    open?: boolean;
+  };
 }
 
 @customElement("game-config-settings")
@@ -303,202 +311,230 @@ export class GameConfigSettings extends LitElement {
 
     return html`
       <div class=${this.sectionGapClass}>
-        ${renderSection(
-          MAP_ICON,
-          "",
-          "map.map",
-          html`<map-picker
-            .selectedMap=${settings.map.selected}
-            .useRandomMap=${settings.map.useRandom}
-            .randomMapDivider=${settings.map.randomMapDivider ?? false}
-            .showMedals=${settings.map.showMedals ?? false}
-            .mapWins=${settings.map.mapWins ?? new Map()}
-            .onSelectMap=${this.handleSelectMap}
-            .onSelectRandom=${this.handleSelectRandom}
-          ></map-picker>`,
-        )}
-        ${renderSection(
-          DIFFICULTY_ICON,
-          "pf-section-icon--gain",
-          "difficulty.difficulty",
-          html`
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              ${DIFFICULTY_OPTIONS.map(([key, value]) => {
-                const isSelected = settings.difficulty.selected === value;
-                const isDisabled = settings.difficulty.disabled;
-                return html`
-                  <button
-                    ?disabled=${isDisabled}
-                    @click=${() =>
-                      !isDisabled &&
-                      this.handleDifficultySelect(value as Difficulty)}
-                    class="${isDisabled
-                      ? `${DISABLED_CARD} flex flex-col items-center p-4 gap-3`
-                      : cardClass(
-                          isSelected,
-                          "flex flex-col items-center p-4 gap-3",
-                        )}"
-                  >
-                    <difficulty-display
-                      .difficultyKey=${key}
-                      class="transform scale-125 origin-center ${isDisabled
-                        ? "pointer-events-none"
-                        : ""}"
-                    ></difficulty-display>
-                    <span
-                      class="${CARD_LABEL_CLASS} text-center mt-1 ${stateTextClass(
-                        isSelected,
-                      )}"
-                    >
-                      ${translateText(`difficulty.${key.toLowerCase()}`)}
-                    </span>
-                  </button>
-                `;
-              })}
-            </div>
-          `,
-        )}
-        ${renderSection(
-          MODE_ICON,
-          "pf-section-icon--violet",
-          "host_modal.mode",
-          html`
-            <div class="grid grid-cols-2 gap-4">
-              ${[GameMode.FFA, GameMode.Team].map((mode) => {
-                const isSelected = settings.gameMode.selected === mode;
-                return html`
-                  <button
-                    class="${cardClass(isSelected, "py-6 text-center")}"
-                    @click=${() => this.handleGameModeSelect(mode)}
-                  >
-                    <span class="pf-card-label">
-                      ${mode === GameMode.FFA
-                        ? translateText("game_mode.ffa")
-                        : translateText("game_mode.teams")}
-                    </span>
-                  </button>
-                `;
-              })}
-            </div>
-          `,
-        )}
-        ${settings.gameMode.selected === GameMode.FFA
-          ? nothing
-          : html`
-              <section class="space-y-6">
-                <div class="pf-section-kicker mb-4 pl-2">
-                  ${translateText("host_modal.team_count")}
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  ${TEAM_COUNT_OPTIONS.map((o) => {
-                    const isSelected = settings.teamCount.selected === o;
-                    return html`
-                      <button
-                        class="${cardClass(
-                          isSelected,
-                          "px-4 py-3 text-center",
-                        )}"
-                        @click=${() => this.handleTeamCountSelect(o)}
-                      >
-                        <span
-                          class="${CARD_LABEL_CLASS} ${stateTextClass(
-                            isSelected,
-                          )}"
-                        >
-                          ${typeof o === "string"
-                            ? o === HumansVsNations
-                              ? translateText("public_lobby.teams_hvn")
-                              : translateText(`host_modal.teams_${o}`)
-                            : translateText("public_lobby.teams", { num: o })}
-                        </span>
-                      </button>
-                    `;
-                  })}
-                </div>
-              </section>
-            `}
-        ${renderSection(
-          OPTIONS_ICON,
-          "pf-section-icon--ember",
-          settings.options.titleKey,
-          html`
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div
-                class="pf-config-card col-span-2 p-4 flex flex-col justify-center ${settings
-                  .options.bots.value > 0
-                  ? "is-active"
-                  : ""}"
-              >
-                <fluent-slider
-                  min="0"
-                  max="400"
-                  step="1"
-                  .value=${settings.options.bots.value}
-                  labelKey=${settings.options.bots.labelKey}
-                  disabledKey=${settings.options.bots.disabledKey}
-                  @value-changed=${this.handleBotsChanged}
-                ></fluent-slider>
+        ${this.renderBasic(settings)}
+        ${settings.advanced
+          ? html`<details
+              class="pf-advanced"
+              ?open=${settings.advanced.open ?? false}
+            >
+              <summary class="pf-advanced__summary">
+                <span class="pf-advanced__label"
+                  >${translateText(settings.advanced.labelKey)}</span
+                >
+                ${settings.advanced.hintKey
+                  ? html`<span class="pf-advanced__hint"
+                      >${translateText(settings.advanced.hintKey)}</span
+                    >`
+                  : nothing}
+              </summary>
+              <div class="${this.sectionGapClass} pt-6">
+                ${this.renderMore(settings)}
               </div>
-
-              ${settings.options.nations && !settings.options.nations.hidden
-                ? html`<div
-                    class="pf-config-card col-span-2 p-4 flex flex-col justify-center ${settings
-                      .options.nations.value > 0
-                      ? "is-active"
-                      : ""}"
-                  >
-                    <fluent-slider
-                      min="0"
-                      max="400"
-                      step="1"
-                      .value=${settings.options.nations.value}
-                      .defaultValue=${settings.options.nations.defaultValue}
-                      defaultLabelKey="common.map_default"
-                      labelKey=${settings.options.nations.labelKey}
-                      disabledKey=${settings.options.nations.disabledKey}
-                      @value-changed=${this.handleNationsChanged}
-                    ></fluent-slider>
-                  </div>`
-                : nothing}
-              ${settings.options.toggles.map((toggle) =>
-                this.renderOptionToggle(toggle),
-              )}
-              ${settings.options.inputCards}
-            </div>
-          `,
-        )}
-        ${settings.hostCheats?.visible
-          ? renderSection(
-              HOST_CHEATS_ICON,
-              "pf-section-icon--gold",
-              settings.hostCheats.titleKey,
-              html`
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  ${settings.hostCheats.toggles.map((toggle) =>
-                    renderTextCardButton(
-                      translateText(toggle.labelKey),
-                      toggle.checked,
-                      () => this.handleHostCheatToggle(toggle),
-                      "p-4 text-center",
-                    ),
-                  )}
-                  ${settings.hostCheats.inputCards}
-                </div>
-              `,
-            )
-          : nothing}
-        ${renderSection(
-          ENABLES_ICON,
-          "pf-section-icon--teal",
-          settings.unitTypes.titleKey,
-          html`
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              ${this.renderUnitTypeOptions(settings.unitTypes.disabledUnits)}
-            </div>
-          `,
-          "space-y-6 pb-6",
-        )}
+            </details>`
+          : this.renderMore(settings)}
       </div>
+    `;
+  }
+
+  private renderBasic(settings: GameConfigSettingsData) {
+    return html`
+      ${renderSection(
+        MAP_ICON,
+        "",
+        "map.map",
+        html`<map-picker
+          .selectedMap=${settings.map.selected}
+          .useRandomMap=${settings.map.useRandom}
+          .randomMapDivider=${settings.map.randomMapDivider ?? false}
+          .showMedals=${settings.map.showMedals ?? false}
+          .mapWins=${settings.map.mapWins ?? new Map()}
+          .onSelectMap=${this.handleSelectMap}
+          .onSelectRandom=${this.handleSelectRandom}
+        ></map-picker>`,
+      )}
+      ${renderSection(
+        DIFFICULTY_ICON,
+        "pf-section-icon--gain",
+        "difficulty.difficulty",
+        html`
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            ${DIFFICULTY_OPTIONS.map(([key, value]) => {
+              const isSelected = settings.difficulty.selected === value;
+              const isDisabled = settings.difficulty.disabled;
+              return html`
+                <button
+                  ?disabled=${isDisabled}
+                  @click=${() =>
+                    !isDisabled &&
+                    this.handleDifficultySelect(value as Difficulty)}
+                  class="${isDisabled
+                    ? `${DISABLED_CARD} flex flex-col items-center p-4 gap-3`
+                    : cardClass(
+                        isSelected,
+                        "flex flex-col items-center p-4 gap-3",
+                      )}"
+                >
+                  <difficulty-display
+                    .difficultyKey=${key}
+                    class="transform scale-125 origin-center ${isDisabled
+                      ? "pointer-events-none"
+                      : ""}"
+                  ></difficulty-display>
+                  <span
+                    class="${CARD_LABEL_CLASS} text-center mt-1 ${stateTextClass(
+                      isSelected,
+                    )}"
+                  >
+                    ${translateText(`difficulty.${key.toLowerCase()}`)}
+                  </span>
+                </button>
+              `;
+            })}
+          </div>
+        `,
+      )}
+    `;
+  }
+
+  private renderMore(settings: GameConfigSettingsData) {
+    return html`
+      ${renderSection(
+        MODE_ICON,
+        "pf-section-icon--violet",
+        "host_modal.mode",
+        html`
+          <div class="grid grid-cols-2 gap-4">
+            ${[GameMode.FFA, GameMode.Team].map((mode) => {
+              const isSelected = settings.gameMode.selected === mode;
+              return html`
+                <button
+                  class="${cardClass(isSelected, "py-6 text-center")}"
+                  @click=${() => this.handleGameModeSelect(mode)}
+                >
+                  <span class="pf-card-label">
+                    ${mode === GameMode.FFA
+                      ? translateText("game_mode.ffa")
+                      : translateText("game_mode.teams")}
+                  </span>
+                </button>
+              `;
+            })}
+          </div>
+        `,
+      )}
+      ${settings.gameMode.selected === GameMode.FFA
+        ? nothing
+        : html`
+            <section class="space-y-6">
+              <div class="pf-section-kicker mb-4 pl-2">
+                ${translateText("host_modal.team_count")}
+              </div>
+              <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                ${TEAM_COUNT_OPTIONS.map((o) => {
+                  const isSelected = settings.teamCount.selected === o;
+                  return html`
+                    <button
+                      class="${cardClass(isSelected, "px-4 py-3 text-center")}"
+                      @click=${() => this.handleTeamCountSelect(o)}
+                    >
+                      <span
+                        class="${CARD_LABEL_CLASS} ${stateTextClass(
+                          isSelected,
+                        )}"
+                      >
+                        ${typeof o === "string"
+                          ? o === HumansVsNations
+                            ? translateText("public_lobby.teams_hvn")
+                            : translateText(`host_modal.teams_${o}`)
+                          : translateText("public_lobby.teams", { num: o })}
+                      </span>
+                    </button>
+                  `;
+                })}
+              </div>
+            </section>
+          `}
+      ${renderSection(
+        OPTIONS_ICON,
+        "pf-section-icon--ember",
+        settings.options.titleKey,
+        html`
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              class="pf-config-card col-span-2 p-4 flex flex-col justify-center ${settings
+                .options.bots.value > 0
+                ? "is-active"
+                : ""}"
+            >
+              <fluent-slider
+                min="0"
+                max="400"
+                step="1"
+                .value=${settings.options.bots.value}
+                labelKey=${settings.options.bots.labelKey}
+                disabledKey=${settings.options.bots.disabledKey}
+                @value-changed=${this.handleBotsChanged}
+              ></fluent-slider>
+            </div>
+
+            ${settings.options.nations && !settings.options.nations.hidden
+              ? html`<div
+                  class="pf-config-card col-span-2 p-4 flex flex-col justify-center ${settings
+                    .options.nations.value > 0
+                    ? "is-active"
+                    : ""}"
+                >
+                  <fluent-slider
+                    min="0"
+                    max="400"
+                    step="1"
+                    .value=${settings.options.nations.value}
+                    .defaultValue=${settings.options.nations.defaultValue}
+                    defaultLabelKey="common.map_default"
+                    labelKey=${settings.options.nations.labelKey}
+                    disabledKey=${settings.options.nations.disabledKey}
+                    @value-changed=${this.handleNationsChanged}
+                  ></fluent-slider>
+                </div>`
+              : nothing}
+            ${settings.options.toggles.map((toggle) =>
+              this.renderOptionToggle(toggle),
+            )}
+            ${settings.options.inputCards}
+          </div>
+        `,
+      )}
+      ${settings.hostCheats?.visible
+        ? renderSection(
+            HOST_CHEATS_ICON,
+            "pf-section-icon--gold",
+            settings.hostCheats.titleKey,
+            html`
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                ${settings.hostCheats.toggles.map((toggle) =>
+                  renderTextCardButton(
+                    translateText(toggle.labelKey),
+                    toggle.checked,
+                    () => this.handleHostCheatToggle(toggle),
+                    "p-4 text-center",
+                  ),
+                )}
+                ${settings.hostCheats.inputCards}
+              </div>
+            `,
+          )
+        : nothing}
+      ${renderSection(
+        ENABLES_ICON,
+        "pf-section-icon--teal",
+        settings.unitTypes.titleKey,
+        html`
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            ${this.renderUnitTypeOptions(settings.unitTypes.disabledUnits)}
+          </div>
+        `,
+        "space-y-6 pb-6",
+      )}
     `;
   }
 }

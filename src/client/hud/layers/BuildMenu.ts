@@ -379,7 +379,7 @@ export class BuildMenu extends LitElement implements Controller {
     .build-reason {
       display: block;
       margin-top: 2px;
-      font-size: 10px;
+      font-size: 11px;
       line-height: 1.2;
       font-weight: 700;
       color: var(--loss, #f87171);
@@ -489,15 +489,15 @@ export class BuildMenu extends LitElement implements Controller {
         font-size: 24px;
       }
       .build-name {
-        font-size: 10px;
+        font-size: 12px;
         margin-bottom: 2px;
       }
       .build-cost {
-        font-size: 9px;
+        font-size: 11px;
       }
       .build-count {
         font-weight: bold;
-        font-size: 8px;
+        font-size: 10px;
       }
       .build-count-chip {
         padding: 0 3px;

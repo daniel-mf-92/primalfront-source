@@ -9,6 +9,36 @@ import { modalHeader } from "./components/ui/ModalHeader";
 import { Platform } from "./Platform";
 import { TroubleshootingModal } from "./TroubleshootingModal";
 
+// What a new tribe can actually build. The old table (warships, silos, MIRVs)
+// explained a game the player was not yet playing (UX audit 2026-10-21, item 8).
+const STONE_AGE_BUILDS = [
+  {
+    key: "unit_type.hut",
+    desc: "build_menu.desc.hut",
+    icon: "images/HutIconWhite.svg",
+  },
+  {
+    key: "unit_type.primitive_farm",
+    desc: "build_menu.desc.primitive_farm",
+    icon: "images/PrimitiveFarmIconWhite.svg",
+  },
+  {
+    key: "unit_type.trade_outpost",
+    desc: "build_menu.desc.trade_outpost",
+    icon: "images/TradeOutpostIconWhite.svg",
+  },
+  {
+    key: "unit_type.scout_lookout",
+    desc: "build_menu.desc.scout_lookout",
+    icon: "images/ScoutLookoutIconWhite.svg",
+  },
+  {
+    key: "unit_type.permanent_settlement",
+    desc: "build_menu.desc.permanent_settlement",
+    icon: "images/SettlementIconWhite.svg",
+  },
+] as const;
+
 @customElement("help-modal")
 export class HelpModal extends BaseModal {
   protected routerName = "help";
@@ -252,14 +282,6 @@ export class HelpModal extends BaseModal {
                   </tr>
                   <tr class="hover:bg-white/5 transition-colors">
                     <td class="py-3 pl-4 border-b border-white/5">
-                      ${this.renderKey(keybinds.swapDirection)}
-                    </td>
-                    <td class="py-3 border-b border-white/5 text-white/70">
-                      ${translateText("help_modal.bomb_direction")}
-                    </td>
-                  </tr>
-                  <tr class="hover:bg-white/5 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5">
                       <div class="inline-flex items-center gap-2">
                         ${this.renderKey(keybinds.shiftKey)}
                         <span class="text-white/40 font-bold">+</span>
@@ -431,28 +453,6 @@ export class HelpModal extends BaseModal {
                     </td>
                     <td class="py-3 border-b border-white/5 text-white/70">
                       ${translateText("help_modal.action_auto_upgrade")}
-                    </td>
-                  </tr>
-                  <tr class="hover:bg-white/5 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5">
-                      <div class="inline-flex items-center gap-2">
-                        ${this.renderKey(keybinds.shiftKey)}
-                        <span class="text-white/40 font-bold">+</span>
-                        <span class="text-white/50 text-xs"
-                          >${translateText("help_modal.drag")}</span
-                        >
-                      </div>
-                    </td>
-                    <td class="py-3 border-b border-white/5 text-white/70">
-                      ${translateText("help_modal.action_warship_multiselect")}
-                    </td>
-                  </tr>
-                  <tr class="hover:bg-white/5 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5">
-                      ${this.renderKey(keybinds.selectAllWarships)}
-                    </td>
-                    <td class="py-3 border-b border-white/5 text-white/70">
-                      ${translateText("help_modal.action_warship_selectall")}
                     </td>
                   </tr>
                 </tbody>
@@ -699,10 +699,17 @@ export class HelpModal extends BaseModal {
                   </li>
                   <li class="flex items-center gap-3">
                     <img
-                      src=${assetUrl("images/BoatIconWhite.svg")}
+                      src=${assetUrl("images/SwordIconWhite.svg")}
                       class="w-8 h-8 scale-75 origin-left"
                     />
-                    <span>${translateText("help_modal.radial_boat")}</span>
+                    <span>${translateText("help_modal.radial_raid")}</span>
+                  </li>
+                  <li class="flex items-center gap-3">
+                    <img
+                      src=${assetUrl("images/SwordIconWhite.svg")}
+                      class="w-8 h-8 scale-75 origin-left"
+                    />
+                    <span>${translateText("help_modal.radial_attack")}</span>
                   </li>
                   <li class="flex items-center gap-3">
                     <img
@@ -927,7 +934,7 @@ export class HelpModal extends BaseModal {
                       ${translateText("help_modal.build_name")}
                     </th>
                     <th
-                      class="py-3 text-left text-xs font-bold uppercase tracking-wider text-blue-300 w-[8%]"
+                      class="py-3 pr-3 text-left text-xs font-bold uppercase tracking-wider text-blue-300 w-[8%]"
                     >
                       ${translateText("help_modal.build_icon")}
                     </th>
@@ -939,169 +946,36 @@ export class HelpModal extends BaseModal {
                   </tr>
                 </thead>
                 <tbody class="text-white/80">
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_city")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/SettlementIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_city_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_defense")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/ShieldIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_defense_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_port")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/PortIcon.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_port_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_factory")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/FactoryIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_factory_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_warship")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/BattleshipIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_warship_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_silo")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/MissileSiloIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_silo_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_sam")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/SamLauncherIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_sam_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_atom")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/NukeIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_atom_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_hydrogen")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/MushroomCloudIconWhite.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_hydrogen_desc")}
-                    </td>
-                  </tr>
-                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
-                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
-                      ${translateText("help_modal.build_mirv")}
-                    </td>
-                    <td class="py-3 border-b border-white/5">
-                      <img
-                        src=${assetUrl("images/MIRVIcon.svg")}
-                        class="w-8 h-8 scale-75 origin-left"
-                      />
-                    </td>
-                    <td
-                      class="py-3 border-b border-white/5 text-white/60 text-sm"
-                    >
-                      ${translateText("help_modal.build_mirv_desc")}
-                    </td>
-                  </tr>
+                  ${STONE_AGE_BUILDS.map(
+                    (b) => html`
+                      <tr
+                        class="bg-white/5 hover:bg-white/10 transition-colors"
+                      >
+                        <td
+                          class="py-3 pl-4 border-b border-white/5 font-medium"
+                        >
+                          ${translateText(b.key)}
+                        </td>
+                        <td class="py-3 border-b border-white/5">
+                          <img
+                            src=${assetUrl(b.icon)}
+                            class="w-8 h-8 scale-75 origin-left"
+                          />
+                        </td>
+                        <td
+                          class="py-3 border-b border-white/5 text-white/60 text-sm"
+                        >
+                          ${translateText(b.desc)}
+                        </td>
+                      </tr>
+                    `,
+                  )}
                 </tbody>
               </table>
             </div>
+            <p class="mt-3 text-white/60 text-sm">
+              ${translateText("help_modal.how_to_play_later")}
+            </p>
           </section>
 
           <!-- Player Icons Section -->

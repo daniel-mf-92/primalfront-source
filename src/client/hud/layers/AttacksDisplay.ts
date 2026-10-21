@@ -2,7 +2,7 @@ import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
-import { MessageType, PlayerType, UnitType } from "../../../core/game/Game";
+import { MessageType, UnitType } from "../../../core/game/Game";
 import {
   AttackUpdate,
   GameUpdateType,
@@ -26,6 +26,19 @@ import { GameView, PlayerView, UnitView } from "../../view";
 import { getColoredSprite } from "../SpriteLoader";
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
 const swordIcon = assetUrl("images/SwordIcon.svg");
+
+// Every attack on you is listed, tribes included: in a practice match every
+// rival is a tribe, and hiding theirs left "being attacked" with no card to tap
+// and nothing to retaliate against (UX audit 2026-10-21, item 3). Biggest first
+// and capped, so a pile-on cannot push the control panel off a phone screen.
+export const MAX_INCOMING_ATTACK_ROWS = 4;
+export function pickIncomingAttacks<T extends { troops: number }>(
+  attacks: readonly T[],
+): T[] {
+  return [...attacks]
+    .sort((a, b) => b.troops - a.troops)
+    .slice(0, MAX_INCOMING_ATTACK_ROWS);
+}
 
 @customElement("attacks-display")
 export class AttacksDisplay extends LitElement implements Controller {
@@ -91,10 +104,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     }
     this.incomingBoats = resolvedIncomingBoats;
 
-    this.incomingAttacks = myPlayer.incomingAttacks().filter((a) => {
-      const t = (this.game.playerBySmallID(a.attackerID) as PlayerView).type();
-      return t !== PlayerType.Bot;
-    });
+    this.incomingAttacks = pickIncomingAttacks(myPlayer.incomingAttacks());
 
     this.outgoingAttacks = myPlayer
       .outgoingAttacks()

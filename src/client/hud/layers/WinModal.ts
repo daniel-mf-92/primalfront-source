@@ -1,7 +1,7 @@
 import { html, LitElement, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { translateText } from "../../../client/Utils";
-import { EventBus } from "../../../core/EventBus";
+import { EventBus, GameEvent } from "../../../core/EventBus";
 import { GameMapSize, GameType, RankedType } from "../../../core/game/Game";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { getUserMe } from "../../Api";
@@ -27,6 +27,12 @@ import {
   prefersNativeShare,
   TICKS_PER_SECOND,
 } from "./MatchResult";
+
+// Leaving a match is a result too. The exit buttons used to be a browser
+// confirm() and a hard redirect: no numbers, no share, no replay (UX audit
+// 2026-10-21, item 9). They now raise this, and the result screen takes over;
+// "Exit Game" on that screen is the real way out.
+export class LeaveGameIntentEvent implements GameEvent {}
 
 @customElement("win-modal")
 export class WinModal extends LitElement implements Controller {
@@ -58,6 +64,11 @@ export class WinModal extends LitElement implements Controller {
 
   @state()
   private copied = false;
+
+  // True while the screen is open because the player chose to leave, not
+  // because the match ended. Cleared on hide so a later win/death reads right.
+  @state()
+  private leaving = false;
 
   // Territory is read every tick because the final count is usually zero: a
   // player who was conquered owns nothing at the moment the modal opens, and
@@ -91,7 +102,11 @@ export class WinModal extends LitElement implements Controller {
       >
         <div class="win-modal-kicker">
           ${translateText(
-            this.isWin ? "win_modal.victory_label" : "win_modal.defeat_label",
+            this.leaving
+              ? "win_modal.left_label"
+              : this.isWin
+                ? "win_modal.victory_label"
+                : "win_modal.defeat_label",
           )}
         </div>
         <h2 class="m-0 mb-4 text-[26px] text-center text-white">
@@ -218,9 +233,11 @@ export class WinModal extends LitElement implements Controller {
     return html`
       <p class="win-modal-summary">
         ${translateText(
-          outcome.won
-            ? "win_modal.result_summary_win"
-            : "win_modal.result_summary_loss",
+          this.leaving
+            ? "win_modal.result_summary_left"
+            : outcome.won
+              ? "win_modal.result_summary_win"
+              : "win_modal.result_summary_loss",
           {
             era: outcome.eraNumeral,
             tiles: formatTiles(outcome.peakTiles),
@@ -383,12 +400,14 @@ export class WinModal extends LitElement implements Controller {
 
   hide() {
     this.isVisible = false;
+    this.leaving = false;
     this.showButtons = false;
     this.requestUpdate();
   }
 
-  private _handleExit() {
+  private async _handleExit() {
     this.hide();
+    await crazyGamesSDK.requestMidgameAd();
     window.location.href = "/";
   }
 
@@ -415,7 +434,28 @@ export class WinModal extends LitElement implements Controller {
     window.location.href = "/?friends";
   }
 
-  init() {}
+  init() {
+    this.eventBus.on(LeaveGameIntentEvent, () => this.showLeaveScreen());
+  }
+
+  private showLeaveScreen() {
+    if (this.isVisible) return;
+    const me = this.game.myPlayer();
+    // Nothing to show before the first tile or after the end: just go home.
+    if (
+      me === null ||
+      !me.hasSpawned() ||
+      !me.isAlive() ||
+      this.game.config().isReplay()
+    ) {
+      window.location.href = "/";
+      return;
+    }
+    this._title = translateText("win_modal.left");
+    this.isWin = false;
+    this.leaving = true;
+    void this.show();
+  }
 
   tick() {
     const myPlayer = this.game.myPlayer();
@@ -435,6 +475,7 @@ export class WinModal extends LitElement implements Controller {
     ) {
       this.hasShownDeathModal = true;
       this._title = translateText("win_modal.died");
+      this.leaving = false;
       this.show();
     }
     const updates = this.game.updatesSinceLastTick();

@@ -17,6 +17,7 @@ import {
   SetSoundEffectsVolumeEvent,
 } from "../../sound/Sounds";
 import { ShowGraphicsSettingsModalEvent } from "./GraphicsSettingsModal";
+import { LeaveGameIntentEvent } from "./WinModal";
 const cursorPriceIcon = assetUrl("images/CursorPriceIconWhite.svg");
 const darkModeIcon = assetUrl("images/DarkModeIconWhite.svg");
 const emojiIcon = assetUrl("images/EmojiIconWhite.svg");
@@ -189,8 +190,9 @@ export class SettingsModal extends LitElement implements Controller {
   }
 
   private onExitButtonClick() {
-    // redirect to the home page
-    window.location.href = "/";
+    // The result screen owns leaving (WinModal.LeaveGameIntentEvent).
+    this.eventBus.emit(new LeaveGameIntentEvent());
+    this.closeModal();
   }
 
   private onVolumeChange(event: Event) {

@@ -1,12 +1,14 @@
 import { LitElement, css, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { PlayerType } from "../../../core/game/Game";
+import { EventBus } from "../../../core/EventBus";
 import {
   BrokeAllianceUpdate,
   GameUpdateType,
 } from "../../../core/game/GameUpdates";
 import { UserSettings } from "../../../core/game/UserSettings";
 import { Controller } from "../../Controller";
+import { PlaySoundEffectEvent } from "../../sound/Sounds";
+import { renderTroops, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
 
 // Parameters for the alert animation
@@ -18,6 +20,7 @@ const ALERT_COOLDOWN_TICKS = 15 * 10; // 15 seconds
 @customElement("alert-frame")
 export class AlertFrame extends LitElement implements Controller {
   public game: GameView;
+  public eventBus: EventBus;
   private userSettings: UserSettings = new UserSettings();
 
   @state()
@@ -196,11 +199,12 @@ export class AlertFrame extends LitElement implements Controller {
     for (const attack of incomingAttacks) {
       // Only alert for non-retreating attacks
       if (!attack.retreating && !this.seenAttackIds.has(attack.id)) {
-        const attacker = this.game.playerBySmallID(attack.attackerID);
-        if ((attacker as PlayerView).type() === PlayerType.Bot) {
-          this.seenAttackIds.add(attack.id);
-          continue;
-        }
+        // Tribes count too: in a practice match every rival is a tribe, and
+        // skipping them meant a new player was never told they were under
+        // attack (UX audit 2026-10-21, item 3).
+        const attacker = this.game.playerBySmallID(
+          attack.attackerID,
+        ) as PlayerView;
 
         // Check if this is a retaliation (we attacked them recently)
         const ourAttackTick = this.outgoingAttackTicks.get(attack.attackerID);
@@ -219,6 +223,7 @@ export class AlertFrame extends LitElement implements Controller {
           this.seenAttackIds.add(attack.id);
           this.alertType = "land-attack";
           this.activateAlert();
+          this.announceAttack(attacker, attack.troops);
         } else {
           // Still mark as seen so we don't alert later
           this.seenAttackIds.add(attack.id);
@@ -235,6 +240,27 @@ export class AlertFrame extends LitElement implements Controller {
         this.seenAttackIds.delete(attackId);
       }
     }
+  }
+
+  // The red frame alone was easy to miss on a phone: add a sound and a line
+  // that names the attacker, so "something is happening" becomes "who and
+  // how many". Same cooldown as the frame, so a pile-on is one alert.
+  private announceAttack(attacker: PlayerView | undefined, troops: number) {
+    this.lastAlertTick = this.game.ticks();
+    this.eventBus?.emit(new PlaySoundEffectEvent("under-attack"));
+    const name = attacker?.displayName() ?? "?";
+    window.dispatchEvent(
+      new CustomEvent("show-message", {
+        detail: {
+          message: translateText("heads_up_message.under_attack", {
+            name,
+            troops: renderTroops(troops),
+          }),
+          color: "red",
+          duration: 3500,
+        },
+      }),
+    );
   }
 
   public dismissAlert() {

@@ -113,10 +113,10 @@ describe("formatShareText", () => {
 
   it("brags on a win and stays honest on a loss", () => {
     expect(formatShareText(outcome({ won: true }))).toContain(
-      "Won Primalfront at Era III",
+      "Won Primalfront at Age III",
     );
     expect(formatShareText(outcome({ won: false }))).toContain(
-      "Fell at Era III in Primalfront",
+      "Fell at Age III in Primalfront",
     );
   });
 
@@ -149,7 +149,7 @@ describe("formatShareText", () => {
     for (const era of ["I", "III", "VIII"]) {
       const text = formatShareText(outcome({ eraNumeral: era }));
       // No "3/8", no "3 of 8" — the tribe standing is the only "of" allowed.
-      expect(text).not.toMatch(/\bEra\s+[IVX]+\s*(\/|of)\s*\d/i);
+      expect(text).not.toMatch(/\b(Era|Age)\s+[IVX]+\s*(\/|of)\s*\d/i);
       expect(text).not.toMatch(/\d+\s*\/\s*\d+/);
     }
   });

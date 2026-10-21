@@ -13,6 +13,7 @@ import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import { ShowReplayPanelEvent } from "./ReplayPanel";
 import { ShowSettingsModalEvent } from "./SettingsModal";
 import { SpawnBarVisibleEvent } from "./SpawnTimer";
+import { LeaveGameIntentEvent } from "./WinModal";
 const exitIcon = assetUrl("images/ExitIconWhite.svg");
 const FastForwardIconSolid = assetUrl("images/FastForwardIconSolidWhite.svg");
 const pauseIcon = assetUrl("images/PauseIconWhite.svg");
@@ -184,18 +185,10 @@ export class GameRightSidebar extends LitElement implements Controller {
     this.eventBus.emit(new PauseGameIntentEvent(this.isPaused));
   }
 
-  private async onExitButtonClick() {
-    const isAlive = this.game.myPlayer()?.isAlive();
-    if (isAlive) {
-      const isConfirmed = confirm(
-        translateText("help_modal.exit_confirmation"),
-      );
-      if (!isConfirmed) return;
-    }
-    await crazyGamesSDK.requestMidgameAd();
-    await crazyGamesSDK.gameplayStop();
-    // redirect to the home page
-    window.location.href = "/";
+  private onExitButtonClick() {
+    // The result screen owns leaving (WinModal.LeaveGameIntentEvent): it shows
+    // the match's numbers and a share button, with "Keep Playing" as the undo.
+    this.eventBus.emit(new LeaveGameIntentEvent());
   }
 
   private onSettingsButtonClick() {

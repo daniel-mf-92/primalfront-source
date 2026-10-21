@@ -211,7 +211,7 @@ export class Leaderboard extends LitElement implements Controller {
             : "minmax(24px, 30px) minmax(60px, 100px) minmax(45px, 70px) minmax(40px, 55px) minmax(55px, 105px) minmax(45px, 70px)"};"
         >
           <div
-            class="contents font-bold [&>div]:bg-surface-2/70 [&>div]:text-text-dim [&>div]:uppercase [&>div]:tracking-wider [&>div]:text-[0.65rem]"
+            class="contents font-bold [&>div]:bg-surface-2/70 [&>div]:text-text-dim [&>div]:uppercase [&>div]:tracking-wider [&>div]:text-[0.72rem]"
           >
             <div class="py-1 md:py-2 text-center border-b border-hairline">
               #

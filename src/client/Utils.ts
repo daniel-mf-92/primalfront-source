@@ -516,6 +516,8 @@ export function getMessageTypeClasses(type: MessageType): string {
     case MessageType.ALLIANCE_ACCEPTED:
     case MessageType.ERA_ADVANCED:
     case MessageType.GOLDEN_AGE:
+    case MessageType.RAID_SUCCESS:
+    case MessageType.RAID_REPELLED:
       return severityColors["success"];
     case MessageType.ATTACK_FAILED:
     case MessageType.ALLIANCE_REJECTED:
@@ -524,6 +526,8 @@ export function getMessageTypeClasses(type: MessageType): string {
     case MessageType.NUKE_DETONATED:
     case MessageType.GREAT_WORK_SETBACK:
     case MessageType.GREAT_WORK_FAILED:
+    case MessageType.RAID_FAILED:
+    case MessageType.RAID_SUFFERED:
       return severityColors["fail"];
     case MessageType.ATTACK_CANCELLED:
     case MessageType.ATTACK_REQUEST:

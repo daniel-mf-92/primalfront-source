@@ -160,7 +160,7 @@ export class UnitDisplay extends LitElement implements Controller {
           <!-- "BUILD" prefix: without it new players read these hotkey chips
                as cryptic zero score-counters (2026-07-13 audit P1). -->
           <span
-            class="text-[9px] font-bold tracking-widest text-text-lo uppercase pr-1 select-none"
+            class="text-[11px] font-bold tracking-widest text-text-lo uppercase pr-1 select-none"
             >${translateText("unit_display.build_label")}</span
           >
           ${this.renderUnitItem(
@@ -314,7 +314,7 @@ export class UnitDisplay extends LitElement implements Controller {
                 </div>
                 ${unitType === UnitType.Warship
                   ? html`<div
-                      class="mt-1 px-2 py-1 text-[10px] text-age-accent border-t border-hairline"
+                      class="mt-1 px-2 py-1 text-[11px] text-age-accent border-t border-hairline"
                     >
                       ⇧ ${translateText("build_menu.warship_shift_hint")}
                     </div>`
@@ -365,7 +365,7 @@ export class UnitDisplay extends LitElement implements Controller {
           @mouseleave=${() =>
             this.eventBus?.emit(new ToggleStructureEvent(null))}
         >
-          ${html`<div class="ml-0.5 text-[10px] relative -top-1 text-gray-400">
+          ${html`<div class="ml-0.5 text-[11px] relative -top-1 text-gray-300">
             ${displayHotkey}
           </div>`}
           <div class="flex items-center gap-0.5 pt-0.5">

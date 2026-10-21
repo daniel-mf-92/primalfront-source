@@ -562,6 +562,12 @@ export class ControlPanel extends LitElement implements Controller {
       }
     }
 
+    // Troops at the limit: the rate chip reads "Full" and this says what to do
+    // about it (UX audit 2026-10-21, item 6: "+0/s" with no explanation).
+    if (this.troopsAtCap()) {
+      return { type: "info", message: "control_panel.troops_full_hint" };
+    }
+
     // Low troops (Less than 1k) warning
     if (this._troops < 10000 && this._troops > 0) {
       return { type: "warning", message: "control_panel.low_troops_warning" };
@@ -1491,6 +1497,18 @@ export class ControlPanel extends LitElement implements Controller {
     (e.target as HTMLInputElement).blur();
   }
 
+  // At the limit the regen is genuinely zero, and "+0/s" looked like a broken
+  // counter rather than a full barracks.
+  private troopsAtCap(): boolean {
+    return this._maxTroops > 0 && this._troops >= this._maxTroops * 0.98;
+  }
+
+  private renderTroopRateText(): string {
+    return this.troopsAtCap()
+      ? translateText("control_panel.troops_full")
+      : `+${renderTroops(this.troopRate)}/s`;
+  }
+
   private calculateTroopBar(): { greenPercent: number; orangePercent: number } {
     const base = Math.max(this._maxTroops, 1);
     const greenPercentRaw = (this._troops / base) * 100;
@@ -1549,11 +1567,12 @@ export class ControlPanel extends LitElement implements Controller {
             class="brightness-0 invert drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
           />
           <span
-            class="text-[10px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] ${this
-              ._troopRateIsIncreasing
-              ? "text-green-400"
-              : "text-orange-400"}"
-            >+${renderTroops(this.troopRate)}/s</span
+            class="text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] ${this.troopsAtCap()
+              ? "text-white"
+              : this._troopRateIsIncreasing
+                ? "text-green-400"
+                : "text-orange-400"}"
+            >${this.renderTroopRateText()}</span
           >
         </div>
       </div>
@@ -1619,9 +1638,9 @@ export class ControlPanel extends LitElement implements Controller {
     const isWarning = this._notification.type === "warning";
     return html`
       <div
-        class="flex items-center gap-1.5 px-1.5 py-1 rounded-md border text-xs font-medium mb-1 ${isWarning
+        class="flex items-start gap-1.5 px-1.5 py-1 rounded-md border text-xs leading-snug font-medium mb-1 ${isWarning
           ? "border-ember/60 bg-ember/10 text-ember"
-          : "border-age-accent/60 bg-age-accent/10 text-age-accent"}"
+          : "border-age-accent/60 bg-age-accent/10 text-text"}"
       >
         <span class="shrink-0">${isWarning ? "⚠" : "ℹ"}</span>
         <span>${translateText(this._notification.message)}</span>
@@ -1658,7 +1677,7 @@ export class ControlPanel extends LitElement implements Controller {
             class="tc-num ${this._troopRateIsIncreasing
               ? "!text-gain"
               : "!text-ember"}"
-            >+${renderTroops(this.troopRate)}/s</span
+            >${this.renderTroopRateText()}</span
           >
         </div>
         <!-- Troop bar -->
@@ -1724,8 +1743,7 @@ export class ControlPanel extends LitElement implements Controller {
   private renderMobile() {
     const isFirstTurn = this.isFirstTurnObjective();
     return html`
-      ${this.renderCeremony()} ${this.renderNotification()}
-      ${this.renderDramaFeed()}
+      ${this.renderCeremony()} ${this.renderDramaFeed()}
       <div class="flex gap-2 items-center">
         <!-- Gold -->
         <div
@@ -1780,6 +1798,7 @@ export class ControlPanel extends LitElement implements Controller {
           />
         </div>
       </div>
+      ${this.renderNotification()}
       ${isFirstTurn ? html`` : this.renderAgePanel()}
       ${isFirstTurn ? html`` : this.renderTelegraphRow()}
     `;
@@ -1882,7 +1901,7 @@ export class ControlPanel extends LitElement implements Controller {
           border: 1px solid var(--hairline);
           border-radius: 4px;
           color: var(--text-lo);
-          font-size: 0.58rem;
+          font-size: 0.72rem;
           font-weight: 800;
           letter-spacing: 0.06em;
           line-height: 1.1;
@@ -1896,7 +1915,7 @@ export class ControlPanel extends LitElement implements Controller {
         .tc-roadmap-index {
           color: var(--text-mid);
           font-family: var(--font-mono);
-          font-size: 0.62rem;
+          font-size: 0.72rem;
         }
         .tc-roadmap-step--active {
           border-color: color-mix(
@@ -1931,7 +1950,7 @@ export class ControlPanel extends LitElement implements Controller {
           .tc-roadmap-step {
             gap: 2px;
             padding: 3px 2px;
-            font-size: 0.48rem;
+            font-size: 0.7rem;
             letter-spacing: 0.03em;
           }
           .tc-objective-detail--mobile {

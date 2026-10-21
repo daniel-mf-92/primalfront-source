@@ -1238,6 +1238,12 @@ export enum MessageType {
   GREAT_WORK_FAILED,
   ERA_ADVANCED,
   GOLDEN_AGE,
+  // Raids move gold without moving borders, so the victim saw nothing at all:
+  // these are the only trace a raid leaves (UX audit 2026-10-21, item 6).
+  RAID_SUCCESS,
+  RAID_FAILED,
+  RAID_SUFFERED,
+  RAID_REPELLED,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -1279,6 +1285,11 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.GREAT_WORK_FAILED]: MessageCategory.ATTACK,
   [MessageType.ERA_ADVANCED]: MessageCategory.ATTACK,
   [MessageType.GOLDEN_AGE]: MessageCategory.ATTACK,
+  // A raid is combat with no border change; it belongs with the attacks.
+  [MessageType.RAID_SUCCESS]: MessageCategory.ATTACK,
+  [MessageType.RAID_FAILED]: MessageCategory.ATTACK,
+  [MessageType.RAID_SUFFERED]: MessageCategory.ATTACK,
+  [MessageType.RAID_REPELLED]: MessageCategory.ATTACK,
 } as const;
 
 /**
