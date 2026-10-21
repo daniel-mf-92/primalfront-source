@@ -1,5 +1,9 @@
 # Credits
 
+Primalfront is a modified version of OpenFront (https://github.com/openfrontio/OpenFrontIO),
+© OpenFront and Contributors, licensed AGPL-3.0.
+
+
 ## Music
 
 Except where noted, background music is by **Kevin MacLeod** (https://incompetech.com),

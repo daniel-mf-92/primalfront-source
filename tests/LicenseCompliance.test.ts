@@ -32,9 +32,20 @@ describe("licence compliance", () => {
     expect(read("src/client/components/Footer.ts")).toContain(
       "github.com/daniel-mf-92/primalfront-source",
     );
-    // every deploy republishes the public copy
-    expect(read(".github/workflows/deploy.yml")).toContain(
-      "scripts/publish-source.sh",
+    // every deploy republishes the public copy (.github is not in the public copy)
+    if (fs.existsSync(path.join(ROOT, ".github/workflows/deploy.yml"))) {
+      expect(read(".github/workflows/deploy.yml")).toContain(
+        "scripts/publish-source.sh",
+      );
+    }
+  });
+
+  test("says it is a modified OpenFront and carries no inherited ad sellers", () => {
+    expect(read("README.md")).toContain("modified version of [OpenFront]");
+    expect(read("CREDITS.md")).toContain("modified version of OpenFront");
+    expect(read("resources/ads.txt")).not.toMatch(/^[a-z0-9.-]+\.[a-z]+\s*,/im);
+    expect(read("resources/terms-of-service.html")).not.toMatch(
+      /reverse-engineer/i,
     );
   });
 

@@ -3,7 +3,14 @@
 Deterministic, networked browser **.io territory-control RTS** with a 3-Age tech system
 (**Primitive → Imperial → Modern**) and an explicit **anti-snowball / no-linear-rush** design.
 
-Private project. Built forward from a territory-RTS base. Working codename: primalfront.
+Primalfront is a modified version of [OpenFront](https://github.com/openfrontio/OpenFrontIO)
+(© OpenFront and Contributors), changed substantially from 2026 onwards. It is not affiliated
+with or endorsed by the OpenFront project.
+
+## Licence
+- Code: GNU AGPL-3.0 with OpenFront's Section 7 additional terms, see `LICENSE`.
+- Assets in `resources/`: CC BY-SA 4.0, see `LICENSE-ASSETS` and `CREDITS.md`.
+- Source of the version running on primalfront.com: https://github.com/daniel-mf-92/primalfront-source
 
 ## What's here
 - 3-Age progression: each Age unlocks buildings/units and shifts the economy (cheap/swarmy → fortified/economic → ranged/air/WMD), with a telegraphed **vulnerability window** on every age-up.

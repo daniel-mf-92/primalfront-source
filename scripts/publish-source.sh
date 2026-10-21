@@ -20,10 +20,10 @@ find "$WORK/pub" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 git -C "$ROOT" archive "$REF" -- . "${EXCLUDE[@]}" | tar -x -C "$WORK/pub"
 
 # Fail closed if anything that identifies fleet infrastructure slipped in.
-if grep -rIlE '10\.100\.0\.[0-9]+|-----BEGIN [A-Z ]*PRIVATE KEY|ghp_[0-9A-Za-z]{36}|github_pat_|sk_(live|test)_' \
+if grep -rIlE '10\.100\.0\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|mini-2018|m4-mac-mini|oci-oracle-hub|danielmatthews|Matthews|Ferrero|-----BEGIN [A-Z ]*PRIVATE KEY|ghp_[0-9A-Za-z]{36}|github_pat_|sk_(live|test)_' \
     --exclude-dir=.git --exclude=publish-source.sh "$WORK/pub" >/dev/null; then
   echo "publish-source: refusing, private marker found:" >&2
-  grep -rIlE '10\.100\.0\.[0-9]+|-----BEGIN [A-Z ]*PRIVATE KEY|ghp_[0-9A-Za-z]{36}|github_pat_|sk_(live|test)_' \
+  grep -rIlE '10\.100\.0\.[0-9]+|192\.168\.[0-9]+\.[0-9]+|mini-2018|m4-mac-mini|oci-oracle-hub|danielmatthews|Matthews|Ferrero|-----BEGIN [A-Z ]*PRIVATE KEY|ghp_[0-9A-Za-z]{36}|github_pat_|sk_(live|test)_' \
     --exclude-dir=.git --exclude=publish-source.sh "$WORK/pub" >&2
   exit 1
 fi

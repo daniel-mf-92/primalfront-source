@@ -125,7 +125,7 @@ ice-age constraint until breaking out of Primitive becomes possible.
   mountainMult 3→4) + **zoom-gate** in `ResourceNodePass`.
 - **Verify:** `tsc` + `npm test` + NEW headless **sim-arc test** proving ≥1 bot
   leaves Primitive within N ticks (the un-freeze, provable without WebGL) + vite
-  build + render-verify on **mini-2018** + deploy via OCI-runner GHA.
+  build + render-verify on a desktop GPU test machine + deploy via OCI-runner GHA.
 
 **Phase 2 — ECONOMY STRUCTURES.** New `UnitType.PrimitiveFarm` + `UnitType.TradeOutpost`
 (cost blocks, `ConstructionExecution` wiring, per-tick executions, lifecycle/expiry,

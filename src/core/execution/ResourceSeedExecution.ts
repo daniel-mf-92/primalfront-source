@@ -34,11 +34,11 @@ export class ResourceSeedExecution implements Execution {
   private active = true;
   private readonly seedBase: number;
 
-  // --- Tuning (docs §12.1; first-pass, tuned at render-verify on mini-2018) ---
+  // --- Tuning (docs §12.1; first-pass, tuned at render-verify on a desktop GPU test machine) ---
   // Patch (cell) size in tiles — bigger ⇒ larger, fewer stands/ranges.
   // Owner tuning: larger cells + fewer stands + wider spacing ⇒ resources are
   // LESS FREQUENT and more AGGLOMERATED into distinct clumps (not a polka-dot
-  // carpet). | tuned at render-verify on mini-2018.
+  // carpet). | tuned at render-verify on a desktop GPU test machine.
   private static readonly WOOD_CELL = 26;
   private static readonly ROCK_CELL = 36;
   // Fraction of patch-cells that bear the resource (richness), before biome/terrain

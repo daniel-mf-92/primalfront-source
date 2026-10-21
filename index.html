@@ -238,12 +238,14 @@
       };
     </script>
 
-    <!-- CrazyGames SDK -->
+    <!-- CrazyGames SDK: only when embedded (portal iframe), never for direct visitors -->
     <script>
-      window.__loadExternalScript(
-        "https://sdk.crazygames.com/crazygames-sdk-v3.js",
-        { async: true },
-      );
+      if (window.self !== window.top) {
+        window.__loadExternalScript(
+          "https://sdk.crazygames.com/crazygames-sdk-v3.js",
+          { async: true },
+        );
+      }
     </script>
 
     <!-- Cloudflare Turnstile -->
