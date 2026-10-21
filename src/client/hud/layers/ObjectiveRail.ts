@@ -416,11 +416,14 @@ export function chooseObjective(
     settlementCostNow(config, player, ticks),
   );
   if (cityGate && !cityGate.complete) {
-    if (stockpile === 0 && pipeline.totalGoldPerSecond === 0n) {
-      return objective("find_resources", 0);
-    }
+    // Affordable Hut first: a stand that ran dry leaves the pile at zero, and
+    // telling a tribe that holds a Hut's worth of gold to go walk again (seen
+    // on a real screen 2026-10-21) wastes the one thing it has earned.
     if (economyBuildings === 0 && player.gold() >= BigInt(hutCost)) {
       return objective("build_economy", 1);
+    }
+    if (stockpile === 0 && pipeline.totalGoldPerSecond === 0n) {
+      return objective("find_resources", 0);
     }
     if (pipeline.totalGoldPerSecond > 0n || stockpile > 0) {
       return objective("convert_resources", goldProgress(player, hutCost));

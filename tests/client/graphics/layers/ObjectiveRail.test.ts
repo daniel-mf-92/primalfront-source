@@ -44,6 +44,20 @@ test("primitive objective starts on resource discovery when no economy exists", 
   expect(objective.progress).toBe(0);
 });
 
+test("a dry stand with a Hut's worth of gold says build, not walk again", async () => {
+  const info = new PlayerInfo("tribe", PlayerType.Human, null, "tribe");
+  const game = await setup("big_plains", { infiniteTroops: true }, [info]);
+  const player = game.player("tribe");
+  player.conquer(game.ref(50, 50));
+  player.addGold(BigInt(game.config().hutCost() * 2));
+
+  const objective = chooseObjective(player, game.config());
+
+  expect(player.resources()).toBe(0);
+  expect(objective.id).toBe("build_economy");
+  expect(objective.progress).toBe(1);
+});
+
 test("primitive pipeline projects resource and farm gold flow per second", async () => {
   const info = new PlayerInfo("tribe", PlayerType.Human, null, "tribe");
   const game = await setup("big_plains", { infiniteTroops: true }, [info]);
