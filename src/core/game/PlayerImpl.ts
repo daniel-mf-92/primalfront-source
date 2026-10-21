@@ -1365,7 +1365,12 @@ export class PlayerImpl implements Player {
   }
 
   addTechPoints(n: number): void {
-    this._techPoints += n;
+    // Tech cannot be banked past the current era's needs (techPointCap), so
+    // every era after the Stone Age is earned in that era. Clamp only upward:
+    // a cap that shrinks after a raid or an age change never deletes points.
+    const cap = this.mg.config().techPointCap(this._age);
+    const next = this._techPoints + n;
+    this._techPoints = next > cap ? Math.max(this._techPoints, cap) : next;
   }
 
   // Primal-meta: raided knowledge. Clamp at 0 and return what was taken so a

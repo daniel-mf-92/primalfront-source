@@ -103,13 +103,15 @@ test("non-primitive gates include discounted tech and gold", async () => {
   player.setAge(Age.Classical);
   player.setAgeAdvanceCredit(0.5);
   const rushed = game.config().advanceAgeCost(player)!;
-  player.addTechPoints(300);
+  // Half the tech requirement is waived by the diffusion credit above.
+  const discountedTech = Math.ceil(rushed.techPoints * 0.5);
+  player.addTechPoints(discountedTech);
   player.addGold(rushed.gold);
 
   const gates = computeAgeGates(player, game.config());
 
   expect(gates.map((gate) => gate.id)).toEqual(["tech", "gold"]);
-  expect(gates[0].target).toBe(300);
+  expect(gates[0].target).toBe(discountedTech);
   expect(canAdvanceFromGates(gates)).toBe(true);
 });
 

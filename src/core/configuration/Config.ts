@@ -1365,6 +1365,14 @@ export class Config {
 
   // Unmodified transition cost. Era Triumph targets are based on this stable
   // table so earning a Triumph cannot move its own goalposts.
+  // Tech is the clock for every era after the Stone Age (owner direction
+  // 2026-10-21: eras are long, progress keeps slowing). A tribe banks at most
+  // techPointBankMult() x the current era's requirement (PlayerImpl.addTechPoints),
+  // so each era has to be EARNED in that era: at the base 1 tech/tick plus 0.5
+  // per City, a one-City kingdom needs ~10 min for Imperial, and every later
+  // step needs more (LoopVitals 2026-10-21: Stone Age exit 13:40-18:00, a
+  // kingdom era of several minutes even for multi-City bots with diffusion). Gold stays a secondary toll; the Stone Age is paced by the
+  // ice clock instead (climateMeltTicks).
   baseAdvanceAgeCost(age: Age): { gold: bigint; techPoints: number } | null {
     switch (age) {
       case Age.Primitive: // -> Classical (found your first City = become a Kingdom)
@@ -1375,20 +1383,33 @@ export class Config {
         // ~2x faster, so the toll scales with it to keep a kingdom a kingdom
         // for a while (LoopVitals 2026-10-21, world/133 x3 seeds + compact/33:
         // Classical 10:00-11:40, Imperial 12:00-17:20, dwell 1:20-6:00).
-        return { gold: 60000n, techPoints: 400 };
+        return { gold: 60000n, techPoints: 9000 };
       case Age.Imperial: // -> Feudal
-        return { gold: 18000n, techPoints: 450 };
+        return { gold: 18000n, techPoints: 12000 };
       case Age.Feudal: // -> Enlightened
-        return { gold: 35000n, techPoints: 800 };
+        return { gold: 35000n, techPoints: 15000 };
       case Age.Enlightened: // -> Industrial
-        return { gold: 60000n, techPoints: 1300 };
+        return { gold: 60000n, techPoints: 18000 };
       case Age.Industrial: // -> Modern
-        return { gold: 95000n, techPoints: 2000 };
+        return { gold: 95000n, techPoints: 21000 };
       case Age.Modern: // -> Alien
-        return { gold: 150000n, techPoints: 3000 };
+        return { gold: 150000n, techPoints: 24000 };
       default: // Alien: no next age
         return null;
     }
+  }
+
+  // How much tech a player may bank relative to the current era's requirement.
+  // 1.5x leaves room for the Ingenuity triumph (eraIngenuityTargetMult, 1.25x)
+  // while stopping a long Stone Age from pre-paying every later era.
+  techPointBankMult(): number {
+    return 1.5;
+  }
+
+  techPointCap(age: Age): number {
+    const base = this.baseAdvanceAgeCost(age);
+    if (base === null) return Number.POSITIVE_INFINITY;
+    return Math.ceil(base.techPoints * this.techPointBankMult());
   }
 
   // Basis-point multiplier for the next transition. Zero-Triumph beelining is
@@ -1458,9 +1479,12 @@ export class Config {
   // those diverge across platforms and desync the lockstep sim. | evidence:
   // docs/ICE_AGE_ECONOMY.md §D
 
-  // Ticks for the ice caps to fully recede (~10 min at 10 ticks/s). Tunable.
+  // Ticks for the ice caps to fully recede (~15 min at 10 ticks/s). Tunable.
+  // Owner direction 2026-10-21: eras are long and the first one longest. The
+  // melt is the Stone Age clock (settlement price 8x -> 1x over the melt), so
+  // 9000 puts the first exits around minute 15 instead of 10.
   climateMeltTicks(): Tick {
-    return 6000;
+    return 9000;
   }
 
   // 1.0 under full ice → 0.0 once receded. Integer basis points first (deterministic
