@@ -1365,14 +1365,18 @@ export class Config {
 
   // Unmodified transition cost. Era Triumph targets are based on this stable
   // table so earning a Triumph cannot move its own goalposts.
-  // Tech is the clock for every era after the Stone Age (owner direction
-  // 2026-10-21: eras are long, progress keeps slowing). A tribe banks at most
-  // techPointBankMult() x the current era's requirement (PlayerImpl.addTechPoints),
-  // so each era has to be EARNED in that era: at the base 1 tech/tick plus 0.5
-  // per City, a one-City kingdom needs ~10 min for Imperial, and every later
-  // step needs more (LoopVitals 2026-10-21: Stone Age exit 13:40-18:00, a
-  // kingdom era of several minutes even for multi-City bots with diffusion). Gold stays a secondary toll; the Stone Age is paced by the
-  // ice clock instead (climateMeltTicks).
+  // Tech is the clock for every era after the Stone Age. Owner direction
+  // (2026-08-04 "lead player's progress from classical to imperial should be
+  // min 10 mins like first tech upgrade; discounted once the first person moves
+  // up, but still spenny"; 2026-10-21 "eras equal length, avoid incentives to
+  // beeline"): every era needs the SAME tech, tech accrues at most
+  // techPointsPerTickCap() per tick whatever you build, it resets to zero on
+  // advancing (PlayerImpl.advanceAge) and banks at most techPointBankMult() x
+  // the requirement (PlayerImpl.addTechPoints). So the leader needs
+  // 9000 / 1.5 = 6000 ticks = 10 min per era, and nothing can beeline it;
+  // same-landmass followers get the diffusion discount on tech only and still
+  // pay the full gold toll. The Stone Age is paced by the ice clock instead
+  // (climateMeltTicks).
   baseAdvanceAgeCost(age: Age): { gold: bigint; techPoints: number } | null {
     switch (age) {
       case Age.Primitive: // -> Classical (found your first City = become a Kingdom)
@@ -1385,15 +1389,15 @@ export class Config {
         // Classical 10:00-11:40, Imperial 12:00-17:20, dwell 1:20-6:00).
         return { gold: 60000n, techPoints: 9000 };
       case Age.Imperial: // -> Feudal
-        return { gold: 18000n, techPoints: 12000 };
+        return { gold: 18000n, techPoints: 9000 };
       case Age.Feudal: // -> Enlightened
-        return { gold: 35000n, techPoints: 15000 };
+        return { gold: 35000n, techPoints: 9000 };
       case Age.Enlightened: // -> Industrial
-        return { gold: 60000n, techPoints: 18000 };
+        return { gold: 60000n, techPoints: 9000 };
       case Age.Industrial: // -> Modern
-        return { gold: 95000n, techPoints: 21000 };
+        return { gold: 95000n, techPoints: 9000 };
       case Age.Modern: // -> Alien
-        return { gold: 150000n, techPoints: 24000 };
+        return { gold: 150000n, techPoints: 9000 };
       default: // Alien: no next age
         return null;
     }
@@ -1479,12 +1483,14 @@ export class Config {
   // those diverge across platforms and desync the lockstep sim. | evidence:
   // docs/ICE_AGE_ECONOMY.md §D
 
-  // Ticks for the ice caps to fully recede (~15 min at 10 ticks/s). Tunable.
-  // Owner direction 2026-10-21: eras are long and the first one longest. The
-  // melt is the Stone Age clock (settlement price 8x -> 1x over the melt), so
-  // 9000 puts the first exits around minute 15 instead of 10.
+  // Ticks for the ice caps to fully recede (~10 min at 10 ticks/s). Tunable.
+  // The melt is the Stone Age clock (settlement price 8x -> 1x over the melt):
+  // 6000 puts the first exits at 10:00-11:40 (LoopVitals 2026-10-21, three
+  // world seeds + compact). Owner direction 2026-08-04 and 2026-10-21: every
+  // era about ten minutes for the leader, the Stone Age included; a 15-minute
+  // melt was tried and judged too slow to keep players.
   climateMeltTicks(): Tick {
-    return 9000;
+    return 6000;
   }
 
   // 1.0 under full ice → 0.0 once receded. Integer basis points first (deterministic
@@ -2773,12 +2779,20 @@ export class Config {
   }
 
   // Tech points gained per tick: base + per-City + per-Granary bonuses.
+  // Hard ceiling on tech per tick: with the flat 9000-point era requirement it
+  // sets the minimum era length (9000 / 1.5 = 6000 ticks = 10 min). Buildings
+  // get a kingdom to the ceiling, never past it, so building more cannot
+  // beeline the ladder (owner direction 2026-08-04 / 2026-10-21).
+  techPointsPerTickCap(): number {
+    return 1.5;
+  }
+
   techPointsPerTick(p: Player | PlayerView): number {
     let pts = 1;
     pts += 0.5 * p.units(UnitType.City).length;
     pts += 1.0 * p.units(UnitType.Granary).length;
     pts += this.eonSiteTechPointsPerTick() * p.units(UnitType.EonSite).length;
-    return pts;
+    return Math.min(this.techPointsPerTickCap(), pts);
   }
 
   primitiveMigrationBaseCapacity(): number {

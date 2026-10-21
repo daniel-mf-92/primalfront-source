@@ -1375,7 +1375,11 @@ export class GameImpl implements Game {
   // (e.g. island) players. Single-shot event on age-up, so a bounded land flood
   // here is acceptable. Fully deterministic (no Date.now / Math.random).
   grantEraDiffusion(advancer: Player, toAge: Age): void {
-    void toAge; // credit is age-agnostic; toAge kept for interface/future tuning
+    // Credit only reaches players whose NEXT step is the age just reached
+    // (owner direction 2026-08-04: "discounted upgrade once the first person
+    // moves to imperial, but still spenny"). A wave of neighbours reaching
+    // Classical used to make Imperial free for the kingdoms already there.
+    const nextAgeOf = (p: Player) => p.age() + 1;
 
     const seeds = advancer.tiles();
     if (seeds.size === 0) {
@@ -1422,6 +1426,9 @@ export class GameImpl implements Game {
     for (const p of this.players()) {
       if (p === advancer || p.smallID() === advancer.smallID()) {
         continue; // never let the advancer credit itself
+      }
+      if (nextAgeOf(p) !== toAge) {
+        continue; // peers and players further behind learn nothing from it
       }
       const pTiles = p.tiles();
       if (pTiles.size === 0) {

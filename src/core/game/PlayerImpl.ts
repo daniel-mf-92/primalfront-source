@@ -1524,7 +1524,10 @@ export class PlayerImpl implements Player {
   }
 
   addAgeAdvanceCredit(n: number): void {
-    this.setAgeAdvanceCredit(this._ageAdvanceCredit + n);
+    // The discount is the STRONGEST single source, never a sum: many
+    // neighbours advancing must not stack to a free upgrade (owner: "still
+    // spenny"). The contiguous grant (0.4) is therefore also the ceiling.
+    this.setAgeAdvanceCredit(Math.max(this._ageAdvanceCredit, n));
   }
 
   integrationDebt(): number {
@@ -1795,10 +1798,11 @@ export class PlayerImpl implements Player {
     const cost = config.advanceAgeCost(this);
     if (cost !== null) {
       this.removeGold(cost.gold);
-      // Consume the diffusion-adjusted tech investment spent reaching this age
-      // (Primitive carries no tech threshold, so this is a no-op there).
-      const techSpent = cost.techPoints * (1 - this._ageAdvanceCredit);
-      this._techPoints = Math.max(0, this._techPoints - techSpent);
+      // The knowledge of an era is spent reaching the next one: tech resets to
+      // zero on advancing, so every era is earned in that era at the capped
+      // rate (Config.techPointsPerTickCap) and cannot be pre-paid. The bank
+      // cap (addTechPoints) only bounds what can be carried up to this point.
+      this._techPoints = 0;
     }
     this._age++;
     this.setAdvancePenalty(
