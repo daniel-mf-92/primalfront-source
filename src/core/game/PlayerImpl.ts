@@ -22,7 +22,6 @@ import {
   ColoredTeams,
   Embargo,
   EmojiMessage,
-  eraTitle,
   EraTriumph,
   GameMode,
   Gold,
@@ -36,6 +35,7 @@ import {
   PlayerInfo,
   PlayerProfile,
   PlayerType,
+  polityName,
   Relation,
   ResourceKind,
   Structures,
@@ -467,7 +467,7 @@ export class PlayerImpl implements Player {
     if (this._isAnimalPack) {
       return this.playerInfo.displayName;
     }
-    return `${eraTitle(this._age)} ${this.playerInfo.displayName}`;
+    return polityName(this._age, this.playerInfo.displayName);
   }
 
   clientID(): ClientID | null {

@@ -1,124 +1,110 @@
 #version 300 es
 precision highp float;
 
-// Border troops: one small ink-outlined figure, era by era.
-//   0 Stone Age     scout with a spear
-//   1 Classical     spearman with a round shield
-//   2 Imperial      legionary: short sword, tall shield
-//   3 Feudal        knight with a pennant
-//   4 Enlightened   musketeer, tricorn
-//   5 Industrial    rifleman, cap
-//   6 Modern        soldier, helmet and rifle
-//   7 Alien         a hovering drone
-// kind 1 = a clash: two figures facing off with a spark between them.
+// Border troop badge: a parchment medallion with an ink rim, a team-colour
+// ring and the era emblem in ink (atlas cells 0-7: flint spear, Spartan helm,
+// legion helm, great helm, tricorn, pickelhaube, Brodie helmet, space helmet).
+// kind 1 = a clash: ember ring, crossed swords, a spark ring breathing out.
+// Local units: badge radius 0.5, y down (screen), quad spans +-0.75.
 
 in vec2 vLocalPos;
 flat in float vKind;
-flat in float vAge;
+flat in float vCell;
 flat in vec3 vColor;
-flat in float vFacing;
+flat in float vAlpha;
 flat in float vSeed;
 
+uniform sampler2D uAtlas;
+uniform float uCells;
 uniform float uTime;
 uniform float uGlobalAlpha;
 
 out vec4 fragColor;
 
-float sdCircle(vec2 p, float r) { return length(p) - r; }
-float sdBox(vec2 p, vec2 b) {
-  vec2 d = abs(p) - b;
-  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-}
-float sdSeg(vec2 p, vec2 a, vec2 b, float r) {
-  vec2 pa = p - a, ba = b - a;
-  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-  return length(pa - ba * h) - r;
-}
+const vec3 INK = vec3(0.11, 0.085, 0.06);
+const vec3 PARCHMENT = vec3(0.955, 0.905, 0.775);
+const vec3 EMBER = vec3(0.80, 0.24, 0.10);
 
-// Signed distance of one figure, in a y-up frame, standing at the origin,
-// facing +x, roughly 0.9 units tall. `fill` returns which part is closest:
-// 0 body (team colour), 1 metal/wood (neutral), 2 accent.
-float figure(vec2 p, int age, out int part) {
-  float body = min(sdCircle(p - vec2(0.0, 0.70), 0.085),
-                   sdSeg(p, vec2(0.0, 0.58), vec2(0.0, 0.30), 0.065));
-  body = min(body, sdSeg(p, vec2(0.0, 0.30), vec2(-0.08, 0.02), 0.045));
-  body = min(body, sdSeg(p, vec2(0.0, 0.30), vec2(0.08, 0.02), 0.045));
-  float gear = 1e3;
-  float accent = 1e3;
-  if (age == 0) {
-    gear = sdSeg(p, vec2(0.12, 0.05), vec2(0.18, 0.92), 0.022);
-    accent = sdSeg(p, vec2(0.18, 0.92), vec2(0.19, 1.02), 0.04);
-  } else if (age == 1) {
-    gear = sdSeg(p, vec2(0.14, 0.05), vec2(0.18, 0.95), 0.022);
-    accent = sdCircle(p - vec2(0.10, 0.42), 0.14);
-  } else if (age == 2) {
-    accent = sdBox(p - vec2(0.12, 0.40), vec2(0.07, 0.17));
-    gear = sdSeg(p, vec2(-0.05, 0.42), vec2(-0.20, 0.55), 0.025);
-  } else if (age == 3) {
-    gear = sdSeg(p, vec2(-0.12, 0.05), vec2(-0.12, 1.02), 0.022);
-    accent = sdBox(p - vec2(0.0, 0.92), vec2(0.12, 0.06));
-    body = min(body, sdBox(p - vec2(0.0, 0.79), vec2(0.07, 0.03)));
-  } else if (age == 4) {
-    gear = sdSeg(p, vec2(-0.10, 0.20), vec2(0.30, 0.62), 0.024);
-    accent = sdBox(p - vec2(0.0, 0.78), vec2(0.13, 0.03));
-  } else if (age == 5) {
-    gear = sdSeg(p, vec2(-0.08, 0.30), vec2(0.34, 0.50), 0.026);
-    accent = sdBox(p - vec2(0.02, 0.78), vec2(0.10, 0.035));
-  } else if (age == 6) {
-    gear = sdSeg(p, vec2(-0.06, 0.36), vec2(0.36, 0.46), 0.03);
-    accent = sdCircle(p - vec2(0.0, 0.74), 0.11);
-  } else {
-    body = sdBox(p - vec2(0.0, 0.55), vec2(0.22, 0.07));
-    gear = min(sdSeg(p, vec2(-0.32, 0.66), vec2(-0.12, 0.66), 0.025),
-               sdSeg(p, vec2(0.12, 0.66), vec2(0.32, 0.66), 0.025));
-    accent = sdCircle(p - vec2(0.0, 0.55), 0.06);
-  }
-  float d = min(body, min(gear, accent));
-  part = d == body ? 0 : (d == accent ? 2 : 1);
-  return d;
+// Emblem coverage from the atlas. The icon art fills 112/128 of its cell;
+// `half` is the half-extent of the whole cell in badge units.
+float emblem(vec2 p, float cell, float halfCell) {
+  vec2 uv = p / (2.0 * halfCell) + 0.5;
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 0.0;
+  float a = texture(uAtlas, vec2((cell + uv.x) / uCells, uv.y)).a;
+  // Firm up the mip-softened edge a little so the ink reads crisp.
+  return clamp((a - 0.5) * 1.5 + 0.5, 0.0, 1.0);
 }
 
 void main() {
-  vec2 lp = vLocalPos;
-  float aa = fwidth(lp.x) * 1.3 + 0.004;
-  vec3 ink = vec3(0.10, 0.08, 0.06);
-  int age = int(vAge + 0.5);
-  float stroke = 0.045;
-  float d;
-  int part;
-  float spark = 1e3;
-  if (vKind < 0.5) {
-    vec2 p = vec2(lp.x * vFacing, -lp.y) * 1.1 + vec2(0.0, 0.48);
-    // Gentle idle sway so guards read as people, not stamps.
-    p.x += 0.015 * sin(uTime * 1.6 + vSeed * 6.28);
-    d = figure(p, age, part);
+  vec2 p = vLocalPos;
+  float r = length(p);
+  float aa = max(fwidth(r), 1e-4);
+  bool clash = vKind > 0.5;
+  float ph = vSeed * 6.2831853;
+
+  const float R = 0.5;        // outer edge of the medallion
+  const float RIM = 0.055;    // ink rim width
+  const float RING_IN = 0.40; // inner edge of the colour ring
+
+  float disc = 1.0 - smoothstep(R - aa, R + aa, r);
+
+  // Soft drop shadow, down and right, under the disc only.
+  float sh = 1.0 - smoothstep(0.40, 0.60, length(p - vec2(0.04, 0.08)));
+  float shadowA = sh * 0.32 * (1.0 - disc);
+
+  // Parchment face, a touch darker toward the rim like aged paper.
+  vec3 col = PARCHMENT * (1.0 - 0.10 * smoothstep(0.1, RING_IN, r));
+
+  vec3 ringCol;
+  if (clash) {
+    float beat = pow(0.5 + 0.5 * sin(uTime * 5.5 + ph), 3.0);
+    ringCol = mix(EMBER, vec3(0.97, 0.52, 0.20), beat * 0.6);
   } else {
-    // A clash: two fighters lunging at each other, a spark between them.
-    vec2 base = vec2(lp.x, -lp.y) * 1.5 + vec2(0.0, 0.55);
-    float lunge = 0.04 * sin(uTime * 9.0 + vSeed * 6.28);
-    int pa, pb;
-    float a = figure(vec2(base.x + 0.34 - lunge, base.y), age, pa);
-    float b = figure(vec2(-(base.x - 0.34 + lunge), base.y), age, pb);
-    d = min(a, b);
-    part = a < b ? pa : pb;
-    float pulse = 0.7 + 0.3 * sin(uTime * 12.0 + vSeed * 9.0);
-    vec2 sp = base - vec2(0.0, 0.62);
-    float star = max(abs(sp.x) * 0.6 + abs(sp.y), abs(sp.x) + abs(sp.y) * 0.6) - 0.09 * pulse;
-    spark = star;
+    // Team colour at a fixed mid lightness with its chroma boosted, so pale
+    // pastel teams still show a clear ring and dark teams do not go black.
+    float l = dot(vColor, vec3(0.299, 0.587, 0.114));
+    vec3 chroma = vColor - vec3(l);
+    float c = max(max(abs(chroma.r), abs(chroma.g)), abs(chroma.b));
+    vec3 rich = vec3(0.42) + chroma * (0.22 / max(c, 0.06));
+    ringCol = clamp(rich, 0.0, 1.0);
   }
-  vec3 metal = vec3(0.58, 0.54, 0.47);
-  vec3 team = mix(vColor, ink, 0.18);
-  vec3 accentCol = mix(vColor, vec3(1.0), 0.35);
-  vec3 fill = part == 0 ? team : (part == 2 ? accentCol : metal);
-  float inside = 1.0 - smoothstep(-aa, aa, d);
-  float covered = 1.0 - smoothstep(-aa, aa, d - stroke);
-  vec3 col = mix(ink, fill, inside);
-  float alpha = covered;
-  if (spark < 1e2) {
-    float s = 1.0 - smoothstep(-aa, aa, spark);
-    col = mix(col, vec3(0.93, 0.36, 0.16), s);
-    alpha = max(alpha, s);
+  float ring = smoothstep(RING_IN - aa, RING_IN + aa, r);
+  col = mix(col, ringCol, ring);
+  // Hairline between ring and face.
+  float hair = 1.0 - smoothstep(0.008, 0.008 + aa * 1.2, abs(r - RING_IN));
+  col = mix(col, INK, hair * 0.85);
+  // Outer ink rim.
+  float rim = smoothstep(R - RIM - aa, R - RIM + aa, r);
+  col = mix(col, INK, rim);
+
+  // Emblem in ink (dark ember ink on a clash).
+  float e = emblem(p, vCell, 0.295 * 128.0 / 112.0) * (1.0 - ring);
+  vec3 emblemInk = clash ? vec3(0.36, 0.07, 0.03) : INK;
+  col = mix(col, emblemInk, e);
+
+  float alpha = disc;
+  vec3 outCol = col;
+
+  if (clash) {
+    // A spark ring breathing outward from the rim, then fading.
+    float t = fract(uTime * 0.75 + vSeed);
+    float rr = R + 0.02 + 0.20 * t;
+    float w = 0.022 * (1.0 - 0.5 * t);
+    float sparkRing = (1.0 - smoothstep(w, w + aa, abs(r - rr))) * (1.0 - t) * (1.0 - disc);
+    // Break it into short dashes so it reads as sparks, not a halo.
+    float ang = atan(p.y, p.x);
+    float dash = step(0.35, fract(ang * 1.9099 + vSeed * 3.0 + t * 0.5));
+    sparkRing *= dash;
+    vec3 sparkCol = vec3(0.98, 0.62, 0.22);
+    outCol = mix(outCol, sparkCol, sparkRing);
+    alpha = max(alpha, sparkRing * 0.9);
   }
-  if (alpha < 0.01) discard;
-  fragColor = vec4(col, alpha * uGlobalAlpha);
+
+  // Shadow below everything else.
+  outCol = mix(vec3(0.05, 0.04, 0.03), outCol, alpha / max(alpha + shadowA, 1e-4));
+  alpha = max(alpha, shadowA);
+
+  alpha *= vAlpha * uGlobalAlpha;
+  if (alpha < 0.004) discard;
+  fragColor = vec4(outCol, alpha);
 }

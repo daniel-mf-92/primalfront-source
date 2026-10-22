@@ -3,7 +3,6 @@
 Primalfront is a modified version of OpenFront (https://github.com/openfrontio/OpenFrontIO),
 © OpenFront and Contributors, licensed AGPL-3.0.
 
-
 ## Music
 
 Except where noted, background music is by **Kevin MacLeod** (https://incompetech.com),
@@ -15,16 +14,16 @@ Each age has a playlist that plays in a **fixed, fitness-ranked order** in-game
 so the strongest-matching tune always leads the era. Tracks below are listed in
 that play order:
 
-| Age         | Tracks (in play order)                                                                                                                                                                |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Primitive   | **Tribal lead (CC0 / Pixabay — no attribution, see section below):** "Tribal Drums - Forest", "War Drums", "Tribal Drums (Didgeridoo & Handpan)", "Shamanic Drums", "Ritual Drums of Power", "The Land of Warriors", "Blood Eagle", "Tribal", "Bonfire", "Ambient Bongos", "Ancient Rite", "Consecrated Ground". **Then Kevin MacLeod:** "Chee Zee Jungle", "Chee Zee Cave", "Crossing the Chasm", "Echoes of Time v2", "Lightless Dawn", "Heart of Nowhere", "Mesmerize"                                                      |
-| Classical   | "Achilles", "Desert City", "Ibn Al-Noor", "Egmont Overture", "Crusade", "Ouroboros", "Hidden Past"                                                                                    |
-| Imperial    | "Heroic Age", "Strength of the Titans", "Clash Defiant", "Epic Unease", "The Pyre", "Hall of the Mountain King", "Rising Tide"                                                        |
-| Feudal      | "Minstrel Guild", "Angevin", "Court of the Queen", "Master of the Feast", "Teller of the Tales", "Pippin the Hunchback", "Folk Round"                                                 |
-| Enlightened | "Canon in D Major", "Virtutes Instrumenti", "Suonatore di Liuto", "Virtutes Vocis", "Gymnopedie No 1", "Despair and Triumph", "Healing"                                               |
-| Industrial  | "Industrial Revolution", "Industrial Music Box", "Mechanolith", "Iron Bacon", "Steel Rods", **"Radetzky March" (public domain — see below)**, "Volatile Reaction", "Crinoline Dreams" |
-| Modern      | "Crisis", "Heavy Interlude", "The Complex", "Hot Pursuit", "Hitman", "Blip Stream", "Digital Lemonade", "Decisions", "Killing Time"                                                   |
-| Alien       | "Interloper", "Floating Cities", "Space Fighter Loop", "Phantom from Space", "Frozen Star", "Deep Haze", "Long Note Two"                                                              |
+| Age         | Tracks (in play order)                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primitive   | **Tribal lead (CC0 / Pixabay — no attribution, see section below):** "Tribal Drums - Forest", "War Drums", "Tribal Drums (Didgeridoo & Handpan)", "Shamanic Drums", "Ritual Drums of Power", "The Land of Warriors", "Blood Eagle", "Tribal", "Bonfire", "Ambient Bongos", "Ancient Rite", "Consecrated Ground". **Then Kevin MacLeod:** "Chee Zee Jungle", "Chee Zee Cave", "Crossing the Chasm", "Echoes of Time v2", "Lightless Dawn", "Heart of Nowhere", "Mesmerize" |
+| Classical   | "Achilles", "Desert City", "Ibn Al-Noor", "Egmont Overture", "Crusade", "Ouroboros", "Hidden Past"                                                                                                                                                                                                                                                                                                                                                                        |
+| Imperial    | "Heroic Age", "Strength of the Titans", "Clash Defiant", "Epic Unease", "The Pyre", "Hall of the Mountain King", "Rising Tide"                                                                                                                                                                                                                                                                                                                                            |
+| Feudal      | "Minstrel Guild", "Angevin", "Court of the Queen", "Master of the Feast", "Teller of the Tales", "Pippin the Hunchback", "Folk Round"                                                                                                                                                                                                                                                                                                                                     |
+| Enlightened | "Canon in D Major", "Virtutes Instrumenti", "Suonatore di Liuto", "Virtutes Vocis", "Gymnopedie No 1", "Despair and Triumph", "Healing"                                                                                                                                                                                                                                                                                                                                   |
+| Industrial  | "Industrial Revolution", "Industrial Music Box", "Mechanolith", "Iron Bacon", "Steel Rods", **"Radetzky March" (public domain — see below)**, "Volatile Reaction", "Crinoline Dreams"                                                                                                                                                                                                                                                                                     |
+| Modern      | "Crisis", "Heavy Interlude", "The Complex", "Hot Pursuit", "Hitman", "Blip Stream", "Digital Lemonade", "Decisions", "Killing Time"                                                                                                                                                                                                                                                                                                                                       |
+| Alien       | "Interloper", "Floating Cities", "Space Fighter Loop", "Phantom from Space", "Frozen Star", "Deep Haze", "Long Note Two"                                                                                                                                                                                                                                                                                                                                                  |
 
 ### Royalty-free / CC0 tribal tracks (Primitive era — NO attribution required)
 
@@ -32,20 +31,20 @@ These lead the primitive/tribal soundtrack. All are cleared for commercial
 bundling with **no attribution obligation**; listed here only as a provenance
 record in case a claim is ever raised.
 
-| File            | Title                               | Author / Source                                          | Licence                                  |
-| --------------- | ----------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
+| File            | Title                               | Author / Source                                               | Licence                                  |
+| --------------- | ----------------------------------- | ------------------------------------------------------------- | ---------------------------------------- |
 | primitive8.mp3  | Tribal Drums - Forest               | AiCanvas — pixabay.com/music/world-tribal-drums-forest-441256 | Pixabay Content License (no attribution) |
-| primitive9.mp3  | Tribal Drums (Didgeridoo & Handpan) | Surprising_Media — pixabay.com                           | Pixabay Content License                  |
-| primitive10.mp3 | Shamanic Drums                      | RibhavAgrawal — pixabay.com                              | Pixabay Content License                  |
-| primitive11.mp3 | War Drums                           | Stereo_Color — pixabay.com/music/rock-war-drums-493734   | Pixabay Content License                  |
-| primitive12.mp3 | The Land of Warriors (Didgeridoo)   | RibhavAgrawal — pixabay.com                              | Pixabay Content License                  |
-| primitive13.mp3 | Ritual Drums of Power               | DesiFreeMusic — pixabay.com                              | Pixabay Content License                  |
-| primitive14.mp3 | Blood Eagle                         | FreePD — archive.org/details/freepd (world)              | CC0 1.0 (public domain)                  |
-| primitive15.mp3 | Bonfire                             | FreePD                                                   | CC0 1.0 (public domain)                  |
-| primitive16.mp3 | Ambient Bongos                      | FreePD                                                   | CC0 1.0 (public domain)                  |
-| primitive17.mp3 | Ancient Rite                        | FreePD (epic)                                            | CC0 1.0 (public domain)                  |
-| primitive18.mp3 | Tribal                              | Of Far Different Nature — opengameart.org/content/tribal | CC0                                      |
-| primitive19.mp3 | Consecrated Ground                  | FreePD (horror)                                          | CC0 1.0 (public domain)                  |
+| primitive9.mp3  | Tribal Drums (Didgeridoo & Handpan) | Surprising_Media — pixabay.com                                | Pixabay Content License                  |
+| primitive10.mp3 | Shamanic Drums                      | RibhavAgrawal — pixabay.com                                   | Pixabay Content License                  |
+| primitive11.mp3 | War Drums                           | Stereo_Color — pixabay.com/music/rock-war-drums-493734        | Pixabay Content License                  |
+| primitive12.mp3 | The Land of Warriors (Didgeridoo)   | RibhavAgrawal — pixabay.com                                   | Pixabay Content License                  |
+| primitive13.mp3 | Ritual Drums of Power               | DesiFreeMusic — pixabay.com                                   | Pixabay Content License                  |
+| primitive14.mp3 | Blood Eagle                         | FreePD — archive.org/details/freepd (world)                   | CC0 1.0 (public domain)                  |
+| primitive15.mp3 | Bonfire                             | FreePD                                                        | CC0 1.0 (public domain)                  |
+| primitive16.mp3 | Ambient Bongos                      | FreePD                                                        | CC0 1.0 (public domain)                  |
+| primitive17.mp3 | Ancient Rite                        | FreePD (epic)                                                 | CC0 1.0 (public domain)                  |
+| primitive18.mp3 | Tribal                              | Of Far Different Nature — opengameart.org/content/tribal      | CC0                                      |
+| primitive19.mp3 | Consecrated Ground                  | FreePD (horror)                                               | CC0 1.0 (public domain)                  |
 
 Pixabay tracks are under the **Pixabay Content License**: commercial use with no
 attribution; the only restriction (not reselling the audio as a standalone file
@@ -79,3 +78,29 @@ playback looping/ordering/crossfading.
   requirement**.
 - All other effects under `resources/sounds/effects/` are pre-existing project
   assets.
+
+## Map icons (game-icons.net)
+
+The border troop badges and the resource node emblems use icons from
+**game-icons.net** (https://game-icons.net), licensed under the
+**Creative Commons Attribution 3.0 Unported License**
+(https://creativecommons.org/licenses/by/3.0/). Icons by Delapouite, Lorc,
+Skoll, sbed and others; the ones used here are listed below. They are
+recoloured, and baked into `resources/atlases/badge-atlas.png` by
+`scripts/build-badge-atlas.sh` (the Enlightened tricorn is the hat outline of
+Delapouite's "Pirate hat", without the feather and with the skull filled in). Sources are in `resources/icons/game-icons/`.
+
+| File                    | Used for                              | Author                                                 |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------ |
+| `stone-spear.svg`       | Stone Age troop                       | Lorc                                                   |
+| `spartan-helmet.svg`    | Classical troop                       | Delapouite                                             |
+| `centurion-helmet.svg`  | Imperial troop                        | Delapouite                                             |
+| `black-knight-helm.svg` | Feudal troop                          | Delapouite                                             |
+| `tricorn.svg`           | Enlightened troop (from "Pirate hat") | Delapouite                                             |
+| `pickelhaube.svg`       | Industrial troop                      | Skoll                                                  |
+| `brodie-helmet.svg`     | Modern troop                          | Skoll                                                  |
+| `astronaut-helmet.svg`  | Alien age troop                       | Delapouite                                             |
+| `crossed-swords.svg`    | Clash on an attack front              | Lorc                                                   |
+| `pine-tree.svg`         | Wood resource                         | Lorc                                                   |
+| `stone-stack.svg`       | Rock resource                         | Delapouite                                             |
+| `salmon.svg`            | Fish resource                         | various artists (game-icons.net "various-artists" set) |

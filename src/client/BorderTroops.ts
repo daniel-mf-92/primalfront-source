@@ -27,6 +27,14 @@ export interface BorderTroopPlayer {
 }
 
 export interface BorderTroop {
+  /**
+   * Stable identity across refreshes: owner and grid cell (and kind). The same
+   * guard keeps its key while it stays in its cell, so the renderer can glide
+   * it to its new spot instead of popping; see BorderTroopPass.
+   */
+  key: number;
+  /** Owner smallID. */
+  owner: number;
   x: number;
   y: number;
   /** 0 = guard, 1 = clash. */
@@ -45,6 +53,21 @@ export const TROOP_CELL = 7;
  * of scouts; armies thicken with every age. Index = Age value.
  */
 export const TILES_PER_TROOP = [110, 80, 60, 45, 36, 30, 26, 24];
+
+/**
+ * Clashes along one front are thinned so a long war line reads as a few
+ * sparks, not a solid red chain: kept clashes stand at least this many tiles
+ * apart, and at most MAX_CLASHES_PER_FRONT per pair of owners.
+ */
+export const CLASH_SPACING = TROOP_CELL * 2;
+export const MAX_CLASHES_PER_FRONT = 8;
+
+/**
+ * Two neighbours each post a guard on their side of a shared border, often a
+ * tile apart. Badges closer than this (tiles) to one already kept are dropped,
+ * so a busy border reads as a row of single badges, not stacked pairs.
+ */
+export const MIN_TROOP_SPACING = 6;
 
 /** Hard cap per player so a continental empire stays readable. */
 export const MAX_TROOPS_PER_PLAYER = [5, 10, 18, 26, 34, 42, 50, 56];
@@ -69,7 +92,8 @@ function cellHash(cx: number, cy: number): number {
  * diagonals (fixed order) becomes that cell's candidate. Candidates are then
  * ranked per player by the cell hash and the first troopsForPlayer() of them
  * are kept; clash candidates (border with someone being attacked) are kept
- * first and do not count against the guard budget.
+ * first and do not count against the guard budget; per front (pair of owners)
+ * they are thinned to a few well-spaced sparks.
  */
 export function computeBorderTroops(
   map: BorderTroopMap,
@@ -85,8 +109,10 @@ export function computeBorderTroops(
   const y1 = Math.min(H, region?.y1 ?? H);
   type Cand = { hash: number; troop: BorderTroop };
   const guards = new Map<number, Cand[]>();
-  const clashes: BorderTroop[] = [];
+  const clashes = new Map<number, Cand[]>();
   const c = TROOP_CELL;
+  const cellsX = Math.ceil(W / c);
+  const cellsTotal = cellsX * Math.ceil(H / c);
   const cxs = Math.floor(x0 / c);
   const cys = Math.floor(y0 / c);
   for (let cy = cys; cy * c < y1; cy++) {
@@ -129,16 +155,23 @@ export function computeBorderTroops(
           const fighting =
             other !== undefined &&
             (p.attacking.has(foreign) || other.attacking.has(owner));
+          const kind = fighting ? 1 : 0;
           const troop: BorderTroop = {
+            key: (owner * cellsTotal + cy * cellsX + cx) * 2 + kind,
+            owner,
             x,
             y,
-            kind: fighting ? 1 : 0,
+            kind,
             age: p.age,
             color: p.color,
             facing: fx < 0 ? -1 : 1,
           };
           if (fighting) {
-            clashes.push(troop);
+            const front =
+              Math.min(owner, foreign) * 65536 + Math.max(owner, foreign);
+            const list = clashes.get(front) ?? [];
+            list.push({ hash: cellHash(cx, cy), troop });
+            clashes.set(front, list);
           } else {
             const list = guards.get(owner) ?? [];
             list.push({ hash: cellHash(cx, cy), troop });
@@ -149,12 +182,56 @@ export function computeBorderTroops(
       }
     }
   }
-  const out: BorderTroop[] = [...clashes];
+  const out: BorderTroop[] = [];
+  const spacing2 = CLASH_SPACING * CLASH_SPACING;
+  for (const list of clashes.values()) {
+    list.sort((a, b) => a.hash - b.hash);
+    const kept: BorderTroop[] = [];
+    for (const { troop } of list) {
+      if (kept.length >= MAX_CLASHES_PER_FRONT) break;
+      if (
+        kept.some((k) => (k.x - troop.x) ** 2 + (k.y - troop.y) ** 2 < spacing2)
+      )
+        continue;
+      kept.push(troop);
+    }
+    out.push(...kept);
+  }
+  // Guards: each owner's best-ranked spots, then globally spaced so badges
+  // of neighbouring owners never stack.
+  const picked: Cand[] = [];
   for (const [owner, list] of guards) {
     const p = players.get(owner)!;
     list.sort((a, b) => a.hash - b.hash);
     const n = troopsForPlayer(p.age, p.tiles);
-    for (let i = 0; i < Math.min(n, list.length); i++) out.push(list[i].troop);
+    for (let i = 0; i < Math.min(n, list.length); i++) picked.push(list[i]);
+  }
+  picked.sort((a, b) => a.hash - b.hash || a.troop.key - b.troop.key);
+  // Spatial hash (bucket = MIN_TROOP_SPACING tiles) keeps this linear.
+  const S = MIN_TROOP_SPACING;
+  const min2 = S * S;
+  const buckets = new Map<number, BorderTroop[]>();
+  const bucketKey = (bx: number, by: number) => by * 65536 + bx;
+  const place = (t: BorderTroop) => {
+    const k = bucketKey(Math.floor(t.x / S), Math.floor(t.y / S));
+    const b = buckets.get(k);
+    if (b) b.push(t);
+    else buckets.set(k, [t]);
+  };
+  const near = (t: BorderTroop) => {
+    const bx = Math.floor(t.x / S);
+    const by = Math.floor(t.y / S);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (const k of buckets.get(bucketKey(bx + dx, by + dy)) ?? [])
+          if ((k.x - t.x) ** 2 + (k.y - t.y) ** 2 < min2) return true;
+    return false;
+  };
+  for (const t of out) place(t);
+  for (const { troop } of picked) {
+    if (near(troop)) continue;
+    out.push(troop);
+    place(troop);
   }
   return out;
 }

@@ -33,12 +33,14 @@ void main() {
   vSeed = seed;
 
   bool primitive = vPrimitive > 0.5;
-  float quantityScale = primitive ? mix(0.32, 1.14, sqrt(max(vQuantity, 0.0))) : 1.0;
+  // Icons must stay legible, so depletion shrinks a node only a little
+  // (it also dims it, see the fragment shader).
+  float quantityScale = primitive ? mix(0.72, 1.08, sqrt(max(vQuantity, 0.0))) : 1.0;
   float deathScale = primitive ? mix(1.0, 0.18, vDeath) : 1.0;
-  float sizeJitter = primitive ? 0.72 + 0.42 * seed : 0.78 + 0.44 * seed;
+  float sizeJitter = 0.92 + 0.16 * seed;
   float halfTiles = uNodeSize * 0.5 * sizeJitter * quantityScale * deathScale;
   float minHalfTiles = primitive
-    ? (uMinPx * 0.5 / max(uZoom, 0.0001)) * mix(0.34, 1.0, quantityScale) * deathScale
+    ? (uMinPx * 0.5 / max(uZoom, 0.0001)) * mix(0.8, 1.0, quantityScale) * deathScale
     : (uMinPx * 0.5) / max(uZoom, 0.0001);
   float halfSize = max(halfTiles, minHalfTiles);
 

@@ -197,8 +197,8 @@ export interface RenderSettings {
     offsetY: number;
   };
   /**
-   * Harvestable resource nodes. Gameplay still stores tile resource kinds, but
-   * the map presents one generic resource mark; see ResourceNodePass.ts.
+   * Harvestable resource nodes: a parchment disc with the kind's ink emblem
+   * (tree, stones, fish); see ResourceNodePass.ts.
    */
   resourceNode: {
     /** Base node diameter, in tiles. */
@@ -219,10 +219,13 @@ export interface RenderSettings {
     rockG: number;
     rockB: number;
   };
-  /** Era-styled figures on territory borders, and clashes on attack fronts. */
+  /** Era badges on territory borders, and clash badges on attack fronts. */
   borderTroop: {
+    /** Badge diameter in tiles. */
     size: number;
+    /** On-screen diameter floor and ceiling, pixels. */
     minPx: number;
+    maxPx: number;
     alpha: number;
     minZoom: number;
     fadeRange: number;

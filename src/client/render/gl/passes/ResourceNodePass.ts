@@ -1,13 +1,20 @@
 /**
  * ResourceNodePass — GPU-rendered natural resource nodes.
  *
- * The sim stores tile resource kind/quantity. This pass turns that data into
- * terrain-like visual cues rather than UI buttons: owned resources get a muted
- * settled glow, resources in current primitive sight outside territory get a
- * different wandering cue, and remembered/out-of-sight resources do not render.
+ * The sim stores tile resource kind/quantity. Each node draws as a small
+ * parchment disc with an ink emblem from the shared badge atlas (pine tree,
+ * stone cairn, salmon; game-icons.net, CC BY 3.0). Owned resources smoulder
+ * faintly, resources in current primitive sight outside territory breathe a
+ * bloom, and remembered/out-of-sight resources do not render.
  */
 
 import { ResourceKind } from "../../../../core/game/Game";
+import {
+  BADGE_CELLS,
+  BADGE_TEXTURE_UNIT,
+  badgeAtlasTexture,
+  bindBadgeAtlas,
+} from "../BadgeAtlas";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import type { RenderSettings } from "../RenderSettings";
 import { createProgram } from "../utils/GlUtils";
@@ -53,6 +60,7 @@ export class ResourceNodePass {
   private uMinPx: WebGLUniformLocation;
   private uGlobalAlpha: WebGLUniformLocation;
   private uTime: WebGLUniformLocation;
+  private atlas: WebGLTexture;
 
   private vao: WebGLVertexArrayObject;
   private instanceBuf: DynamicInstanceBuffer;
@@ -79,6 +87,13 @@ export class ResourceNodePass {
     this.uMinPx = gl.getUniformLocation(this.program, "uMinPx")!;
     this.uGlobalAlpha = gl.getUniformLocation(this.program, "uGlobalAlpha")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
+    gl.useProgram(this.program);
+    gl.uniform1i(
+      gl.getUniformLocation(this.program, "uAtlas"),
+      BADGE_TEXTURE_UNIT,
+    );
+    gl.uniform1f(gl.getUniformLocation(this.program, "uCells"), BADGE_CELLS);
+    this.atlas = badgeAtlasTexture(gl);
 
     const instanceGlBuf = gl.createBuffer()!;
     this.instanceBuf = new DynamicInstanceBuffer(
@@ -304,9 +319,9 @@ export class ResourceNodePass {
       : 1;
     const alpha = primitiveMode
       ? node.deathStartMs === null
-        ? 0.38 + 0.62 * Math.sqrt(quantityRatio)
+        ? 0.62 + 0.38 * Math.sqrt(quantityRatio)
         : 1 - deathProgress
-      : 0.5 + 0.5 * Math.min(1, node.quantity / 8);
+      : 0.7 + 0.3 * Math.min(1, node.quantity / 8);
 
     const f = this.instanceBuf.float32;
     f[off + 0] = x;
@@ -340,13 +355,14 @@ export class ResourceNodePass {
 
     const gl = this.gl;
     gl.useProgram(this.program);
+    bindBadgeAtlas(gl, this.atlas);
 
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
     gl.uniform1f(this.uZoom, zoom);
     gl.uniform1f(this.uNodeSize, rs.nodeSize);
     gl.uniform1f(this.uMinPx, rs.minPx);
     gl.uniform1f(this.uGlobalAlpha, rs.alpha * zoomFade);
-    gl.uniform1f(this.uTime, performance.now() / 1000);
+    gl.uniform1f(this.uTime, (performance.now() / 1000) % 3600);
 
     gl.bindVertexArray(this.vao);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.instanceCount);

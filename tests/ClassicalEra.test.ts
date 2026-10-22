@@ -5,6 +5,7 @@ import {
   eraTitle,
   PlayerInfo,
   PlayerType,
+  polityName,
 } from "../src/core/game/Game";
 import { setup } from "./util/Setup";
 
@@ -42,11 +43,26 @@ test("eraTitle maps each era to its polity prefix", () => {
   expect(eraTitle(Age.Imperial)).toBe("Empire of");
 });
 
+test("a Stone Age group name is not prefixed twice", () => {
+  expect(polityName(Age.Primitive, "Flint Tribe")).toBe("Flint Tribe");
+  expect(polityName(Age.Primitive, "Reed Band")).toBe("Reed Band");
+  expect(polityName(Age.Primitive, "Shanidar Neanderthals")).toBe(
+    "Shanidar Neanderthals",
+  );
+  expect(polityName(Age.Primitive, "Finland")).toBe("Tribe of Finland");
+  expect(polityName(Age.Classical, "Flint Tribe")).toBe(
+    "Kingdom of Flint Tribe",
+  );
+});
+
 test("displayName gains an era title for civilized players, not animal packs", async () => {
   const human = new PlayerInfo("Daniel", PlayerType.Human, "daniel", "daniel");
   const packInfo = new PlayerInfo("Wolves", PlayerType.Bot, null, "wolves");
   packInfo.setIsAnimalPack(true);
-  const game = await setup("plains", { infiniteTroops: true }, [human, packInfo]);
+  const game = await setup("plains", { infiniteTroops: true }, [
+    human,
+    packInfo,
+  ]);
 
   const player = game.player("daniel");
   player.setAge(Age.Primitive);

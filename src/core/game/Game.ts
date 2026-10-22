@@ -406,6 +406,21 @@ export function eraTitle(age: Age): string {
   return ERA_TITLES[age] ?? "";
 }
 
+// A Stone Age name that already names a group ("Flint Tribe", "Reed Band",
+// "Shanidar Neanderthals") reads as a tribe on its own; prefixing it gave
+// "Tribe of Flint Tribe". Later ages still take their title ("Kingdom of
+// Flint Tribe").
+const COLLECTIVE_NAME_END =
+  /\b(Clan|Folk|Tribe|Kin|People|Hearth|Band|Hold|Kindred|Children|Neanderthals)$/;
+
+export function polityName(age: Age, name: string): string {
+  if (age === Age.Primitive && COLLECTIVE_NAME_END.test(name.trim())) {
+    return name;
+  }
+  const title = eraTitle(age);
+  return title ? `${title} ${name}` : name;
+}
+
 // Latitude-derived terrain biome (the map has no biome byte — see Module D).
 // Green = temperate / plains. Forest = cool/wet woodland, Jungle = equatorial
 // rainforest. New members are APPENDED (Forest=4, Jungle=5) so the existing

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   BorderTroopPlayer,
+  CLASH_SPACING,
   computeBorderTroops,
+  MAX_CLASHES_PER_FRONT,
   MAX_TROOPS_PER_PLAYER,
+  MIN_TROOP_SPACING,
+  TROOP_CELL,
   troopsForPlayer,
 } from "../../src/client/BorderTroops";
 
@@ -92,5 +96,107 @@ describe("border troops", () => {
       () => false,
     );
     expect(troops).toHaveLength(0);
+  });
+  it("gives every troop a unique key that names its owner", () => {
+    const map = grid(60, 30, (x) => (x < 20 ? 1 : x < 40 ? 2 : 3));
+    const players = new Map([
+      [1, player(1, 3, 600, [2])],
+      [2, player(2, 3, 600)],
+      [3, player(3, 3, 600)],
+    ]);
+    const troops = computeBorderTroops(map, players);
+    expect(troops.length).toBeGreaterThan(2);
+    const keys = new Set(troops.map((t) => t.key));
+    expect(keys.size).toBe(troops.length);
+    for (const t of troops) {
+      expect(players.has(t.owner)).toBe(true);
+      expect(Number.isSafeInteger(t.key)).toBe(true);
+    }
+  });
+
+  it("keeps a guard's key when its border moves inside the same cell", () => {
+    // A straight east border; push it one tile east, staying in the cell.
+    const edge = TROOP_CELL * 3 + 2;
+    const before = computeBorderTroops(
+      grid(70, 70, (x) => (x <= edge ? 1 : 0)),
+      new Map([[1, player(1, 5, 2000)]]),
+    );
+    const after = computeBorderTroops(
+      grid(70, 70, (x) => (x <= edge + 1 ? 1 : 0)),
+      new Map([[1, player(1, 5, 2000)]]),
+    );
+    const onEdge = (ts: typeof before, x: number) =>
+      new Map(ts.filter((t) => t.x === x).map((t) => [t.key, t]));
+    const a = onEdge(before, edge);
+    const b = onEdge(after, edge + 1);
+    expect(a.size).toBeGreaterThan(0);
+    let shared = 0;
+    for (const [key, t] of a) {
+      const moved = b.get(key);
+      if (moved === undefined) continue;
+      shared++;
+      expect(moved.x).toBe(t.x + 1);
+      expect(moved.owner).toBe(1);
+    }
+    expect(shared).toBeGreaterThan(0);
+  });
+
+  it("a clash and a guard in the same cell never share a key", () => {
+    const map = grid(40, 20, (x) => (x < 20 ? 1 : 2));
+    const peace = computeBorderTroops(
+      map,
+      new Map([
+        [1, player(1, 2, 400)],
+        [2, player(2, 2, 400)],
+      ]),
+    );
+    const war = computeBorderTroops(
+      map,
+      new Map([
+        [1, player(1, 2, 400, [2])],
+        [2, player(2, 2, 400)],
+      ]),
+    );
+    const peaceKeys = new Set(peace.map((t) => t.key));
+    for (const t of war.filter((w) => w.kind === 1)) {
+      expect(peaceKeys.has(t.key)).toBe(false);
+    }
+  });
+  it("thins a long war front to a few well-spaced clashes", () => {
+    const map = grid(40, 200, (x) => (x < 20 ? 1 : 2));
+    const troops = computeBorderTroops(
+      map,
+      new Map([
+        [1, player(1, 4, 4000, [2])],
+        [2, player(2, 4, 4000, [1])],
+      ]),
+    );
+    const clashes = troops.filter((t) => t.kind === 1);
+    expect(clashes.length).toBeGreaterThan(1);
+    expect(clashes.length).toBeLessThanOrEqual(MAX_CLASHES_PER_FRONT);
+    for (const a of clashes)
+      for (const b of clashes)
+        if (a !== b)
+          expect((a.x - b.x) ** 2 + (a.y - b.y) ** 2).toBeGreaterThanOrEqual(
+            CLASH_SPACING ** 2,
+          );
+  });
+  it("never stacks two neighbours' guards on a shared border", () => {
+    // A ragged border so both owners get candidate cells along it.
+    const map = grid(30, 120, (x, y) => (x < 15 + ((y >> 3) % 2) * 3 ? 1 : 2));
+    const troops = computeBorderTroops(
+      map,
+      new Map([
+        [1, player(1, 7, 6000)],
+        [2, player(2, 7, 6000)],
+      ]),
+    );
+    expect(new Set(troops.map((t) => t.owner)).size).toBe(2);
+    for (const a of troops)
+      for (const b of troops)
+        if (a !== b)
+          expect((a.x - b.x) ** 2 + (a.y - b.y) ** 2).toBeGreaterThanOrEqual(
+            MIN_TROOP_SPACING ** 2,
+          );
   });
 });
