@@ -180,8 +180,8 @@
     "offsetY": -0.4
   },
   "resourceNode": {
-    "nodeSize": 1.3,
-    "minPx": 9,
+    "nodeSize": 1.6,
+    "minPx": 18,
     "alpha": 0.72,
     "minZoom": 0.55,
     "fadeRange": 0.4,

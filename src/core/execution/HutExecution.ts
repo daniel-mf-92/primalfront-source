@@ -1,4 +1,4 @@
-import { Execution, Game, Unit } from "../game/Game";
+import { Execution, Game, MessageType, Unit } from "../game/Game";
 
 // A Hut is a TEMPORARY Primitive settlement (an outpost camp). It slowly ages
 // and then SELF-DESTRUCTS — it is never upgradeable (its Config unit info is
@@ -66,7 +66,15 @@ export class HutExecution implements Execution {
     }
 
     if (ticks >= this.expireTick) {
-      // The camp is abandoned and returns to the wild.
+      // The camp is abandoned and returns to the wild. Say so: a Hut that
+      // silently vanished, taking its land with it, read as a bug.
+      if (owner.isPlayer() && !owner.isAnimalPack()) {
+        this.mg.displayMessage(
+          "events_display.hut_worn_away",
+          MessageType.UNIT_DESTROYED,
+          owner.id(),
+        );
+      }
       this.hut.delete();
       this.active = false;
     }

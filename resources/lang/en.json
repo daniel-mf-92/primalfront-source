@@ -419,7 +419,7 @@
     "next_age": "Next",
     "objective_advance_age": "Advance Age",
     "objective_advance_age_detail": "You have met the gate; advance before rivals punish the window.",
-    "objective_build_economy": "Build your first Hut",
+    "objective_build_economy": "Build a Hut",
     "objective_build_economy_detail": "Right-click or long-press your own land, open Build and place a Hut. It holds land around it; farms and trading posts speed up gold.",
     "objective_build_keystone": "Build keystone",
     "objective_build_keystone_detail": "The next age needs its keystone structure before the gate opens.",
@@ -538,6 +538,7 @@
     "great_work_stalled": "Your Great Work stands ready, but the {age} Age is out of reach — recover what was stolen",
     "great_work_started": "Your Great Work has begun — the {age} Age in {seconds}s. Defend it!",
     "great_work_started_world": "{player} has begun a Great Work — the {age} Age rises in {seconds}s. Raid them to stop it!",
+    "hut_worn_away": "Your Hut has worn away and its land is going back to the wild. Build a new one where you settle next.",
     "hydrogen_bomb_detonated": "{name} - hydrogen bomb detonated",
     "ignore": "Ignore",
     "mirv_warheads_intercepted": "{count, plural, one {{count} MIRV warhead intercepted} other {{count} MIRV warheads intercepted}}",
@@ -1440,7 +1441,12 @@
     "yes": "Yes"
   },
   "unit_display": {
-    "build_label": "Build"
+    "build_label": "Build",
+    "short_hut": "Hut",
+    "short_permanent_settlement": "Settlement",
+    "short_primitive_farm": "Farm",
+    "short_scout_lookout": "Lookout",
+    "short_trade_outpost": "Trade post"
   },
   "unit_type": {
     "atom_bomb": "Atom Bomb",

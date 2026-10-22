@@ -31,6 +31,21 @@ const scoutLookoutIcon = assetUrl("images/ScoutLookoutIconWhite.svg");
 const defensePostIcon = assetUrl("images/ShieldIconWhite.svg");
 const tradeOutpostIcon = assetUrl("images/TradeOutpostIconWhite.svg");
 
+// Short names shown under the build icons (full names are in the hover card).
+const SHORT_NAME_KEYS: Record<string, string> = {
+  permanent_settlement: "unit_display.short_permanent_settlement",
+  hut: "unit_display.short_hut",
+  trade_outpost: "unit_display.short_trade_outpost",
+  scout_lookout: "unit_display.short_scout_lookout",
+  primitive_farm: "unit_display.short_primitive_farm",
+};
+function shortUnitName(structureKey: string): string {
+  const key = SHORT_NAME_KEYS[structureKey];
+  return key !== undefined
+    ? translateText(key)
+    : translateText("unit_type." + structureKey);
+}
+
 @customElement("unit-display")
 export class UnitDisplay extends LitElement implements Controller {
   public game: GameView;
@@ -375,6 +390,12 @@ export class UnitDisplay extends LitElement implements Controller {
               : null}
           </div>
         </div>
+        <!-- Name under the icon: hover-only names were never found by a new
+             player (real-screen playtest 2026-10-22). -->
+        <span
+          class="text-[11px] leading-none mt-0.5 text-text-dim whitespace-nowrap select-none"
+          >${shortUnitName(structureKey)}</span
+        >
       </div>
     `;
   }

@@ -178,7 +178,9 @@ void main() {
       // highlight/relationship tint so those still shift the line. The LOCAL
       // player's outline keeps noticeably more of their color so "my empire"
       // pops against rivals (2026-07-10 audit: own blob had no pop).
-      float inkMix = (uLocalOwner != 0u && owner == uLocalOwner) ? 0.40 : 0.58;
+      // Own border inks DARKER than rivals' (playtest 2026-10-22: own outline
+      // read as almost none next to crisp rival borders).
+      float inkMix = (uLocalOwner != 0u && owner == uLocalOwner) ? 0.7 : 0.58;
       bc = mix(bc, vec3(0.055, 0.045, 0.050), inkMix);
       if (isHighlightBorder) {
         bc = mix(bc, vec3(1.0), uHighlightBrighten);

@@ -384,6 +384,25 @@ export class TransformHandler {
    * (e.g. size the frame to the tribe's spread) while reusing the centroid +
    * look-ahead math; the DIRECTOR agent can query it without re-deriving logic.
    */
+  /** Half the height the bottom HUD panel covers, in map tiles. */
+  private bottomPanelOffsetTiles(): number {
+    if (typeof document === "undefined" || typeof window === "undefined") {
+      return 0;
+    }
+    const hud = document.querySelector(".tc-hud-main");
+    if (!(hud instanceof HTMLElement)) return 0;
+    const rect = hud.getBoundingClientRect();
+    const covered = window.innerHeight - rect.top;
+    if (
+      rect.height <= 0 ||
+      covered <= 0 ||
+      rect.top < window.innerHeight * 0.35
+    ) {
+      return 0;
+    }
+    return covered / 2 / Math.max(this.scale, 0.0001);
+  }
+
   protected computeFollowTarget(): {
     cell: Cell;
     scale: number | null;
@@ -397,7 +416,12 @@ export class TransformHandler {
       return null;
     }
     const lead = this.followLead();
-    const cell = new Cell(focus.x + lead.x, focus.y + lead.y);
+    // Centre the tribe in the open map above the bottom command panel, not
+    // behind it (playtest 2026-10-22: the panel covered the player's land).
+    const cell = new Cell(
+      focus.x + lead.x,
+      focus.y + lead.y + this.bottomPanelOffsetTiles(),
+    );
     // Adaptive zoom sized to the tribe's spread (+ speed) in the Primitive age;
     // null in other ages = "leave zoom alone" (matches the old flat behavior of
     // playerFocusScale(me, null) for non-primitive players). Also null once the

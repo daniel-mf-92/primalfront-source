@@ -405,7 +405,11 @@ export function chooseObjective(
   }
 
   const stockpile = player.resources();
+  // The Hut is the objective's own building ("Build your first Hut"): without
+  // it here the panel stayed on that step at 100% after the Hut was up
+  // (real-screen playtest 2026-10-22).
   const economyBuildings =
+    countBuiltUnits(player, UnitType.Hut) +
     countBuiltUnits(player, UnitType.PrimitiveFarm) +
     countBuiltUnits(player, UnitType.TradeOutpost);
   // Each step's bar measures the one number that step is waiting on, so it
