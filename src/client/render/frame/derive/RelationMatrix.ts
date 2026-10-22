@@ -4,6 +4,9 @@ const RELATION_SIZE = 1024;
 const RELATION_NEUTRAL = 0;
 const RELATION_FRIENDLY = 1;
 const RELATION_EMBARGO = 2;
+/** A land attack in flight between the pair (either way): the border between
+ * them is a live battle front and is inked as one. */
+export const RELATION_WAR = 3;
 
 /** Reusable matrix buffer — one allocation, rewritten each frame. */
 const matrix = new Uint8Array(RELATION_SIZE * RELATION_SIZE);
@@ -15,8 +18,9 @@ export interface RelationMatrixResult {
 
 /**
  * Build a relationship matrix from player alliance, embargo, and team data.
- * Indexed by `[ownerA * size + ownerB]` → 0=neutral, 1=friendly, 2=embargo.
- * Embargo overrides friendly (matching game priority).
+ * Indexed by `[ownerA * size + ownerB]` → 0=neutral, 1=friendly, 2=embargo,
+ * 3=war. Embargo overrides friendly (matching game priority); war overrides
+ * both.
  *
  * @param teams  Optional smallID→team map. Same-team players are marked friendly.
  */
@@ -76,7 +80,31 @@ export function buildRelationMatrix(
     }
   }
 
+  // Live battles: an attack between two tribes (wild land has smallID 0).
+  for (const ps of players.values()) {
+    const sid = ps.smallID;
+    if (sid <= 0 || sid >= RELATION_SIZE || !ps.outgoingAttacks) continue;
+    for (const a of ps.outgoingAttacks) {
+      const t = a.targetID;
+      if (t <= 0 || t >= RELATION_SIZE || t === sid) continue;
+      matrix[sid * RELATION_SIZE + t] = RELATION_WAR;
+      matrix[t * RELATION_SIZE + sid] = RELATION_WAR;
+    }
+  }
+
   return { matrix, size: RELATION_SIZE };
+}
+
+/** The pairs a player is at war with, as a stable key: the relation matrix
+ * only needs rebuilding (a full-map border recompute) when this changes, not
+ * every time a band starts or stops claiming wild land. */
+export function warKey(
+  attacks: readonly { targetID: number }[] | undefined,
+): string {
+  if (!attacks || attacks.length === 0) return "";
+  const ids: number[] = [];
+  for (const a of attacks) if (a.targetID > 0) ids.push(a.targetID);
+  return ids.sort((x, y) => x - y).join(",");
 }
 
 /** Build a smallID→team map from a player list. Skips players with no team. */

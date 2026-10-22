@@ -249,9 +249,16 @@ export class TerritoryPass {
       }
       return;
     }
+    // Round-robin by 8x8 map block, not by tile: a battle front advancing
+    // on a busy map used to dissolve in as per-tile salt-and-pepper over N
+    // frames (it read as flicker along the front). A block now lands whole,
+    // so the line moves in short coherent steps.
+    const w = this.mapW;
     for (let i = 0; i < changedTiles.length; i++) {
       const ref = changedTiles[i].ref;
-      const b = ((ref * 2654435761) >>> 0) % N;
+      const x = ref % w;
+      const block = ((((ref - x) / w) >> 3) * 4096 + (x >> 3)) >>> 0;
+      const b = ((block * 2654435761) >>> 0) % N;
       buckets[b].push(ref, tileState[ref]);
     }
   }

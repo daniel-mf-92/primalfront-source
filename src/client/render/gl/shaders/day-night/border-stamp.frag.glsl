@@ -124,7 +124,11 @@ void main() {
   vec4 borderData = texelFetch(uBorderTex, tc, 0);
   float borderType = borderData.r;      // 0=interior, ~0.5=normal, ~1.0=highlight
   bool defense = texelFetch(uDefenseCoverageTex, tc, 0).r > 0.5; // same-owner defense post nearby
-  float relation = borderData.a;        // 0.0=neutral, ~0.5=friendly, ~1.0=embargo
+  // 0=neutral, 1/3=friendly, 2/3=embargo, 1=war. Taken as the max over the
+  // 3x3 ring (below, once we know this pixel is inked): the warped contour
+  // wanders up to a tile off the raw border, and a per-tile lookup flipped the
+  // line's colour on and off at tile edges.
+  float relation = borderData.a;
 
   bool isHighlightBorder = borderType > 0.75;
 
@@ -157,9 +161,26 @@ void main() {
     // clamp via the smoothstep range (uZoom 0.35..1.6 px/tile).
     float far = 1.0 - smoothstep(0.35, 1.6, uZoom);
     float widthScale = mix(1.0, 1.45, far); // 3.2px → ~4.6px outer falloff
-    float stroke = 1.0 - smoothstep(1.6 * widthScale, 3.2 * widthScale, distPx);
+    {
+      ivec2 rmx = ivec2(uMapSize) - 1;
+      for (int ry = -1; ry <= 1; ry++) {
+        for (int rx = -1; rx <= 1; rx++) {
+          relation = max(relation,
+              texelFetch(uBorderTex, clamp(tc + ivec2(rx, ry), ivec2(0), rmx), 0).a);
+        }
+      }
+    }
+    bool war = relation > 0.83;
+    // A live battle front (Marta 2026-10-22: the frontier "changed style" when
+    // a battle started): drawn the way old campaign maps draw a front - a
+    // heavier madder-red ink line on the same organic contour as every other
+    // border. No hatch band: a tile-quantized band read as square stair-steps
+    // (fresh-eyes review 2026-10-22). Static - nothing flashes or animates.
+    float lineW = war ? 1.35 : 1.0;
+    float stroke = 1.0 - smoothstep(1.6 * widthScale * lineW, 3.2 * widthScale * lineW, distPx);
+    float clip = smoothstep(0.5 - grad, 0.5 + grad, f);
     // Never stroke outside the fill contour's own AA edge.
-    stroke *= smoothstep(0.5 - grad, 0.5 + grad, f);
+    stroke *= clip;
     stroke = min(stroke * mix(1.0, 1.25, far), 1.0);
     if (stroke < 0.02) discard;
     owner = cand;
@@ -186,9 +207,11 @@ void main() {
         bc = mix(bc, vec3(1.0), uHighlightBrighten);
       }
       // Relationship tint (applied BEFORE defense checkerboard, matching game)
-      if (relation > 0.75) {
+      if (war) {
+        bc = mix(bc, vec3(0.46, 0.09, 0.06), 0.85);
+      } else if (relation > 0.5) {
         bc = mix(bc, uEmbargoTint, uEmbargoTintRatio);
-      } else if (relation > 0.25) {
+      } else if (relation > 0.17) {
         bc = mix(bc, uFriendlyTint, uFriendlyTintRatio);
       }
       // Defense bonus: checkerboard darken (applied AFTER tint, matching game)

@@ -83,14 +83,14 @@
     "highlightFillBrighten": 0.15,
     "highlightThicken": 2,
     "defensePostRange": 30,
-    "embargoTintRatio": 0.35,
-    "friendlyTintRatio": 0.35,
-    "embargoTintR": 1,
-    "embargoTintG": 0,
-    "embargoTintB": 0,
-    "friendlyTintR": 0,
-    "friendlyTintG": 1,
-    "friendlyTintB": 0
+    "embargoTintRatio": 0.4,
+    "friendlyTintRatio": 0.4,
+    "embargoTintR": 0.46,
+    "embargoTintG": 0.09,
+    "embargoTintB": 0.06,
+    "friendlyTintR": 0.13,
+    "friendlyTintG": 0.4,
+    "friendlyTintB": 0.32
   },
   "affiliation": {
     "selfR": 0,

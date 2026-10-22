@@ -34,7 +34,10 @@ import { computeAllianceClusters } from "../render/frame/derive/AllianceClusters
 import { extractAttackRings } from "../render/frame/derive/AttackRings";
 import { extractNukeTelegraphs } from "../render/frame/derive/NukeTelegraphs";
 import { computePlayerStatus } from "../render/frame/derive/PlayerStatus";
-import { buildRelationMatrix } from "../render/frame/derive/RelationMatrix";
+import {
+  buildRelationMatrix,
+  warKey,
+} from "../render/frame/derive/RelationMatrix";
 import { RailroadCache } from "../render/frame/RailroadCache";
 import { TrailManager } from "../render/frame/TrailManager";
 import type { FrameData, NameEntry, TilePair } from "../render/types";
@@ -149,6 +152,8 @@ export class GameView implements GameMap {
   private _namesDirty = true;
   /** Relation matrix: allies/embargoes changed, or a player was added. */
   private _relationsDirty = true;
+  /** Per player: the tribes it is attacking (see warKey). */
+  private _warKeys = new Map<string, string>();
   /** Alliance clusters: allies changed, or a player was added. */
   private _clustersDirty = true;
 
@@ -412,6 +417,16 @@ export class GameView implements GameMap {
       }
       if (pu.embargoes !== undefined) {
         this._relationsDirty = true;
+      }
+      // A battle starting or ending repaints that front (war ink). Attack
+      // arrays are only resent on membership changes; compare the war pairs
+      // so wild-land claims do not trigger a full border recompute.
+      if (pu.outgoingAttacks !== undefined) {
+        const key = warKey(pu.outgoingAttacks);
+        if ((this._warKeys.get(pu.id) ?? "") !== key) {
+          this._warKeys.set(pu.id, key);
+          this._relationsDirty = true;
+        }
       }
 
       if (existing !== undefined) {

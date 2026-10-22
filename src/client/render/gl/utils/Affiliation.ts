@@ -131,7 +131,7 @@ export class AffiliationPalette {
         d[bOff + 1] = ALLY_G;
         d[bOff + 2] = ALLY_B;
         d[bOff + 3] = 255;
-      } else if (relation === RELATION_EMBARGO) {
+      } else if (relation >= RELATION_EMBARGO) {
         d[bOff] = ENEMY_R;
         d[bOff + 1] = ENEMY_G;
         d[bOff + 2] = ENEMY_B;

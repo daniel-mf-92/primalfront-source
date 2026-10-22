@@ -41,6 +41,10 @@ export class AttackExecution implements Execution {
   // Reusable neighbor buffers to avoid closures/allocation in hot loops.
   private nbuf: TileRef[] = [0, 0, 0, 0];
   private nbuf2: TileRef[] = [0, 0, 0, 0];
+  // Tiles this attack has taken, and whether a tribe's last ground turned it
+  // away - both only feed the "why did my attack end" message.
+  private tilesTaken = 0;
+  private coreHeld = false;
 
   constructor(
     private startTroops: number | null = null,
@@ -305,12 +309,14 @@ export class AttackExecution implements Execution {
       if (troopCount < 1) {
         this.attack.delete();
         this.active = false;
+        this.announceEnd("spent");
         return;
       }
 
       if (this.toConquer.size() === 0) {
         this.refreshToConquer();
         this.retreat();
+        if (this.coreHeld) this.announceEnd("core");
         return;
       }
 
@@ -350,6 +356,7 @@ export class AttackExecution implements Execution {
           this.mg.config().primitiveExterminationRatio(targetPlayer) *
             Math.max(1, targetPlayer.troops())
       ) {
+        this.coreHeld = true;
         continue; // core holds — not enough force to exterminate this tribe
       }
       this.addNeighbors(tileToConquer);
@@ -395,6 +402,7 @@ export class AttackExecution implements Execution {
         targetPlayer.removeTroops(defenderTroopLoss);
       }
       this._owner.conquer(tileToConquer);
+      this.tilesTaken++;
       // Overextension (Module C): each captured tile adds integration debt and is
       // recorded for deterministic frontier-revolt ordering. Conquest must be
       // expensive to KEEP, not just to take.
@@ -424,6 +432,35 @@ export class AttackExecution implements Execution {
       }
       this.handleDeadDefender();
     }
+  }
+
+  // A battle ends with a stated reason on both sides (Marta 2026-10-22:
+  // attacks just stopped and nobody could tell why). Only fights between two
+  // tribes are announced; claiming wild land ends silently as before.
+  private announceEnd(reason: "spent" | "core") {
+    if (!this.target.isPlayer()) return;
+    const defender = this.target as Player;
+    if (!defender.isAlive()) return;
+    this.mg.displayMessage(
+      reason === "core"
+        ? "events_display.attack_core_held"
+        : "events_display.attack_spent",
+      MessageType.ATTACK_FAILED,
+      this._owner.id(),
+      undefined,
+      { name: defender.displayName(), tiles: this.tilesTaken },
+      undefined,
+      defender.id(),
+    );
+    this.mg.displayMessage(
+      "events_display.attack_held_off",
+      MessageType.RAID_REPELLED,
+      defender.id(),
+      undefined,
+      { name: this._owner.displayName(), tiles: this.tilesTaken },
+      undefined,
+      this._owner.id(),
+    );
   }
 
   private rejectIncomingAllianceRequests(target: Player) {
@@ -482,13 +519,21 @@ export class AttackExecution implements Execution {
         tickNow;
       if (this.focusTile !== null) {
         // Directed expansion: each tile of distance from the clicked tile costs
-        // attackFocusWeight() of priority (same unit as the tick term), capped
-        // so a far click does not freeze the near front.
+        // a focus weight of priority (same unit as the tick term), capped so a
+        // far click does not freeze the near front. Against a tribe the pull
+        // is gentle so the whole shared border moves as one front.
+        const vsPlayer = this.target.isPlayer();
+        const cfg = this.mg.config();
         priority +=
           Math.min(
-            this.mg.config().attackFocusMaxDist(),
+            vsPlayer
+              ? cfg.attackFocusMaxDistVsPlayer()
+              : cfg.attackFocusMaxDist(),
             this.mg.manhattanDist(neighbor, this.focusTile),
-          ) * this.mg.config().attackFocusWeight();
+          ) *
+          (vsPlayer
+            ? cfg.attackFocusWeightVsPlayer()
+            : cfg.attackFocusWeight());
       }
 
       this.toConquer.enqueue(neighbor, priority);

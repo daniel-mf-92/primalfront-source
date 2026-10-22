@@ -25,7 +25,7 @@ void main() {
 
   // --- Border detection ---
   float borderType = 0.0; // 0=interior, ~0.5=normal border, ~1.0=highlight border
-  uint maxRel = 0u;       // 0=neutral, 1=friendly, 2=embargo
+  uint maxRel = 0u;       // 0=neutral, 1=friendly, 2=embargo, 3=war
 
   if (owner != 0u) {
     // Cardinal neighbor check (standard border)
@@ -77,8 +77,9 @@ void main() {
     }
   }
 
-  // A = relationship: 0.0=neutral, 0.5=friendly, 1.0=embargo
-  float relation = float(maxRel) * 0.5;
+  // A = relationship: 0=neutral, 1/3=friendly, 2/3=embargo, 1=war (a land
+  // attack in flight between the two tribes).
+  float relation = float(maxRel) / 3.0;
   // G channel is unused (formerly emberIntensity; ember is now computed in
   // FalloutBloomPass and FalloutLightPass). B channel is unused (defense post
   // proximity is now computed per-tile by DefenseCoveragePass).

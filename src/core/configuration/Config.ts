@@ -1948,6 +1948,16 @@ export class Config {
   attackFocusMaxDist(): number {
     return 80;
   }
+  /** The same pull when the clicked land belongs to another tribe. A battle
+   * is a front, not a spear (Marta 2026-10-22): the whole shared border
+   * advances, bulging gently toward the click, instead of the walking wedge's
+   * five-tile spike that left the rest of the line idle. */
+  attackFocusWeightVsPlayer(): number {
+    return 0.4;
+  }
+  attackFocusMaxDistVsPlayer(): number {
+    return 30;
+  }
 
   /** Most tiles the carrying-cap shed removes per pass (every 10 ticks) from
    * a roaming band that is over capacity: 4 tiles/tick, about an attack's

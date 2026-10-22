@@ -39,6 +39,11 @@ interface ClusterTraversalState {
 // Per-game traversal state used by calculateClusters() to avoid per-player buffers.
 const traversalStates = new WeakMap<Game, ClusterTraversalState>();
 
+// Border tile kinds for the nomadic shed (see frontKindFn).
+const FRONT_OPEN = 0;
+const FRONT_PEACE = 1;
+const FRONT_WAR = 2;
+
 export class PlayerExecution implements Execution {
   private readonly ticksPerClusterCalc = 20;
 
@@ -383,6 +388,33 @@ export class PlayerExecution implements Execution {
   // pack holds a tighter blob and sheds it faster, so it roves more quickly than
   // a settled human tribe. The scaling is a pure function of state (no RNG), so
   // it stays byte-identical on every client.
+  /** Classifies a border tile for the shed: open ground, a peaceful
+   * neighbour's border, or a live battle front. */
+  private frontKindFn(): (tile: TileRef) => number {
+    const mySmallID = this.player.smallID();
+    const hostile = new Set<number>();
+    for (const a of this.player.outgoingAttacks()) {
+      const t = a.target();
+      if (t.isPlayer()) hostile.add(t.smallID());
+    }
+    for (const a of this.player.incomingAttacks()) {
+      hostile.add(a.attacker().smallID());
+    }
+    const map = this.map;
+    const nbuf = this.nbuf;
+    return (tile: TileRef): number => {
+      let kind = FRONT_OPEN;
+      const n = map.neighbors4(tile, nbuf);
+      for (let i = 0; i < n; i++) {
+        const o = map.ownerID(nbuf[i]);
+        if (o === 0 || o === mySmallID) continue;
+        if (hostile.has(o)) return FRONT_WAR;
+        kind = FRONT_PEACE;
+      }
+      return kind;
+    };
+  }
+
   private rewildUnsupportedFrontier() {
     if (!this.config.rewildEnabled(this.player.age())) {
       return;
@@ -493,12 +525,22 @@ export class PlayerExecution implements Execution {
       return captured !== undefined && nowTick - captured <= graceTicks;
     };
 
+    // Battle fronts hold (Marta 2026-10-22: "battle dynamics don't make
+    // sense"). Land touching a tribe we are at war with (an attack in flight
+    // either way) is never shed, and land touching any other tribe goes last:
+    // otherwise the shed eats the very line two tribes are fighting over,
+    // opens a strip of wild ground between neighbours mid-battle, and turns a
+    // won wedge back to wilderness ten seconds later. A band still walks; it
+    // just gives up open ground behind it, not its front.
+    const frontKind = this.frontKindFn();
+
     const candidates: { tile: TileRef; score: number }[] = [];
     for (const tile of this.player.borderTiles()) {
       if (
         this.map.ownerID(tile) !== mySmallID ||
         isSupported(tile) ||
-        inCaptureGrace(tile)
+        inCaptureGrace(tile) ||
+        frontKind(tile) !== FRONT_OPEN
       ) {
         continue;
       }
@@ -617,9 +659,11 @@ export class PlayerExecution implements Execution {
       // Building-anchored land is NEVER shed by the cap (held until the building
       // expires); only camp-radius / unsettled land sheds down to the cap, most-
       // exposed first.
-      const overCandidates: { tile: TileRef; d2: number }[] = [];
+      const overCandidates: { tile: TileRef; d2: number; kind: number }[] = [];
       for (const tile of this.player.borderTiles()) {
         if (this.map.ownerID(tile) !== mySmallID) continue;
+        const kind = frontKind(tile);
+        if (kind === FRONT_WAR) continue;
         if (anchoredByBuilding(tile, this.map, anchors)) {
           continue;
         }
@@ -635,9 +679,13 @@ export class PlayerExecution implements Execution {
         }
         const dx = this.map.x(tile) - campX;
         const dy = this.map.y(tile) - campY;
-        overCandidates.push({ tile, d2: dx * dx + dy * dy });
+        overCandidates.push({ tile, d2: dx * dx + dy * dy, kind });
       }
-      overCandidates.sort((a, b) => b.d2 - a.d2 || a.tile - b.tile);
+      // Open ground first (most exposed first), a peaceful neighbour's
+      // border only once nothing else is left.
+      overCandidates.sort(
+        (a, b) => a.kind - b.kind || b.d2 - a.d2 || a.tile - b.tile,
+      );
       // Non-Primitive bots hold the cap HARD (shed the full overage, bounded) so
       // fast expansion can't balloon them into mass auto-splits. Primitive roamers
       // settle GENTLY instead (a few tiles/tick) so a roam that ends slightly
