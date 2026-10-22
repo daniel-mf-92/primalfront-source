@@ -20,6 +20,8 @@ export class HutExecution implements Execution {
   private mg: Game;
   private active = true;
   private expireTick = -1;
+  // Last owner renewal seen (Unit.renewedAt); a newer one restarts the clock.
+  private renewedAt: number | null = null;
   // smallID of the hut's current owner; a change means it was seized. Anchored to
   // the BUILDER at construction (the hut is owned by its builder the moment it is
   // built) so a seizure is detected regardless of when this execution first ticks.
@@ -44,7 +46,15 @@ export class HutExecution implements Execution {
     // so a seizure that lands before this first tick is still caught below.
     if (this.expireTick < 0) {
       this.expireTick = ticks + this.mg.config().hutLifespanTicks();
+      this.renewedAt = this.hut.renewedAt();
       return;
+    }
+
+    // Renewed by its owner: a full lifespan again from the renewal tick.
+    const renewed = this.hut.renewedAt();
+    if (renewed !== null && renewed !== this.renewedAt) {
+      this.renewedAt = renewed;
+      this.expireTick = renewed + this.mg.config().hutLifespanTicks();
     }
 
     // Seized since the last tick (territory conquered → structure captured).

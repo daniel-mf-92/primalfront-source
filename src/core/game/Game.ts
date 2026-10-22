@@ -699,6 +699,11 @@ export interface Unit {
   level(): number;
   increaseLevel(): void;
   decreaseLevel(destroyer?: Player): void;
+
+  // Huts: the tick a Hut's lifespan was last restarted by its owner (null =
+  // never renewed). HutExecution reads it; the HUD counts down from it.
+  renewedAt(): Tick | null;
+  renew(): void;
 }
 
 export interface TerraNullius {
@@ -924,6 +929,12 @@ export interface Player {
   findUnitToUpgrade(type: UnitType, targetTile: TileRef): Unit | false;
   canUpgradeUnit(unit: Unit): boolean;
   upgradeUnit(unit: Unit): void;
+  /** What renewing one of my standing Huts costs right now. */
+  hutRenewCost(): Gold;
+  /** My own finished Hut, and the gold to renew it. */
+  canRenewHut(unit: Unit): boolean;
+  /** Pay hutRenewCost and restart the Hut's full lifespan. */
+  renewHut(unit: Unit): void;
   captureUnit(unit: Unit): void;
 
   // Relations & Diplomacy

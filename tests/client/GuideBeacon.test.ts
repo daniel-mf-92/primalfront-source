@@ -6,7 +6,10 @@ import {
 import { Age, ResourceKind } from "../../src/core/game/Game";
 
 // A tiny fake map: 40x40, wood nodes at a few spots, one owned by "me".
-function fakeMap(nodes: Array<[number, number, number, number]>) {
+function fakeMap(
+  nodes: Array<[number, number, number, number]>,
+  water: (x: number, y: number) => boolean = () => false,
+) {
   const W = 40;
   const byTile = new Map<number, { quantity: number; owner: number }>();
   for (const [x, y, q, owner] of nodes)
@@ -24,6 +27,7 @@ function fakeMap(nodes: Array<[number, number, number, number]>) {
     },
     ownerID: (t: number) => byTile.get(t)?.owner ?? 0,
     isResourceVisible: (t: number) => byTile.get(t)?.quantity !== 1,
+    isLand: (t: number) => !water(t % W, Math.floor(t / W)),
   };
 }
 
@@ -40,6 +44,32 @@ describe("guide beacon", () => {
     expect(hit).not.toBeNull();
     expect([hit!.x, hit!.y]).toEqual([14, 10]);
     expect(hit!.dist).toBe(4);
+  });
+
+  it("never points across water: picks the nearest stand a land advance reaches", () => {
+    // A strait at x = 15..17 cuts the tribe (owning x 8..12) off from the
+    // east. The near stand across it is skipped for a farther one on our side.
+    const strait = (x: number) => x >= 15 && x <= 17;
+    const nodes: Array<[number, number, number, number]> = [
+      [18, 10, 30, 0], // across the water, 8 tiles
+      [10, 22, 30, 0], // our side, 12 tiles
+    ];
+    for (let x = 8; x <= 12; x++) nodes.push([x, 10, 0, 7]);
+    const map = fakeMap(nodes, strait);
+    const hit = nearestWoodStand(map, { x: 10, y: 10 }, 7);
+    expect([hit!.x, hit!.y]).toEqual([10, 22]);
+  });
+
+  it("finds nothing when every stand is cut off (the goal then says push out)", () => {
+    const strait = (x: number) => x >= 15 && x <= 17;
+    const map = fakeMap(
+      [
+        [10, 10, 0, 7],
+        [20, 10, 30, 0],
+      ],
+      strait,
+    );
+    expect(nearestWoodStand(map, { x: 10, y: 10 }, 7)).toBeNull();
   });
 
   it("returns nothing when the only stands are out of range", () => {

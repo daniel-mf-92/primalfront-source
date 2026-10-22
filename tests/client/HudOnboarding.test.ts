@@ -3,7 +3,11 @@ import path from "path";
 import { describe, expect, it } from "vitest";
 import { pinnedOrRecommended } from "../../src/client/GameModeSelector";
 import { SPAWN_MAX_COVER, spawnFit } from "../../src/client/hud/GameRenderer";
-import { formatClock, isLandLoss } from "../../src/client/hud/layers/LandWatch";
+import {
+  formatClock,
+  HutWearTracker,
+  isLandLoss,
+} from "../../src/client/hud/layers/LandWatch";
 
 // Real-screen audit 2026-10-22 (HUD, onboarding and home page lane): pins the
 // behaviours that fixed each finding so a later redesign cannot quietly undo
@@ -24,6 +28,34 @@ describe("land watch (item 2)", () => {
     expect(formatClock(1200)).toBe("2:00");
     expect(formatClock(95)).toBe("0:10");
     expect(formatClock(0)).toBe("0:00");
+  });
+
+  it("a renewed Hut counts down from its renewal (playtest 2026-10-22)", () => {
+    let ticks = 100;
+    let renewedAt: number | null = null;
+    const hut = { id: () => 7, isUnderConstruction: () => false };
+    const game = {
+      ticks: () => ticks,
+      myPlayer: () => ({ units: () => [hut] }),
+      unit: () => ({ renewedAt: () => renewedAt }),
+      config: () => ({ hutLifespanTicks: () => 2100 }),
+    };
+    const tracker = new HutWearTracker(game as never);
+    expect(tracker.remainingTicks(7)).toBe(2100);
+    ticks = 2000;
+    expect(tracker.remainingTicks(7)).toBe(200);
+    renewedAt = 2000;
+    expect(tracker.remainingTicks(7)).toBe(2100);
+  });
+
+  it("sits top left as a slim strip, not over the map centre", () => {
+    const css = read("src/client/styles.css");
+    const block = css.slice(css.indexOf("land-watch {"));
+    expect(block).toMatch(/left: 16px/);
+    expect(block).not.toMatch(/^\s*left: 50%/m);
+    expect(read("src/client/hud/layers/LandWatch.ts")).toContain(
+      "data-land-watch-renew",
+    );
   });
 
   it("is mounted and the Hut shows its time left in the build bar", () => {

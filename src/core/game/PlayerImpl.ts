@@ -2054,6 +2054,45 @@ export class PlayerImpl implements Player {
     return true;
   }
 
+  hutRenewCost(): Gold {
+    const full = this.mg.unitInfo(UnitType.Hut).cost(this.mg, this);
+    const pct = BigInt(
+      Math.round(this.mg.config().hutRenewCostFraction() * 100),
+    );
+    return (full * pct) / 100n;
+  }
+
+  canRenewHut(unit: Unit): boolean {
+    return (
+      unit.type() === UnitType.Hut &&
+      unit.isActive() &&
+      this.isUnitValidToUpgrade(unit) &&
+      this._gold >= this.hutRenewCost()
+    );
+  }
+
+  renewHut(unit: Unit): void {
+    if (!this.canRenewHut(unit)) return;
+    this.removeGold(this.hutRenewCost());
+    unit.renew();
+  }
+
+  /** My nearest finished Hut whose spacing ring covers this tile, if any. */
+  private hutToRenewNear(tile: TileRef): Unit | null {
+    const maxSq = this.mg.config().hutMinSpacing() ** 2;
+    let best: Unit | null = null;
+    let bestSq = Infinity;
+    for (const hut of this.units(UnitType.Hut)) {
+      if (hut.isUnderConstruction() || hut.isMarkedForDeletion()) continue;
+      const d = this.mg.euclideanDistSquared(hut.tile(), tile);
+      if (d < maxSq && d < bestSq) {
+        best = hut;
+        bestSq = d;
+      }
+    }
+    return best !== null && this.canRenewHut(best) ? best : null;
+  }
+
   upgradeUnit(unit: Unit) {
     const cost = this.mg.unitInfo(unit.type()).cost(this.mg, this);
     this.removeGold(cost);
@@ -2084,6 +2123,7 @@ export class PlayerImpl implements Player {
       const cost = config.unitInfo(u).cost(mg, this);
       let canUpgrade: number | false = false;
       let canBuild: TileRef | false = false;
+      let shownCost = cost;
 
       if (tile !== null && this.canBuildUnitType(u, cost) && !inSpawnPhase) {
         if (this.canUpgradeUnitType(u)) {
@@ -2098,13 +2138,25 @@ export class PlayerImpl implements Player {
         canBuild = this.canSpawnUnitType(u, tile, validTiles);
       }
 
+      // A Hut placed on (or too near) one of my standing Huts renews that
+      // Hut instead: no second camp may stand there anyway, and keeping the
+      // land should not cost a whole new Hut (playtest 2026-10-22).
+      if (u === UnitType.Hut && tile !== null && !inSpawnPhase) {
+        const hut = this.hutToRenewNear(tile);
+        if (hut !== null) {
+          canBuild = false;
+          canUpgrade = hut.id();
+          shownCost = this.hutRenewCost();
+        }
+      }
+
       const buildNew = canBuild !== false && canUpgrade === false;
 
       result[i] = {
         type: u,
         canBuild,
         canUpgrade,
-        cost,
+        cost: shownCost,
         overlappingRailroads: buildNew
           ? rail.overlappingRailroads(canBuild as TileRef)
           : [],

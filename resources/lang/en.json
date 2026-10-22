@@ -67,6 +67,7 @@
     "reason_outpost_cap": "Max {n} trading posts",
     "reason_own_land": "Build on your own land",
     "reason_place": "Can't build here",
+    "renew_hut": "Renew this Hut: {cost} gold",
     "warship_shift_hint": "Hold Shift and drag to select multiple warships at once"
   },
   "chat": {
@@ -442,6 +443,7 @@
     "objective_found_city_ready_detail": "You can afford it now. Press 1 (or tap Settlement in the build bar), then click your own land.",
     "objective_generate_tech": "Generate tech",
     "objective_generate_tech_detail": "Grow knowledge from Cities, Granaries, and time before advancing.",
+    "objective_hint_dry_cap": "Your gold has stopped, and your band holds all the land it can feed. Build a Hut to hold more, then claim the next wood stand.",
     "objective_hint_dry_explore": "Your gold has stopped and no wood is in sight. Click land beyond your border to push out and find more.",
     "objective_hint_dry_wood": "Your gold has stopped: the stand ran dry. Claim the next wood stand; the green marker shows where.",
     "objective_hint_rebuild_hut": "Your Hut is gone and its land is slipping back to the wild. Build a new one (press 2) while you save.",
@@ -477,6 +479,7 @@
     "triumph_prosperity_detail": "Stockpile 150% of the age's base gold toll.",
     "triumphs": "Triumphs",
     "troops_full": "Full",
+    "troops_full_cap_hint": "Your land is at its limit: build a Hut to hold more, or attack a rival.",
     "troops_full_hint": "Click land beyond your border to expand, or attack a rival.",
     "troops_full_title": "Troops full.",
     "unrest": "Unrest",
@@ -704,7 +707,7 @@
   },
   "guide_beacon": {
     "build_placed": "{name} placed",
-    "move": "Claiming here",
+    "build_renewed": "{name} renewed",
     "wood": "Wood · {tiles} tiles"
   },
   "heads_up_message": {
@@ -877,14 +880,28 @@
     "host_left": "The host has left the lobby.",
     "lobby_creator": "Kicked by lobby creator"
   },
+  "land_click": {
+    "boat": "Boat on its way",
+    "refuse_allied": "{name} is your ally: you cannot attack them",
+    "refuse_land_cap": "Your band holds all the land it can feed. Build a Hut to hold more.",
+    "refuse_no_border": "No shared border with {name}: you cannot reach them yet",
+    "refuse_no_troops": "Not enough troops to attack",
+    "refuse_peace": "{name} cannot be attacked right now",
+    "refuse_unreachable": "Across water or rival land: you cannot reach it yet",
+    "reinforce": "More troops join the advance",
+    "rival": "Advancing on {name}",
+    "wild": "Pushing into the wild"
+  },
   "land_watch": {
     "attack": "{name} is taking your land. Pull troops to that border or strike back.",
     "attack_kicker": "Under attack",
     "attack_unknown": "A rival is taking your land. Pull troops to that border or strike back.",
     "hut_gone": "Its land is going back to the wild. Build a new Hut (press 2) to hold your ground.",
     "hut_gone_kicker": "Hut worn away",
-    "hut_wear": "It falls in {time} and the land it holds goes back to the wild. Build another Hut nearby to keep it.",
+    "hut_wear": "Falls in {time}; its land goes back to the wild.",
     "hut_wear_kicker": "Your Hut is wearing away",
+    "renew": "Renew {cost}",
+    "renew_title": "Renew the Hut: it stands for its full time again",
     "rewild": "Land no Hut holds is going back to the wild. Build a Hut (press 2) on your land to keep it.",
     "rewild_kicker": "Losing land"
   },

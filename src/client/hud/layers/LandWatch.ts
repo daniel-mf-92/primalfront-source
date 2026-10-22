@@ -4,14 +4,19 @@ import { EventBus } from "../../../core/EventBus";
 import { Age, UnitType } from "../../../core/game/Game";
 import { Controller } from "../../Controller";
 import { PlaySoundEffectEvent } from "../../sound/Sounds";
-import { translateText } from "../../Utils";
+import { SendUpgradeStructureIntentEvent } from "../../Transport";
+import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
+import { hutRenewCostNow } from "./ObjectiveRail";
 
 // Losing land used to be a small red line in the corner feed (real-screen
 // audit 2026-10-22: a Hut wore away, its land went back to the wild, and the
 // player only noticed the shrinking blob). This layer watches the three ways
 // a tribe loses ground and says so in ONE banner at the top of the map, in
-// the atlas style, BEFORE it happens where it can:
+// the atlas style, BEFORE it happens where it can. It is a slim strip at the
+// top left, under the HUD dock, so it never covers the tribe at the centre of
+// the map (playtest 2026-10-22: the full-width banner hid the player's own
+// territory):
 //
 //   - HUT WEAR: a Hut is a temporary camp (Config.hutLifespanTicks). The
 //     banner warns HUT_WARN_TICKS ahead with a countdown, then marks the loss.
@@ -74,8 +79,11 @@ export class HutWearTracker {
     this.sync();
     const born = this.bornAt.get(unitID);
     if (born === undefined) return null;
+    // A renewal restarts the clock (HutExecution does the same).
+    const renewed = this.game.unit(unitID)?.renewedAt() ?? null;
+    const start = renewed !== null ? Math.max(born, renewed) : born;
     const lifespan = this.game.config().hutLifespanTicks();
-    return Math.max(0, born + lifespan - this.game.ticks());
+    return Math.max(0, start + lifespan - this.game.ticks());
   }
 
   /** The Hut that goes first: its id and ticks left. */
@@ -118,6 +126,8 @@ interface Banner {
   message: string;
   /** 0..1 for the countdown strip (Hut wear only). */
   fraction?: number;
+  /** Hut wear only: the Hut to renew, its price, and whether I can pay. */
+  renew?: { hutID: number; cost: number; affordable: boolean };
 }
 
 @customElement("land-watch")
@@ -155,7 +165,9 @@ export class LandWatch extends LitElement implements Controller {
     if (
       this.lastSoonest !== null &&
       this.lastSoonest.ticks <= 20 &&
-      (soonest === null || soonest.id !== this.lastSoonest.id)
+      (soonest === null || soonest.id !== this.lastSoonest.id) &&
+      // Gone, not renewed: a renewed Hut is still mine, just no longer first.
+      tracker.remainingTicks(this.lastSoonest.id) === null
     ) {
       this.hutGoneUntilTick = ticks + BANNER_HOLD_TICKS * 2;
       this.eventBus?.emit(new PlaySoundEffectEvent("great-work-setback"));
@@ -203,6 +215,21 @@ export class LandWatch extends LitElement implements Controller {
     }
 
     this.banner = this.chooseBanner(ticks, soonest, me.age());
+    if (this.banner?.kind === "hut_wear" && soonest !== null) {
+      const cost = hutRenewCostNow(this.game.config(), ticks);
+      this.banner.renew = {
+        hutID: soonest.id,
+        cost,
+        affordable: me.gold() >= BigInt(cost),
+      };
+    }
+  }
+
+  private renewHut(hutID: number) {
+    this.eventBus?.emit(
+      new SendUpgradeStructureIntentEvent(hutID, UnitType.Hut),
+    );
+    this.eventBus?.emit(new PlaySoundEffectEvent("click"));
   }
 
   private chooseBanner(
@@ -257,8 +284,26 @@ export class LandWatch extends LitElement implements Controller {
         aria-live="polite"
         data-land-watch=${b.kind}
       >
-        <div class="tc-land-watch__kicker">${b.kicker}</div>
-        <div class="tc-land-watch__msg">${b.message}</div>
+        <div class="tc-land-watch__row">
+          <div class="tc-land-watch__text">
+            <div class="tc-land-watch__kicker">${b.kicker}</div>
+            <div class="tc-land-watch__msg">${b.message}</div>
+          </div>
+          ${b.renew !== undefined
+            ? html`<button
+                type="button"
+                class="tc-land-watch__renew"
+                data-land-watch-renew
+                ?disabled=${!b.renew.affordable}
+                title=${translateText("land_watch.renew_title")}
+                @click=${() => this.renewHut(b.renew!.hutID)}
+              >
+                ${translateText("land_watch.renew", {
+                  cost: renderNumber(b.renew.cost),
+                })}
+              </button>`
+            : ""}
+        </div>
         ${b.fraction !== undefined
           ? html`<div class="tc-land-watch__wear" aria-hidden="true">
               <div style="width: ${Math.round(b.fraction * 100)}%"></div>

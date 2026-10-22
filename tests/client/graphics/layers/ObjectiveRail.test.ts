@@ -5,6 +5,8 @@ import {
   computeAgeGates,
   computeEraTriumphs,
   computePrimitiveGoldPipeline,
+  HINT_HOLD_TICKS,
+  HINT_ONSET_TICKS,
   primitiveStageOf,
   settlementIceWaitTicks,
 } from "../../../../src/client/hud/layers/ObjectiveRail";
@@ -211,12 +213,23 @@ test("ladder: once a Hut has stood, a dry stand never sends the goal back to 'cl
   // settlement step, with advice to get wood again.
   for (const hut of player.units(UnitType.Hut)) hut.delete();
   player.removeGold(player.gold());
-  const after = chooseObjective(player, config, undefined, undefined, 0, {
+  chooseObjective(player, config, undefined, undefined, 0, {
     memory,
     woodInSight: true,
   });
+  // The side note holds HINT_ONSET_TICKS before it shows (no blips).
+  const after = chooseObjective(
+    player,
+    config,
+    undefined,
+    undefined,
+    HINT_ONSET_TICKS,
+    { memory, woodInSight: true },
+  );
   expect(after.id).toBe("found_city");
-  expect(after.detailKey).toBe("control_panel.objective_hint_dry_wood");
+  // The step's instruction stays; "the gold stopped" is a note under it.
+  expect(after.detailKey).toBe("control_panel.objective_found_city_detail");
+  expect(after.hintKey).toBe("control_panel.objective_hint_dry_wood");
   expect(after.pointToWood).toBe(true);
   expect(after.progress).toBeLessThan(1);
 });
@@ -307,11 +320,119 @@ test("ladder: a Hut that wore away with gold in hand says rebuild it, not push o
     woodInSight: false,
   });
   expect(goal.id).toBe("found_city");
-  expect(goal.detailKey).not.toBe("control_panel.objective_hint_rebuild_hut");
+  expect(goal.hintKey).not.toBe("control_panel.objective_hint_rebuild_hut");
   player.addGold(BigInt(config.hutCost() * 2));
-  const rich = chooseObjective(player, config, undefined, undefined, 0, {
-    memory: { stage: 3 },
+  const memory = { stage: 3 };
+  chooseObjective(player, config, undefined, undefined, 0, {
+    memory,
     woodInSight: false,
   });
-  expect(rich.detailKey).toBe("control_panel.objective_hint_rebuild_hut");
+  const rich = chooseObjective(
+    player,
+    config,
+    undefined,
+    undefined,
+    HINT_ONSET_TICKS,
+    { memory, woodInSight: false },
+  );
+  expect(rich.detailKey).toBe("control_panel.objective_found_city_detail");
+  expect(rich.hintKey).toBe("control_panel.objective_hint_rebuild_hut");
+});
+
+// ---------------------------------------------------------------------------
+// Goal panel coherence (real-screen playtest 2026-10-22): the bar fell
+// 25 -> 21 -> 17% as Huts spent the savings, and the body flipped between
+// "Save for the Permanent Settlement" and "Your gold has stopped".
+// ---------------------------------------------------------------------------
+
+test("goal panel: the progress bar never steps back within a step", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  const memory = { stage: 3 };
+  player.addGold(200_000n);
+  const seen: number[] = [];
+  for (let t = 0; t < 10; t++) {
+    // Gold spent on Huts between looks.
+    player.removeGold(15_000n);
+    seen.push(
+      chooseObjective(player, config, undefined, undefined, t, { memory })
+        .progress,
+    );
+  }
+  for (let i = 1; i < seen.length; i++) {
+    expect(seen[i]).toBeGreaterThanOrEqual(seen[i - 1]);
+  }
+  expect(seen[0]).toBeGreaterThan(0);
+});
+
+test("goal panel: one instruction per step, and the side note never flip-flops", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  const memory = { stage: 3 };
+  const hutCost = BigInt(config.hutCost());
+  // A Hut stands, so the only note is "the gold stopped".
+  player.addGold(hutCost * 2n);
+  player.buildUnit(UnitType.Hut, game.ref(50, 50), {});
+  const details = new Set<string>();
+  const hints: Array<string | undefined> = [];
+  // Wood trickles in and runs dry every few ticks: the raw "flowing" state
+  // toggles constantly.
+  for (let t = 0; t < 400; t++) {
+    if (t % 6 < 3) player.addWood(1);
+    else player.removeWood(player.wood());
+    const goal = chooseObjective(player, config, undefined, undefined, t, {
+      memory,
+      woodInSight: true,
+    });
+    details.add(goal.detailKey);
+    hints.push(goal.hintKey);
+  }
+  expect([...details]).toEqual(["control_panel.objective_found_city_detail"]);
+  let changes = 0;
+  for (let i = 1; i < hints.length; i++) {
+    if (hints[i] !== hints[i - 1]) changes++;
+  }
+  // At most: appear once, clear once.
+  expect(changes).toBeLessThanOrEqual(2);
+});
+
+test("goal panel: a note held for its onset shows, and clears only after the hold", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  const memory = { stage: 3 };
+  player.addGold(BigInt(config.hutCost() * 2));
+  player.buildUnit(UnitType.Hut, game.ref(50, 50), {});
+  const look = (t: number) =>
+    chooseObjective(player, config, undefined, undefined, t, {
+      memory,
+      woodInSight: false,
+    }).hintKey;
+  expect(look(0)).toBeUndefined();
+  expect(look(HINT_ONSET_TICKS)).toBe(
+    "control_panel.objective_hint_dry_explore",
+  );
+  // Gold starts flowing: the note stays through the hold, then clears.
+  player.addWood(100);
+  expect(look(HINT_ONSET_TICKS + 1)).toBe(
+    "control_panel.objective_hint_dry_explore",
+  );
+  expect(look(HINT_ONSET_TICKS + HINT_HOLD_TICKS + 1)).toBeUndefined();
+});
+
+test("goal panel: at the land limit the dry note says build a Hut, not push out", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  player.addGold(BigInt(config.hutCost() * 2));
+  player.buildUnit(UnitType.Hut, game.ref(50, 50), {});
+  const memory = { stage: 3 };
+  const look = (t: number) =>
+    chooseObjective(player, config, undefined, undefined, t, {
+      memory,
+      woodInSight: true,
+      atLandCap: true,
+    });
+  look(0);
+  const goal = look(HINT_ONSET_TICKS);
+  expect(goal.hintKey).toBe("control_panel.objective_hint_dry_cap");
+  expect(goal.pointToWood).toBe(true);
 });

@@ -21,8 +21,10 @@ import { TileRef } from "../../core/game/GameMap";
 import { UserSettings } from "../../core/game/UserSettings";
 import { Controller } from "../Controller";
 import {
+  BuildHoverEvent,
   BuildPlacedEvent,
   BuildRefusedEvent,
+  buildHoverLabel,
   buildRefusalReason,
   eraHotkeyTarget,
 } from "../hud/layers/BuildFeedback";
@@ -70,6 +72,8 @@ export class BuildPreviewController implements Controller {
   private readonly mousePos = { x: 0, y: 0 };
   private lastGhostQueryAt: number = 0;
   private pendingConfirm: MouseUpEvent | null = null;
+  /** Last hover label sent, so it is only re-sent when it changes. */
+  private lastHover: string | null = null;
 
   // Buildable validation runs on the snapped tile under the cursor, but the
   // rendered icon follows the cursor at sub-tile precision so motion is
@@ -288,6 +292,7 @@ export class BuildPreviewController implements Controller {
     tileRef: TileRef | undefined,
     targetingAlly: boolean,
   ): void {
+    this.emitHover(tileRef);
     const data = this.buildGhostPreviewData(tileRef, targetingAlly);
     if (data === null) {
       this.lastGhostData = null;
@@ -515,7 +520,11 @@ export class BuildPreviewController implements Controller {
         ),
       );
       this.eventBus.emit(
-        new BuildPlacedEvent(buildable.type as PlayerBuildableUnitType, tile),
+        new BuildPlacedEvent(
+          buildable.type as PlayerBuildableUnitType,
+          tile,
+          buildable.type === UnitType.Hut,
+        ),
       );
       this.removeGhostStructure();
     } else if (buildable.canBuild) {
@@ -558,7 +567,29 @@ export class BuildPreviewController implements Controller {
     };
   }
 
+  /** Say next to the cursor what this spot would do (or why it will not). */
+  private emitHover(tileRef: TileRef | undefined): void {
+    const hover =
+      this.ghostUnit === null
+        ? null
+        : buildHoverLabel(
+            this.game,
+            this.ghostUnit.buildableUnit,
+            tileRef ?? null,
+          );
+    const key = hover === null ? null : `${hover.ok}:${hover.label}`;
+    if (key === this.lastHover) return;
+    this.lastHover = key;
+    this.eventBus.emit(
+      new BuildHoverEvent(hover?.label ?? null, hover?.ok ?? false),
+    );
+  }
+
   private clearGhostStructure() {
+    if (this.lastHover !== null) {
+      this.lastHover = null;
+      this.eventBus.emit(new BuildHoverEvent(null, false));
+    }
     this.pendingConfirm = null;
     this.ghostUnit = null;
     this.lastGhostData = null;

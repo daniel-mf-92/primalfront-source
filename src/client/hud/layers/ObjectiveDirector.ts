@@ -1,5 +1,6 @@
 import { Age } from "../../../core/game/Game";
 import { GameView } from "../../view";
+import { atWildLandCap } from "./LandClick";
 import {
   chooseObjective,
   computeAgeGates,
@@ -58,7 +59,12 @@ export class ObjectiveDirector {
       computeAgeGates(me, config),
       computePrimitiveGoldPipeline(me, config),
       ticks,
-      { memory: this.memory, woodInSight: this.wood !== null },
+      {
+        memory: this.memory,
+        woodInSight: this.wood !== null,
+        atLandCap:
+          me.age() === Age.Primitive && atWildLandCap(config, me, ticks),
+      },
     );
     this.cachedTick = ticks;
     return this.cached;

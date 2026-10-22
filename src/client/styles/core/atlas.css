@@ -577,6 +577,13 @@ body:not(.in-game) .pf-featured-match__facts * {
 .pf-bot-check:empty {
   display: none;
 }
+/* Parked: the check runs off screen until a multiplayer join is waiting on
+   it, so it never covers Start game or Play again in practice. */
+.pf-bot-check.is-parked {
+  left: -200vw !important;
+  opacity: 0;
+  pointer-events: none;
+}
 .pf-bot-check {
   padding: 10px 12px 12px;
   background: #efe4c9;

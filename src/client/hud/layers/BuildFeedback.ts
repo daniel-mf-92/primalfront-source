@@ -14,6 +14,8 @@ export class BuildPlacedEvent implements GameEvent {
   constructor(
     public readonly unitType: PlayerBuildableUnitType,
     public readonly tile: TileRef,
+    /** A standing Hut was renewed rather than a new one placed. */
+    public readonly renewed: boolean = false,
   ) {}
 }
 
@@ -24,6 +26,39 @@ export class BuildRefusedEvent implements GameEvent {
     public readonly tile: TileRef,
     public readonly reason: string,
   ) {}
+}
+
+/**
+ * What the build ghost under the cursor would do, said next to the cursor
+ * while hovering (not only after a click: playtest 2026-10-22, a red ring on
+ * the wild with no word of why). null = nothing to say (a valid spot).
+ */
+export class BuildHoverEvent implements GameEvent {
+  constructor(
+    public readonly label: string | null,
+    public readonly ok: boolean,
+  ) {}
+}
+
+/** Pure: the hover label for a ghost's current buildable answer. */
+export function buildHoverLabel(
+  game: GameView,
+  buildable: Pick<BuildableUnit, "type" | "cost" | "canBuild" | "canUpgrade">,
+  tile: TileRef | null,
+): { label: string; ok: boolean } | null {
+  if (tile === null) return null;
+  if (buildable.type === UnitType.Hut && buildable.canUpgrade !== false) {
+    return {
+      label: translateText("build_menu.renew_hut", {
+        cost: renderNumber(buildable.cost),
+      }),
+      ok: true,
+    };
+  }
+  if (buildable.canBuild !== false || buildable.canUpgrade !== false) {
+    return null;
+  }
+  return { label: buildRefusalReason(game, buildable, tile), ok: false };
 }
 
 /**

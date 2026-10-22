@@ -11,7 +11,7 @@ describe("nomadic click contract", () => {
   test("the client never turns a click into a camp migration", async () => {
     const runner = await readRepoFile("src/client/ClientGameRunner.ts");
     expect(runner).not.toContain("SendPrimitiveMigrationIntentEvent");
-    expect(runner).toMatch(/new SendAttackIntentEvent\([\s\S]*?tile,\s*\)/);
+    expect(runner).toMatch(/new SendAttackIntentEvent\([\s\S]*?tile,?\s*\)/);
   });
 
   test("the attack intent carries the clicked tile and the sim reads it", async () => {
@@ -29,10 +29,11 @@ describe("nomadic click contract", () => {
 
   test("the on-map marker and the strings talk about claiming, not moving a camp", async () => {
     const beacon = await readRepoFile("src/client/hud/layers/GuideBeacon.ts");
-    expect(beacon).toContain("SendAttackIntentEvent");
+    // The marker answers every land click (LandClick.ts), not just sent ones.
+    expect(beacon).toContain("LandClickFeedbackEvent");
     expect(beacon).not.toContain("SendPrimitiveMigrationIntentEvent");
     const en = JSON.parse(await readRepoFile("resources/lang/en.json"));
-    expect(en.guide_beacon.move).not.toMatch(/camp/i);
+    expect(en.land_click.wild).not.toMatch(/camp/i);
     expect(en.help_modal.how_to_play_1).not.toMatch(/move your camp/i);
     expect(en.control_panel.objective_find_resources).not.toMatch(/walk/i);
   });

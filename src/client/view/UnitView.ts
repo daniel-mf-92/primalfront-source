@@ -107,6 +107,7 @@ export class UnitView {
   private _warshipState?: WarshipState;
   private _transportShipState?: TransportShipState;
   private _createdAt: Tick;
+  private _renewedAt: Tick | null;
 
   constructor(
     private gameView: GameView,
@@ -117,6 +118,7 @@ export class UnitView {
     this._transportShipState = data.transportShipState;
     this.lastPos.push(data.pos);
     this._createdAt = this.gameView.ticks();
+    this._renewedAt = data.renewedAt ?? null;
     if (this.state.underConstruction) {
       this.state.constructionStartTick = this._createdAt;
     }
@@ -124,6 +126,11 @@ export class UnitView {
 
   createdAt(): Tick {
     return this._createdAt;
+  }
+
+  /** Huts: tick of the owner's last renewal, null if never renewed. */
+  renewedAt(): Tick | null {
+    return this._renewedAt;
   }
 
   wasUpdated(): boolean {
@@ -148,6 +155,7 @@ export class UnitView {
     applyUpdateInPlace(this.state, data);
     this._warshipState = data.warshipState;
     this._transportShipState = data.transportShipState;
+    this._renewedAt = data.renewedAt ?? null;
     // constructionStartTick: set on transition into underConstruction.
     if (this.state.underConstruction && !wasUnderConstruction) {
       this.state.constructionStartTick = this.gameView.ticks();

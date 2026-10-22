@@ -218,6 +218,8 @@ export interface UnitUpdate {
   underConstruction?: boolean;
   missileTimerQueue: number[];
   level: number;
+  /** Huts only: tick of the owner's last renewal. */
+  renewedAt?: number;
   hasTrainStation: boolean;
   trainType?: TrainType; // Only for trains
   loaded?: boolean; // Only for trains

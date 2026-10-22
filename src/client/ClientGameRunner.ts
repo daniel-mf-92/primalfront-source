@@ -70,6 +70,11 @@ import { createCanvas } from "./Utils";
 import { WebGLFrameBuilder } from "./WebGLFrameBuilder";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
 import {
+  atWildLandCap,
+  LandClickFeedbackEvent,
+  landClickVerdict,
+} from "./hud/layers/LandClick";
+import {
   ScreenFlashEvent,
   ScreenShake,
   ScreenShakeEvent,
@@ -1033,18 +1038,50 @@ export class ClientGameRunner {
     // Every age expands the OpenFront way: a land click sends troops onto
     // that land, growing toward the clicked tile. (The Stone Age used to turn
     // this into a slow camp migration instead - retired 2026-10-21.)
-    this.myPlayer.actions(tile, [UnitType.TransportShip]).then((actions) => {
-      if (actions.canAttack) {
-        this.eventBus.emit(
-          new SendAttackIntentEvent(
-            this.gameView.owner(tile).id(),
-            this.myPlayer!.troops() * this.renderer.uiState.attackRatio,
-            tile,
+    // Every land click is answered where it landed: the advance starts, or
+    // the reason it cannot (LandClick.ts).
+    const me2 = this.myPlayer;
+    me2.actions(tile, [UnitType.TransportShip]).then((actions) => {
+      const owner = this.gameView.owner(tile);
+      const rival = owner.isPlayer() ? (owner as PlayerView) : null;
+      const attackTroops = me2.troops() * this.renderer.uiState.attackRatio;
+      const targetSmallID = owner.smallID();
+      const canBoat =
+        !actions.canAttack && this.canAutoBoat(actions.buildableUnits, tile);
+      const verdict = landClickVerdict({
+        isLand: this.gameView.isLand(tile),
+        ownedByMe: owner === me2,
+        targetName: rival?.displayName() ?? null,
+        friendly: rival !== null && me2.isFriendly(rival),
+        canAttack: actions.canAttack,
+        sharedBorder: actions.interaction?.sharedBorder ?? false,
+        canBoat,
+        attackTroops,
+        atLandCap:
+          rival === null &&
+          atWildLandCap(
+            this.gameView.config(),
+            me2,
+            this.gameView.ticks(),
+            me2.troops() - attackTroops,
           ),
-        );
-      } else if (this.canAutoBoat(actions.buildableUnits, tile)) {
-        this.sendBoatAttackIntent(tile);
+        alreadyAdvancing: me2
+          .outgoingAttacks()
+          .some((a) => a.targetID === targetSmallID && !a.retreating),
+      });
+      if (verdict.kind === "ignore") return;
+      if (verdict.kind === "advance") {
+        if (verdict.boat) {
+          this.sendBoatAttackIntent(tile);
+        } else {
+          this.eventBus.emit(
+            new SendAttackIntentEvent(owner.id(), attackTroops, tile),
+          );
+        }
       }
+      this.eventBus.emit(
+        new LandClickFeedbackEvent(tile, verdict, targetSmallID),
+      );
     });
   }
 

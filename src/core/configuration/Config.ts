@@ -2322,7 +2322,20 @@ export class Config {
   // TEMPORARY camp: it decays and vanishes, it is never upgradeable. Build a
   // permanent House (City) to actually advance the era.
   hutLifespanTicks(): number {
-    return 120 * 10; // ~2 minutes
+    // 3 minutes (was 2): at 2 minutes land kept reverting while a full
+    // purse sat unspent (real-screen playtest 2026-10-22). AI-NOTE: 3.5 min
+    // (2100) froze the Compact practice map in the Stone Age for all 40 min
+    // (LoopVitals compact/33/vitals-1: nations held a City and the toll but
+    // never advanced); 1800 exits at 10:40 there. Re-run LoopVitals before
+    // raising it.
+    return 180 * 10;
+  }
+
+  // Renewing a standing Hut (placing a Hut on it, or "Renew" on the wear
+  // banner) restarts its full lifespan for this fraction of a new Hut's price.
+  // Cheap on purpose: keeping land you already hold should not cost a camp.
+  hutRenewCostFraction(): number {
+    return 0.4;
   }
 
   // --- Phase 2 economy structures (docs/ICE_AGE_ECONOMY.md §B) ---

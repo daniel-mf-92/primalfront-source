@@ -43,6 +43,7 @@ import {
   dramaCueMeta,
   isRepeatableDramaCue,
 } from "./DramaDirector";
+import { atWildLandCap } from "./LandClick";
 import { objectiveDirector } from "./ObjectiveDirector";
 import {
   AgeGate,
@@ -242,6 +243,7 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _attackingTroops: number = 0;
+  @state() private _atWildCap = false;
 
   @state()
   private _goldGain: bigint | null = null;
@@ -372,6 +374,9 @@ export class ControlPanel extends LitElement implements Controller {
     // One goal for the whole HUD, remembered across ticks so it only moves
     // forward (see ObjectiveDirector).
     this._objective = objectiveDirector(this.game).current();
+    // At the land limit a click on the wild is turned back, so the troops
+    // nudge must not tell the player to click the wild (playtest 2026-10-22).
+    this._atWildCap = atWildLandCap(config, player, this.game.ticks());
     this._canAdvanceAge = canAdvanceFromGates(this._ageGates);
 
     // M9 — am I currently in the advance-age vulnerability window?
@@ -1209,6 +1214,11 @@ export class ControlPanel extends LitElement implements Controller {
         <div class="tc-objective-detail text-xs text-text-mid mt-1 lg:mt-0.5">
           ${detail}
         </div>
+        ${this._objective.hintKey !== undefined
+          ? html`<div class="tc-objective-hint" data-objective-hint>
+              ${translateText(this._objective.hintKey)}
+            </div>`
+          : ""}
         ${this.renderPrimitiveRoadmap()}
         <div
           class="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden"
@@ -1519,7 +1529,11 @@ export class ControlPanel extends LitElement implements Controller {
         <span class="tc-troops-nudge__mark" aria-hidden="true"></span>
         <span
           ><strong>${translateText("control_panel.troops_full_title")}</strong>
-          ${translateText("control_panel.troops_full_hint")}</span
+          ${translateText(
+            this._atWildCap
+              ? "control_panel.troops_full_cap_hint"
+              : "control_panel.troops_full_hint",
+          )}</span
         >
       </div>
     `;
@@ -1920,6 +1934,16 @@ export class ControlPanel extends LitElement implements Controller {
         }
         .tc-objective-detail {
           line-height: 1.35;
+        }
+        /* The side note under the step's instruction: smaller, ember-ruled,
+           never replacing the instruction above it. */
+        .tc-objective-hint {
+          margin-top: 3px;
+          padding-left: 7px;
+          border-left: 2px solid var(--ember);
+          font-size: 0.7rem;
+          line-height: 1.3;
+          color: #e9c79a;
         }
         /* Troops-full nudge: an ink-and-wax strip pinned under the troop bar,
            in the atlas leather of the panel, with one ember mark. */

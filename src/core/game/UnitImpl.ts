@@ -37,6 +37,7 @@ export class UnitImpl implements Unit {
   private _missileTimerQueue: number[] = [];
   private _hasTrainStation: boolean = false;
   private _level: number = 1;
+  private _renewedAt: Tick | null = null;
   private _targetable: boolean = true;
   private _loaded: boolean | undefined;
   private _trainType: TrainType | undefined;
@@ -148,6 +149,7 @@ export class UnitImpl implements Unit {
       targetTile: this.targetTile() ?? undefined,
       missileTimerQueue: this._missileTimerQueue,
       level: this.level(),
+      renewedAt: this._renewedAt ?? undefined,
       hasTrainStation: this._hasTrainStation,
       trainType: this._trainType,
       loaded: this._loaded,
@@ -522,6 +524,15 @@ export class UnitImpl implements Unit {
 
   hasTrainStation(): boolean {
     return this._hasTrainStation;
+  }
+
+  renewedAt(): Tick | null {
+    return this._renewedAt;
+  }
+
+  renew(): void {
+    this._renewedAt = this.mg.ticks();
+    this.mg.addUpdate(this.toUpdate());
   }
 
   increaseLevel(): void {

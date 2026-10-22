@@ -10,7 +10,6 @@ import {
   PublicGameInfo,
 } from "../core/Schemas";
 import { GameEnv } from "../core/configuration/Config";
-import { GameType } from "../core/game/Game";
 import {
   DARK_MODE_KEY,
   USER_SETTINGS_CHANGED_EVENT,
@@ -36,6 +35,7 @@ import "./GoogleAdElement";
 import { HelpModal } from "./HelpModal";
 import "./HomepagePromos";
 import { HostLobbyModal as HostPrivateLobbyModal } from "./HostLobbyModal";
+import { needsHumanCheck } from "./HumanCheck";
 import { JoinLobbyModal } from "./JoinLobbyModal";
 import "./LangSelector";
 import { LangSelector } from "./LangSelector";
@@ -344,8 +344,11 @@ class Client {
     });
     modalRouter.register("flag-input", { tag: "flag-input-modal" });
 
-    // Prefetch turnstile token so it is available when
-    // the user joins a lobby.
+    // Prefetch turnstile token so it is available when the user joins a
+    // lobby. The check runs PARKED (off screen): practice never needs it, so
+    // a "Verify you are human" box must never sit over Start game or Play
+    // again (playtest 2026-10-22). It only comes on screen when a multiplayer
+    // join is actually waiting for it (getTurnstileToken below).
     if (ClientEnv.env() !== GameEnv.Dev) {
       this.turnstileTokenPromise = getTurnstileToken();
     }
@@ -1102,13 +1105,20 @@ class Client {
   private async getTurnstileToken(
     lobby: JoinLobbyEvent,
   ): Promise<string | null> {
-    if (
-      ClientEnv.env() === GameEnv.Dev ||
-      lobby.gameStartInfo?.config.gameType === GameType.Singleplayer
-    ) {
+    if (!needsHumanCheck(ClientEnv.env(), lobby)) {
       return null;
     }
+    // A multiplayer join is waiting on the check: bring it on screen in case
+    // Cloudflare wants a click, and park it again once answered.
+    setBotCheckParked(false);
+    try {
+      return await this.fetchTurnstileToken();
+    } finally {
+      setBotCheckParked(true);
+    }
+  }
 
+  private async fetchTurnstileToken(): Promise<string | null> {
     // Always request a new token on crazygames.
     if (this.turnstileTokenPromise === null || crazyGamesSDK.isOnCrazyGames()) {
       console.log("No prefetched turnstile token, getting new token");
@@ -1173,6 +1183,18 @@ if (document.readyState === "loading") {
   bootstrap();
 }
 
+function botCheckContainer(): HTMLElement | null {
+  return document.getElementById("turnstile-container");
+}
+
+function isBotCheckParked(): boolean {
+  return botCheckContainer()?.classList.contains("is-parked") ?? true;
+}
+
+function setBotCheckParked(parked: boolean): void {
+  botCheckContainer()?.classList.toggle("is-parked", parked);
+}
+
 async function getTurnstileToken(): Promise<{
   token: string;
   createdAt: number;
@@ -1205,7 +1227,10 @@ async function getTurnstileToken(): Promise<{
       "error-callback": (errorCode: string) => {
         window.turnstile.remove(widgetId);
         console.error(`Turnstile error: ${errorCode}`);
-        alert(`Turnstile error: ${errorCode}. Please refresh and try again.`);
+        // Only interrupt a player who is waiting on the check to join.
+        if (!isBotCheckParked()) {
+          alert(`Turnstile error: ${errorCode}. Please refresh and try again.`);
+        }
         reject(new Error(`Turnstile failed: ${errorCode}`));
       },
     });

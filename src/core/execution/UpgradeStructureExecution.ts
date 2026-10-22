@@ -1,4 +1,4 @@
-import { Execution, Game, Player, Unit } from "../game/Game";
+import { Execution, Game, Player, Unit, UnitType } from "../game/Game";
 
 export class UpgradeStructureExecution implements Execution {
   private structure: Unit | undefined;
@@ -18,6 +18,13 @@ export class UpgradeStructureExecution implements Execution {
 
     if (this.structure === undefined) {
       console.warn(`structure is undefined`);
+      return;
+    }
+
+    // A Hut is never upgraded; "upgrading" one of my Huts renews it (full
+    // lifespan again, for a fraction of a new Hut's price).
+    if (this.structure.type() === UnitType.Hut) {
+      this.player.renewHut(this.structure);
       return;
     }
 

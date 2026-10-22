@@ -27,6 +27,11 @@ export interface ObjectiveRailItem {
   detailKey: string;
   /** Values for the detail string's {placeholders}. */
   detailParams?: Record<string, string>;
+  /**
+   * A side note under the step's instruction ("your gold has stopped..."),
+   * never in place of it. Debounced so it does not flicker.
+   */
+  hintKey?: string;
   /** True when the next action is "go to the wood stand" (on-map marker). */
   pointToWood: boolean;
   progress: number;
@@ -345,6 +350,12 @@ export function hutCostNow(config: Config, ticks: number): number {
   return Math.floor(config.hutCost() * (1 + 0.5 * ice));
 }
 
+/** What renewing a standing Hut costs right now (PlayerImpl.hutRenewCost). */
+export function hutRenewCostNow(config: Config, ticks: number): number {
+  const pct = Math.round(config.hutRenewCostFraction() * 100);
+  return Math.floor((hutCostNow(config, ticks) * pct) / 100);
+}
+
 /**
  * What the next Permanent Settlement costs right now: 20 huts, doubling per
  * City already built, capped, and inflated by the ice age. Mirrors
@@ -395,6 +406,72 @@ export const PRIMITIVE_LADDER: readonly ObjectiveID[] = [
 /** Furthest Stone Age step this tribe has reached. Owned by the caller. */
 export interface ObjectiveMemory {
   stage: number;
+  /** Best progress shown for the current goal: the bar never steps back. */
+  best?: { id: ObjectiveID; progress: number };
+  /** Debounce state for the side note. */
+  hint?: HintMemory;
+}
+
+interface HintMemory {
+  shown: string | null;
+  candidate: string | null;
+  candidateSince: number;
+  lastRawTick: number;
+}
+
+/** A side note must hold this long before it shows (no one-tick blips)... */
+export const HINT_ONSET_TICKS = 20;
+/** ...and stays this long after its cause clears (no on/off flicker). */
+export const HINT_HOLD_TICKS = 80;
+
+function stableHint(
+  raw: string | null,
+  ticks: number,
+  memory: ObjectiveMemory | undefined,
+): string | null {
+  if (memory === undefined) return raw;
+  const h = (memory.hint ??= {
+    shown: null,
+    candidate: null,
+    candidateSince: 0,
+    lastRawTick: Number.NEGATIVE_INFINITY,
+  });
+  if (raw !== null) {
+    if (h.candidate !== raw) {
+      h.candidate = raw;
+      h.candidateSince = ticks;
+    }
+    h.lastRawTick = ticks;
+    if (h.shown !== raw && ticks - h.candidateSince >= HINT_ONSET_TICKS) {
+      h.shown = raw;
+    }
+  } else {
+    h.candidate = null;
+    if (h.shown !== null && ticks - h.lastRawTick >= HINT_HOLD_TICKS) {
+      h.shown = null;
+    }
+  }
+  return h.shown;
+}
+
+/**
+ * The bar never steps back within a goal (real-screen playtest 2026-10-22:
+ * "Found a Permanent Settlement" 25% -> 21% -> 17% as Hut purchases spent
+ * the savings). It shows the furthest the tribe has come on this goal.
+ */
+function monotonic(
+  item: ObjectiveRailItem,
+  memory: ObjectiveMemory | undefined,
+): ObjectiveRailItem {
+  if (memory === undefined) return item;
+  const best = memory.best;
+  if (best !== undefined && best.id === item.id) {
+    const progress = Math.max(best.progress, item.progress);
+    best.progress = progress;
+    return { ...item, progress };
+  }
+  memory.best = { id: item.id, progress: item.progress };
+  return item;
 }
 
 export interface ObjectiveContext {
@@ -406,6 +483,11 @@ export interface ObjectiveContext {
    * the spawn guarantee gives every new tribe.
    */
   woodInSight?: boolean | null;
+  /**
+   * The band already holds all the wild land it can feed (LandClick
+   * atWildLandCap): pushing out is turned back until a Hut raises the cap.
+   */
+  atLandCap?: boolean;
 }
 
 export function chooseObjective(
@@ -481,22 +563,33 @@ export function chooseObjective(
 
   const woodInSight = context.woodInSight ?? true;
   // When the gold has stopped, the next action is always the same: get wood
-  // again, from the marked stand or, with none in sight, by pushing out.
-  const dryHint = woodInSight
-    ? "control_panel.objective_hint_dry_wood"
-    : "control_panel.objective_hint_dry_explore";
+  // again, from the marked stand or, with none in reach, by pushing out.
+  const dryHintKey = context.atLandCap
+    ? "control_panel.objective_hint_dry_cap"
+    : woodInSight
+      ? "control_panel.objective_hint_dry_wood"
+      : "control_panel.objective_hint_dry_explore";
+  const memory = context.memory;
 
+  // Each step has ONE instruction (the detail line). What changes inside a
+  // step (the gold stopped, a Hut wore away) is a side note under it, held
+  // steady by stableHint, never a swap of the instruction itself (playtest
+  // 2026-10-22: the body flipped between "Save for the Settlement" and "Your
+  // gold has stopped" every few seconds).
+  let item: ObjectiveRailItem;
+  let rawHint: string | null = null;
   switch (stage) {
     case 4:
-      return objective(
+      item = objective(
         goldGate?.complete ? "advance_age" : "save_advance_toll",
         gateProgress,
       );
+      break;
     case 3: {
       const cost = settlementCostNow(config, player, ticks);
       if (gold >= cost) {
         const wait = settlementIceWaitTicks(config, ticks);
-        return objective("found_city", 0.9, {
+        item = objective("found_city", 0.9, {
           detailKey:
             wait > 0
               ? "control_panel.objective_found_city_ice_detail"
@@ -504,52 +597,62 @@ export function chooseObjective(
           detailParams:
             wait > 0 ? { seconds: String(Math.ceil(wait / 10)) } : undefined,
         });
+        break;
       }
       // Never a full bar for a step that is not done.
-      const progress = Math.min(0.9, goldProgress(player, cost));
+      item = objective("found_city", Math.min(0.9, goldProgress(player, cost)));
       // The Hut wore away (they are temporary) and its land is slipping back
       // to the wild: rebuilding it is the one thing to do while saving.
       if (countBuiltUnits(player, UnitType.Hut) === 0 && gold >= hutCost) {
-        return objective("found_city", progress, {
-          detailKey: "control_panel.objective_hint_rebuild_hut",
-        });
+        rawHint = "control_panel.objective_hint_rebuild_hut";
+      } else if (!flowing) {
+        rawHint = dryHintKey;
       }
-      if (!flowing) {
-        return objective("found_city", progress, {
-          detailKey: dryHint,
-          pointToWood: woodInSight,
-        });
-      }
-      return objective("found_city", progress);
+      break;
     }
     case 2:
       if (gold >= hutCost) {
         // The gold is there but the Hut is not: 80%, never a full bar for a
         // step that is not done (audit 2026-10-22: "Build a Hut 100%" for
         // minutes with no Hut read as broken).
-        return objective("build_economy", 0.8);
+        item = objective("build_economy", 0.8);
+        break;
       }
       // Reached the Hut's price once, then spent or lost part of it.
-      return objective("build_economy", 0.8 * goldProgress(player, hutCost), {
-        detailKey: flowing
-          ? "control_panel.objective_build_economy_saving_detail"
-          : dryHint,
-        pointToWood: !flowing && woodInSight,
+      item = objective("build_economy", 0.8 * goldProgress(player, hutCost), {
+        detailKey: "control_panel.objective_build_economy_saving_detail",
       });
+      if (!flowing) rawHint = dryHintKey;
+      break;
     case 1:
-      return objective("convert_resources", goldProgress(player, hutCost), {
-        detailKey: flowing ? undefined : dryHint,
+      item = objective("convert_resources", goldProgress(player, hutCost), {
         pointToWood: woodInSight,
       });
+      if (!flowing) rawHint = dryHintKey;
+      break;
     default:
-      if (!woodInSight) {
-        return objective("find_resources", 0, {
-          titleKey: "control_panel.objective_explore",
-          detailKey: "control_panel.objective_explore_detail",
-        });
-      }
-      return objective("find_resources", 0, { pointToWood: true });
+      item = woodInSight
+        ? objective("find_resources", 0, { pointToWood: true })
+        : objective("find_resources", 0, {
+            titleKey: "control_panel.objective_explore",
+            detailKey: "control_panel.objective_explore_detail",
+          });
   }
+
+  const hint = stableHint(rawHint, ticks, memory);
+  if (hint !== null) {
+    item.hintKey = hint;
+    // The wood marker shows exactly when the note says "the green marker
+    // shows where", so the panel and the map never disagree.
+    if (
+      woodInSight &&
+      (hint === "control_panel.objective_hint_dry_wood" ||
+        hint === "control_panel.objective_hint_dry_cap")
+    ) {
+      item.pointToWood = true;
+    }
+  }
+  return monotonic(item, memory);
 }
 
 /** Index of a Stone Age goal on the ladder, -1 for later-age goals. */
