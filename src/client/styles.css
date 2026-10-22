@@ -17,9 +17,9 @@
   --default-ring-color: var(--age-accent);
 
   /* ---- Type system (Oxanium display, Inter body, JetBrains Mono numerics) ---- */
-  --font-display: "Oxanium", system-ui, sans-serif;
-  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", "Inter", ui-monospace, monospace;
+  --font-display: "IM Fell English SC", "IM Fell English", Georgia, serif;
+  --font-ui: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
 
   /* ---- Surface ladder — obsidian / charred hide panels ---- */
   --color-surface-0: #0b0d0c; /* near-black — page frame / behind map */

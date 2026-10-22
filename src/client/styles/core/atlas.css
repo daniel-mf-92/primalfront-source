@@ -1,0 +1,558 @@
+/*
+ * PRIMALFRONT - "Chronicle atlas" look (Marta 2026-10-21, option A).
+ *
+ * The site reads like the parchment map the game is played on: menu pages are
+ * parchment with iron-gall ink and wax-red accents; in a match the panels are
+ * the atlas's dark leather cover, so they sit apart from the parchment map and
+ * the white HUD icons stay legible. Type is old print (IM Fell English) for
+ * display, Alegreya Sans for body text and numbers.
+ *
+ * Loaded after variables.css. It only re-points tokens: the shared --surface-*
+ * / --text-* tokens, the Tailwind theme colours, and Tailwind's white, black
+ * and grey ramps (which ~1,100 hard-coded utility classes read), so every
+ * screen follows without touching its markup.
+ */
+:root:root {
+  --font-display: "IM Fell English SC", "IM Fell English", Georgia, serif;
+  --font-ui: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --font-print: "IM Fell English", Georgia, serif;
+  --radius-sm: 2px;
+  --radius: 3px;
+  --radius-lg: 4px;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- Menu pages: parchment and ink ---------------- */
+body:not(.in-game) {
+  --ink: #2b2118;
+  --parchment: #e8dbbd;
+  --wax: #8a2a1c;
+  --wax-hi: #a8382a;
+
+  --surface-0: #e8dbbd;
+  --surface-1: #efe4c9;
+  --surface-2: #e1d1ad;
+  --surface-3: #d6c39c;
+  --overlay: rgba(43, 33, 24, 0.55);
+  --hairline: rgba(43, 33, 24, 0.28);
+  --hairline-strong: rgba(43, 33, 24, 0.6);
+  --bevel-hi: rgba(255, 250, 235, 0.35);
+  --text: #2b2118;
+  --text-dim: #4f4031;
+  --text-lo: #6a5844;
+  --bone: #2b2118;
+  --gold: #7a5a1e;
+  --gold-bright: #8a2a1c;
+  --gold-deep: #5a4214;
+  --ember: #8a2a1c;
+  --gain: #3f6b2a;
+  --loss: #9b2c1f;
+  --teal: #8a2a1c;
+  --teal-deep: #6e2115;
+  --faction-you: #8a2a1c;
+  --age-menu: #8a2a1c;
+  --age-accent: #8a2a1c;
+  --age-accent-hi: #a8382a;
+  --age-glow: rgba(138, 42, 28, 0.18);
+  --age-accent-dim: #e6cbb6;
+  --glass-bg: color-mix(in srgb, #efe4c9 92%, transparent);
+  --climate-accent: #6a5844;
+  --ring-accent: 0 0 0 1px var(--ink);
+  --glow-accent: 0 0 0 1px var(--ink);
+  --shadow-1: 3px 3px 0 rgba(43, 33, 24, 0.85);
+  --shadow-2: 6px 6px 0 rgba(43, 33, 24, 0.85);
+  --shadow-3: 8px 8px 0 rgba(43, 33, 24, 0.85);
+
+  /* Tailwind theme tokens that components use through bg-surface-*, text-text... */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface: var(--surface-1);
+  --color-overlay: var(--overlay);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-bevel-hi: var(--bevel-hi);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-text-lo: var(--text-lo);
+  --color-bone: var(--bone);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-ember: var(--ember);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-teal: var(--teal);
+  --color-age-menu: var(--age-menu);
+  --color-bright-white: var(--ink);
+  --color-limestone: var(--text-lo);
+  --color-deep-navy: var(--surface-0);
+  --color-malibu-blue: var(--wax);
+  --color-aquarius: var(--wax);
+  --color-cyber-yellow: var(--wax);
+  --color-frame-orange: var(--wax);
+
+  /* Hard-coded utilities: white text becomes ink, black washes become
+     parchment, and every grey ramp is turned over (50 = darkest ink). */
+  --color-white: #2b2118;
+  --color-black: #f3e9d2;
+  --pf-ramp-50: #2b2118;
+  --pf-ramp-100: #33271c;
+  --pf-ramp-200: #403123;
+  --pf-ramp-300: #4f4031;
+  --pf-ramp-400: #5f4d3a;
+  --pf-ramp-500: #6a5844;
+  --pf-ramp-600: #a3917a;
+  --pf-ramp-700: #c4b292;
+  --pf-ramp-800: #dccdab;
+  --pf-ramp-900: #e6d9bb;
+  --pf-ramp-950: #efe5cb;
+  --color-gray-50: var(--pf-ramp-50);
+  --color-gray-100: var(--pf-ramp-100);
+  --color-gray-200: var(--pf-ramp-200);
+  --color-gray-300: var(--pf-ramp-300);
+  --color-gray-400: var(--pf-ramp-400);
+  --color-gray-500: var(--pf-ramp-500);
+  --color-gray-600: var(--pf-ramp-600);
+  --color-gray-700: var(--pf-ramp-700);
+  --color-gray-800: var(--pf-ramp-800);
+  --color-gray-900: var(--pf-ramp-900);
+  --color-gray-950: var(--pf-ramp-950);
+  --color-slate-50: var(--pf-ramp-50);
+  --color-slate-100: var(--pf-ramp-100);
+  --color-slate-200: var(--pf-ramp-200);
+  --color-slate-300: var(--pf-ramp-300);
+  --color-slate-400: var(--pf-ramp-400);
+  --color-slate-500: var(--pf-ramp-500);
+  --color-slate-600: var(--pf-ramp-600);
+  --color-slate-700: var(--pf-ramp-700);
+  --color-slate-800: var(--pf-ramp-800);
+  --color-slate-900: var(--pf-ramp-900);
+  --color-slate-950: var(--pf-ramp-950);
+  --color-zinc-50: var(--pf-ramp-50);
+  --color-zinc-100: var(--pf-ramp-100);
+  --color-zinc-200: var(--pf-ramp-200);
+  --color-zinc-300: var(--pf-ramp-300);
+  --color-zinc-400: var(--pf-ramp-400);
+  --color-zinc-500: var(--pf-ramp-500);
+  --color-zinc-600: var(--pf-ramp-600);
+  --color-zinc-700: var(--pf-ramp-700);
+  --color-zinc-800: var(--pf-ramp-800);
+  --color-zinc-900: var(--pf-ramp-900);
+  --color-zinc-950: var(--pf-ramp-950);
+  --color-neutral-50: var(--pf-ramp-50);
+  --color-neutral-100: var(--pf-ramp-100);
+  --color-neutral-200: var(--pf-ramp-200);
+  --color-neutral-300: var(--pf-ramp-300);
+  --color-neutral-400: var(--pf-ramp-400);
+  --color-neutral-500: var(--pf-ramp-500);
+  --color-neutral-600: var(--pf-ramp-600);
+  --color-neutral-700: var(--pf-ramp-700);
+  --color-neutral-800: var(--pf-ramp-800);
+  --color-neutral-900: var(--pf-ramp-900);
+  --color-neutral-950: var(--pf-ramp-950);
+  --color-stone-50: var(--pf-ramp-50);
+  --color-stone-100: var(--pf-ramp-100);
+  --color-stone-200: var(--pf-ramp-200);
+  --color-stone-300: var(--pf-ramp-300);
+  --color-stone-400: var(--pf-ramp-400);
+  --color-stone-500: var(--pf-ramp-500);
+  --color-stone-600: var(--pf-ramp-600);
+  --color-stone-700: var(--pf-ramp-700);
+  --color-stone-800: var(--pf-ramp-800);
+  --color-stone-900: var(--pf-ramp-900);
+  --color-stone-950: var(--pf-ramp-950);
+  /* Light accent text (blue-100..400, red/green/amber-300/400) was written for
+     a black page; on parchment it needs the dark end of each hue. */
+  /* Blue was the dark theme's heading/link accent: ink and wax here. */
+  --color-blue-50: #2b2118;
+  --color-blue-100: #2b2118;
+  --color-blue-200: #2b2118;
+  --color-blue-300: #4f4031;
+  --color-blue-400: #8a2a1c;
+  --color-blue-500: #8a2a1c;
+  --color-blue-600: #8a2a1c;
+  --color-red-100: #8a2a1c;
+  --color-red-200: #8a2a1c;
+  --color-red-300: #9b2c1f;
+  --color-red-400: #8a2a1c;
+  --color-red-500: #8a2a1c;
+  --color-green-300: #3f6b2a;
+  --color-green-400: #3f6b2a;
+  --color-emerald-400: #2f6a4a;
+  --color-amber-300: #7a4f12;
+  --color-amber-400: #7a4f12;
+  --color-orange-400: #8a4614;
+  --color-yellow-300: #6e5214;
+  --color-yellow-400: #6e5214;
+  --color-sky-400: #2c5379;
+  --color-cyan-400: #2e5a6b;
+  --color-teal-400: #2e5a6b;
+  --color-purple-400: #5a3a78;
+  --color-violet-400: #5a3a78;
+  --color-pink-400: #8a2d5a;
+
+  background-color: var(--parchment);
+  color: var(--ink);
+}
+
+/* Parchment ground in place of the dark bloom and vignette. */
+body:not(.in-game) .menu-bg {
+  background-color: var(--parchment);
+}
+body:not(.in-game)
+  .menu-bg
+  > [style*="background-image: var(--background-image-url)"] {
+  opacity: 0.18;
+  filter: sepia(0.8) saturate(0.6);
+  mix-blend-mode: multiply;
+}
+body:not(.in-game) .menu-bg__bloom {
+  background: none;
+  opacity: 0;
+}
+body:not(.in-game) .menu-bg__vignette {
+  background: radial-gradient(
+    140% 110% at 50% 40%,
+    transparent 55%,
+    rgba(120, 90, 50, 0.18) 85%,
+    rgba(90, 64, 34, 0.3) 100%
+  );
+}
+body:not(.in-game) .nav-shell {
+  background: var(--parchment);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 2px solid var(--ink);
+  box-shadow: none;
+}
+
+/* White line icons are drawn for dark panels: ink them on parchment. The logo
+   wordmark is gold-on-dark; ink it too. */
+body:not(.in-game) img[src*="White"],
+body:not(.in-game) img[src*="PrimalfrontLogo"] {
+  filter: brightness(0) opacity(0.86);
+}
+
+/* Old print headings: the small-caps face carries the style, so tracked-out
+   uppercase (the sci-fi tell) is relaxed. */
+body:not(.in-game) .font-display,
+body:not(.in-game) h1,
+body:not(.in-game) h2,
+body:not(.in-game) h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+/* ---------------- In a match: the atlas's leather cover ---------------- */
+body.in-game {
+  --surface-0: #1b140e;
+  --surface-1: #241a12;
+  --surface-2: #2f2318;
+  --surface-3: #3b2c1e;
+  --hairline: rgba(233, 214, 170, 0.18);
+  --hairline-strong: rgba(233, 214, 170, 0.36);
+  --text: #f1e6cc;
+  --text-dim: #d3c2a0;
+  --gold: #c9a24f;
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-white: #f3e9d2;
+  --shadow-1: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Shadow-rooted components (o-modal and friends) adopt a copy of the page CSS,
+   whose Tailwind block re-declares the default palette on :host. Make every
+   theme variable inherit from the page instead, so a modal follows parchment
+   on menus and leather in a match. (:host(:not(...)) outranks Tailwind's bare
+   :host; it matches nothing in the main document.) */
+:host(:not(.pf-no-atlas)) {
+  --age-accent: inherit;
+  --age-accent-dim: inherit;
+  --age-accent-hi: inherit;
+  --age-glow: inherit;
+  --age-menu: inherit;
+  --bevel-hi: inherit;
+  --bone: inherit;
+  --climate-accent: inherit;
+  --color-age-menu: inherit;
+  --color-amber-300: inherit;
+  --color-amber-400: inherit;
+  --color-aquarius: inherit;
+  --color-bevel-hi: inherit;
+  --color-black: inherit;
+  --color-blue-100: inherit;
+  --color-blue-200: inherit;
+  --color-blue-300: inherit;
+  --color-blue-400: inherit;
+  --color-blue-50: inherit;
+  --color-blue-500: inherit;
+  --color-blue-600: inherit;
+  --color-red-100: inherit;
+  --color-red-200: inherit;
+  --color-bone: inherit;
+  --color-bright-white: inherit;
+  --color-cyan-400: inherit;
+  --color-cyber-yellow: inherit;
+  --color-deep-navy: inherit;
+  --color-ember: inherit;
+  --color-emerald-400: inherit;
+  --color-frame-orange: inherit;
+  --color-gain: inherit;
+  --color-gold: inherit;
+  --color-gold-bright: inherit;
+  --color-gray-100: inherit;
+  --color-gray-200: inherit;
+  --color-gray-300: inherit;
+  --color-gray-400: inherit;
+  --color-gray-50: inherit;
+  --color-gray-500: inherit;
+  --color-gray-600: inherit;
+  --color-gray-700: inherit;
+  --color-gray-800: inherit;
+  --color-gray-900: inherit;
+  --color-gray-950: inherit;
+  --color-green-300: inherit;
+  --color-green-400: inherit;
+  --color-hairline: inherit;
+  --color-hairline-strong: inherit;
+  --color-limestone: inherit;
+  --color-loss: inherit;
+  --color-malibu-blue: inherit;
+  --color-neutral-100: inherit;
+  --color-neutral-200: inherit;
+  --color-neutral-300: inherit;
+  --color-neutral-400: inherit;
+  --color-neutral-50: inherit;
+  --color-neutral-500: inherit;
+  --color-neutral-600: inherit;
+  --color-neutral-700: inherit;
+  --color-neutral-800: inherit;
+  --color-neutral-900: inherit;
+  --color-neutral-950: inherit;
+  --color-orange-400: inherit;
+  --color-overlay: inherit;
+  --color-pink-400: inherit;
+  --color-purple-400: inherit;
+  --color-red-300: inherit;
+  --color-red-400: inherit;
+  --color-red-500: inherit;
+  --color-sky-400: inherit;
+  --color-slate-100: inherit;
+  --color-slate-200: inherit;
+  --color-slate-300: inherit;
+  --color-slate-400: inherit;
+  --color-slate-50: inherit;
+  --color-slate-500: inherit;
+  --color-slate-600: inherit;
+  --color-slate-700: inherit;
+  --color-slate-800: inherit;
+  --color-slate-900: inherit;
+  --color-slate-950: inherit;
+  --color-stone-100: inherit;
+  --color-stone-200: inherit;
+  --color-stone-300: inherit;
+  --color-stone-400: inherit;
+  --color-stone-50: inherit;
+  --color-stone-500: inherit;
+  --color-stone-600: inherit;
+  --color-stone-700: inherit;
+  --color-stone-800: inherit;
+  --color-stone-900: inherit;
+  --color-stone-950: inherit;
+  --color-surface: inherit;
+  --color-surface-0: inherit;
+  --color-surface-1: inherit;
+  --color-surface-2: inherit;
+  --color-surface-3: inherit;
+  --color-teal: inherit;
+  --color-teal-400: inherit;
+  --color-text: inherit;
+  --color-text-dim: inherit;
+  --color-text-lo: inherit;
+  --color-violet-400: inherit;
+  --color-white: inherit;
+  --color-yellow-300: inherit;
+  --color-yellow-400: inherit;
+  --color-zinc-100: inherit;
+  --color-zinc-200: inherit;
+  --color-zinc-300: inherit;
+  --color-zinc-400: inherit;
+  --color-zinc-50: inherit;
+  --color-zinc-500: inherit;
+  --color-zinc-600: inherit;
+  --color-zinc-700: inherit;
+  --color-zinc-800: inherit;
+  --color-zinc-900: inherit;
+  --color-zinc-950: inherit;
+  --ember: inherit;
+  --faction-you: inherit;
+  --gain: inherit;
+  --glass-bg: inherit;
+  --glow-accent: inherit;
+  --gold: inherit;
+  --gold-bright: inherit;
+  --gold-deep: inherit;
+  --hairline: inherit;
+  --hairline-strong: inherit;
+  --ink: inherit;
+  --loss: inherit;
+  --overlay: inherit;
+  --parchment: inherit;
+  --pf-ramp-100: inherit;
+  --pf-ramp-200: inherit;
+  --pf-ramp-300: inherit;
+  --pf-ramp-400: inherit;
+  --pf-ramp-50: inherit;
+  --pf-ramp-500: inherit;
+  --pf-ramp-600: inherit;
+  --pf-ramp-700: inherit;
+  --pf-ramp-800: inherit;
+  --pf-ramp-900: inherit;
+  --pf-ramp-950: inherit;
+  --ring-accent: inherit;
+  --shadow-1: inherit;
+  --shadow-2: inherit;
+  --shadow-3: inherit;
+  --surface-0: inherit;
+  --surface-1: inherit;
+  --surface-2: inherit;
+  --surface-3: inherit;
+  --teal: inherit;
+  --teal-deep: inherit;
+  --text: inherit;
+  --text-dim: inherit;
+  --text-lo: inherit;
+  --wax: inherit;
+  --wax-hi: inherit;
+}
+
+/* Featured match card: a parchment fade under ink type, not a black shade
+   under white type with a glow. */
+body:not(.in-game) .pf-featured-match__shade {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(232, 219, 189, 0) 30%,
+      rgba(232, 219, 189, 0.94) 100%
+    ),
+    linear-gradient(90deg, rgba(232, 219, 189, 0.5), transparent 60%);
+}
+body:not(.in-game) .pf-featured-match__map,
+body:not(.in-game) .pf-featured-match__empty-title,
+body:not(.in-game) .pf-featured-match__loading-title {
+  color: var(--ink);
+  text-shadow: none;
+  text-transform: none;
+}
+/* Printed cards cast a hard ink offset, not a soft dark glow. */
+body:not(.in-game) .pf-featured-match,
+body:not(.in-game) .pf-lobby-card {
+  box-shadow: var(--shadow-1);
+  border: 2px solid var(--ink);
+}
+body:not(.in-game) .pf-featured-match:not(:disabled):hover,
+body:not(.in-game) .pf-lobby-card:not(.is-disabled):hover {
+  box-shadow: var(--shadow-2);
+}
+body:not(.in-game) .pf-map-tab.is-active,
+body:not(.in-game) .pf-config-card.is-active {
+  background: var(--age-accent-dim);
+  color: var(--ink);
+  border-color: var(--wax);
+}
+
+/* Wordmark set in the display face. */
+.pf-wordmark {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+body:not(.in-game) .nav-menu-item {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+body:not(.in-game) footer img[src*="icons/"],
+body:not(.in-game) footer a > svg {
+  filter: brightness(0) opacity(0.78);
+}
+
+/* ---- Review fixes (fresh-eyes pass 2026-10-22) ---- */
+
+/* Settings switches: an ink-ringed slot, wax when on. */
+body:not(.in-game) .slider-round {
+  background-color: var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+body:not(.in-game) .slider-round::before {
+  background-color: var(--ink);
+}
+body:not(.in-game) .switch input:checked + .slider-round {
+  background-color: var(--wax);
+}
+body:not(.in-game) .switch input:checked + .slider-round::before {
+  background-color: #f3e9d2;
+}
+
+/* The featured match button: a flat wax seal with a printed shadow. */
+body:not(.in-game) .pf-featured-match__action {
+  background: var(--wax);
+  border: 2px solid var(--ink);
+  color: #f3e9d2;
+  box-shadow: var(--shadow-1);
+}
+body:not(.in-game) .pf-featured-match.is-loading,
+body:not(.in-game) .pf-featured-match.is-empty {
+  background: var(--surface-1);
+}
+body:not(.in-game) .pf-featured-match__spinner {
+  border-color: var(--hairline);
+  border-top-color: var(--wax);
+}
+/* On a phone the waiting card stacks instead of crushing its title. */
+@media (max-width: 640px) {
+  .pf-featured-match.is-loading,
+  .pf-featured-match.is-empty {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 12rem;
+    align-content: center;
+  }
+  .pf-featured-match.is-loading .pf-featured-match__loading-copy,
+  .pf-featured-match.is-empty .pf-featured-match__empty-copy {
+    flex-basis: 100%;
+  }
+  .pf-featured-match__loading-title,
+  .pf-featured-match__empty-title {
+    font-size: 1.35rem;
+  }
+}
+
+/* In a match: hard edges instead of glows and blur. */
+body.in-game {
+  --shadow-2: 0 3px 0 rgba(0, 0, 0, 0.55);
+  --shadow-3: 0 4px 0 rgba(0, 0, 0, 0.6);
+  --age-glow: transparent;
+}
+body.in-game .win-modal--win,
+body.in-game .win-modal--lose {
+  background: #241a12;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.6);
+}
+body.in-game .win-modal-backdrop {
+  backdrop-filter: none;
+  background: rgba(20, 14, 9, 0.5);
+}

@@ -277,7 +277,7 @@ export class GuideBeacon extends LitElement implements Controller {
           padding: 3px 9px;
           border-radius: 999px;
           font:
-            700 12px/1.2 "Inter",
+            700 12px/1.2 "Alegreya Sans",
             system-ui,
             sans-serif;
           letter-spacing: 0.02em;

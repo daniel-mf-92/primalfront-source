@@ -79,6 +79,7 @@ import "./components/baseComponents/Button";
 import "./components/baseComponents/Modal";
 import "./styles.css";
 import "./styles/components/game-mode-selector.css";
+import "./styles/core/atlas.css";
 import "./styles/core/typography.css";
 import "./styles/core/variables.css";
 import "./styles/layout/container.css";
@@ -367,7 +368,7 @@ class Client {
       // No git-commit fallback: a raw hash in the nav reads as a dev artifact
       // to visitors (2026-07-13 fresh-eyes audit). Placeholder → hide badge.
       versionElements.forEach((el) => {
-        (el as HTMLElement).style.fontFamily = '"Oxanium", Inter, sans-serif';
+        (el as HTMLElement).style.fontFamily = "var(--font-display)";
         el.textContent = displayVersion;
       });
     }

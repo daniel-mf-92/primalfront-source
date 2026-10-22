@@ -1,7 +1,7 @@
 /*
  * PRIMALFRONT — runtime variables + age-accent system.
  * Dark primal theme: obsidian, bone, ember, moss, and ritual cyan accents,
- * Oxanium display / Inter body / JetBrains Mono numerics. Mirrors @theme in styles.css.
+ * IM Fell English display / Alegreya Sans body and numerals (chronicle atlas). Mirrors @theme in styles.css.
  */
 :root {
   --theme: "dark";
@@ -99,10 +99,10 @@
   --sp-12: 48px;
   --sp-16: 64px;
 
-  /* ---- Typography (Oxanium display / Inter body / JetBrains Mono numerics) ---- */
-  --font-display: "Oxanium", system-ui, sans-serif;
-  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", "Inter", ui-monospace, monospace;
+  /* ---- Typography (IM Fell English display / Alegreya Sans body and numerals (chronicle atlas)) ---- */
+  --font-display: "IM Fell English SC", "IM Fell English", Georgia, serif;
+  --font-ui: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
   --fz-label: 0.7rem;
   --tracking-label: 0.12em;
 
