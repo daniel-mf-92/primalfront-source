@@ -36,7 +36,10 @@ export const FOLLOW_INTERVAL_MS = 16;
 export const FOLLOW_VELOCITY_SAMPLE_MS = 100;
 // How far ahead (seconds of centroid velocity) to lead the camera so it
 // anticipates a migrating tribe rather than trailing it.
-export const FOLLOW_LOOK_AHEAD_SECONDS = 0.6;
+// 0 since 2026-10-22: with attack-based expansion the tribe's label point
+// hops as its shape changes, and leading it amplified each hop into a lurch
+// (Marta: "the way the cam recentres is glitchy").
+export const FOLLOW_LOOK_AHEAD_SECONDS = 0;
 // Hard clamp on the look-ahead lead so a fast/teleporting centroid can't fling
 // the camera off-screen (game-unit tiles).
 export const FOLLOW_MAX_LOOK_AHEAD_TILES = 40;
@@ -46,10 +49,15 @@ export const FOLLOW_VELOCITY_SMOOTHING = 0.5;
 // Screen-space deadzone as a fraction of the viewport half-extent. The camera
 // only retargets once the follow goal leaves this box around the view center,
 // which kills per-tick jitter when the tribe is essentially stationary.
-export const FOLLOW_DEADZONE_FRACTION = 0.12;
+// 0.4 since 2026-10-22: the camera stays put while the tribe is anywhere in
+// the middle of the screen and only glides when it nears the edge, instead of
+// re-centring on every small reshape of the territory.
+export const FOLLOW_DEADZONE_FRACTION = 0.4;
 // After a manual pan/zoom, follow yields for this idle window before it
 // re-engages automatically (or immediately via setFollow(true)).
-export const FOLLOW_REENGAGE_IDLE_MS = 2500;
+// 8 s since 2026-10-22: after you pan or zoom, the camera leaves the view to
+// you for longer before it starts following again.
+export const FOLLOW_REENGAGE_IDLE_MS = 8000;
 
 // ── Adaptive auto-zoom (follow-cam zoom sizing) tuning ────────────────────
 // While following a Primitive tribe the held zoom is sized to the tribe: a
@@ -108,6 +116,7 @@ export class TransformHandler {
   private followSampleCell: Cell | null = null;
   private followSampleTime: number | null = null;
   // Smoothed centroid velocity (game units / second) for look-ahead.
+  private autoZoomSettled = false;
   private followVelX: number = 0;
   private followVelY: number = 0;
   // Once the user manually zooms, auto-zoom yields SCALE control for good (the
@@ -393,7 +402,12 @@ export class TransformHandler {
     // null in other ages = "leave zoom alone" (matches the old flat behavior of
     // playerFocusScale(me, null) for non-primitive players). Also null once the
     // user has manually zoomed (yield), so we pan-follow without touching scale.
-    let scale = this.autoZoomYielded ? null : this.autoZoomScale(me);
+    // Auto-zoom settles ONCE (the opening framing), then leaves zoom to the
+    // player: re-zooming as the territory reshaped read as the camera pumping.
+    let scale =
+      this.autoZoomYielded || this.autoZoomSettled
+        ? null
+        : this.autoZoomScale(me);
     if (scale !== null) {
       // Quantize the target so tiny spread wiggles resolve to the SAME scale —
       // stops the perpetual re-ease that read as jitter.
@@ -478,6 +492,9 @@ export class TransformHandler {
     const scaleWants =
       goal.scale !== null &&
       Math.abs(this.scale - goal.scale) > AUTOZOOM_REZOOM_THRESHOLD;
+    if (goal.scale !== null && !scaleWants) {
+      this.autoZoomSettled = true;
+    }
     if (!scaleWants && this.withinFollowDeadzone(goal.cell)) {
       return;
     }

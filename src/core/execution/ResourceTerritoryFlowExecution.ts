@@ -73,7 +73,13 @@ export class ResourceTerritoryFlowExecution implements Execution {
         ? config.primitiveForestUsePerFlow()
         : config.forestUsePerFlow();
       const newQuantity = Math.max(floor, quantity - use);
-      this.mg.setResource(tile, ResourceKind.Wood, newQuantity);
+      // A Stone Age stand is cleared outright (floor 0): the node is gone,
+      // so a tribe that stays put stops earning and has to move on.
+      this.mg.setResource(
+        tile,
+        newQuantity > 0 ? ResourceKind.Wood : ResourceKind.None,
+        newQuantity,
+      );
       player.addResource(
         ResourceKind.Wood,
         primitive
@@ -82,12 +88,12 @@ export class ResourceTerritoryFlowExecution implements Execution {
       );
       return;
     }
-    player.addResource(
-      ResourceKind.Wood,
-      primitive
-        ? config.primitiveForestTrickleYieldPerFlow()
-        : config.forestTrickleYieldPerFlow(),
-    );
+    const trickle = primitive
+      ? config.primitiveForestTrickleYieldPerFlow()
+      : config.forestTrickleYieldPerFlow();
+    if (trickle > 0) {
+      player.addResource(ResourceKind.Wood, trickle);
+    }
   }
 
   private regrowForest(tile: TileRef, quantity: number): void {

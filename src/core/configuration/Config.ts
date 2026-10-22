@@ -2751,8 +2751,9 @@ export class Config {
   forestSustainableQuantity(): number {
     return 14;
   }
+  // Nomadic Stone Age (Marta 2026-10-22): stands run OUT so a tribe must move; same total yield, ~3x faster.
   primitiveForestSustainableQuantity(): number {
-    return 2;
+    return 0;
   }
   forestMaxQuantity(): number {
     return 44;
@@ -2760,8 +2761,9 @@ export class Config {
   forestUsePerFlow(): number {
     return 1;
   }
+  // Nomadic Stone Age (Marta 2026-10-22): stands run OUT so a tribe must move; same total yield, ~3x faster.
   primitiveForestUsePerFlow(): number {
-    return 1;
+    return 3;
   }
   forestRegrowPerFlow(): number {
     return 2;
@@ -2769,20 +2771,23 @@ export class Config {
   forestClearYieldPerFlow(): number {
     return 3;
   }
+  // Nomadic Stone Age (Marta 2026-10-22): stands run OUT so a tribe must move; same total yield, ~3x faster.
   primitiveForestClearYieldPerFlow(): number {
-    return 8;
+    return 24;
   }
   forestTrickleYieldPerFlow(): number {
     return 1;
   }
+  // Nomadic Stone Age (Marta 2026-10-22): stands run OUT so a tribe must move; same total yield, ~3x faster.
   primitiveForestTrickleYieldPerFlow(): number {
-    return 1;
+    return 0;
   }
   rockMineYieldPerFlow(): number {
     return 2;
   }
+  // Nomadic Stone Age (Marta 2026-10-22): stands run OUT so a tribe must move; same total yield, ~3x faster.
   primitiveRockMineYieldPerFlow(): number {
-    return 2;
+    return 6;
   }
   fishMaxQuantity(): number {
     return 36;

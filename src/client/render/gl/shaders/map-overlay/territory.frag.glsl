@@ -273,8 +273,9 @@ void main() {
   // wash. (0.4/1.15 was imperceptible on the live render — 2026-07-10 audit
   // shots 01/04: pale washed-out blob with no pop.)
   bool isLocal = uLocalOwner != 0u && owner == uLocalOwner;
-  float sat = isLocal ? mix(uSaturation, 1.0, 0.7) : uSaturation;
-  float alphaScale = isLocal ? 1.3 : 1.0;
+  // Own land is told apart by a stronger wash, not by neon saturation.
+  float sat = isLocal ? mix(uSaturation, 1.0, 0.3) : uSaturation;
+  float alphaScale = isLocal ? 1.12 : 1.0;
 
   // Adjust how saturated the fill is by blending toward its luminance.
   if (sat != 1.0) {
@@ -290,8 +291,38 @@ void main() {
   // depth in a thin band so the fill has body without going muddy.
   float aaW = max(fwidth(edgeField) * 1.2, 0.025);
   color.rgb *= mix(0.9, 1.0, smoothstep(0.0, 0.045, edgeField - 0.5));
+
+  // Hand-tinted atlas wash (Marta 2026-10-22: the flat saturated fill "is not
+  // cool"). Old maps lay colour thickest along the border and let it thin out
+  // inward, with faint ink hatching over the region. `inner` is a smooth
+  // (bilinear) ownership coverage sampled 3 tiles out in 8 directions: 1 deep
+  // inside, falling toward the border - no per-tile steps.
+  float inner = 0.0;
+  for (int k = 0; k < 8; k++) {
+    float ang = float(k) * 0.785398;
+    vec2 sp = vWorldPos + vec2(cos(ang), sin(ang)) * 3.0 - 0.5;
+    ivec2 b0 = ivec2(floor(sp));
+    vec2 f = fract(sp);
+    ivec2 lim = ivec2(uMapSize) - 1;
+    float c00 = (texelFetch(uTileTex, clamp(b0, ivec2(0), lim), 0).r & uint(OWNER_MASK)) == owner ? 1.0 : 0.0;
+    float c10 = (texelFetch(uTileTex, clamp(b0 + ivec2(1, 0), ivec2(0), lim), 0).r & uint(OWNER_MASK)) == owner ? 1.0 : 0.0;
+    float c01 = (texelFetch(uTileTex, clamp(b0 + ivec2(0, 1), ivec2(0), lim), 0).r & uint(OWNER_MASK)) == owner ? 1.0 : 0.0;
+    float c11 = (texelFetch(uTileTex, clamp(b0 + ivec2(1, 1), ivec2(0), lim), 0).r & uint(OWNER_MASK)) == owner ? 1.0 : 0.0;
+    inner += mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
+  }
+  inner /= 8.0;
+  float band = 1.0 - smoothstep(0.35, 0.98, inner);
+  if (edgeField < 0.999) band = max(band, 1.0 - smoothstep(0.5, 1.0, edgeField));
+  // Diagonal hatching in world space, faded out when zoomed far out so it
+  // never shimmers into moire.
+  float hp = (vWorldPos.x + vWorldPos.y) * 0.85;
+  float hw = fwidth(hp);
+  float hatch = (1.0 - smoothstep(0.08, 0.08 + hw * 1.5, abs(fract(hp) - 0.5) - 0.38))
+      * (1.0 - smoothstep(0.35, 0.9, hw));
+  float wash = mix(0.42, 1.0, band) + hatch * 0.22;
+  color.rgb = mix(color.rgb, color.rgb * 0.72, band * 0.35);
   color.a =
-      min(uTerritoryAlpha * alphaScale, 1.0) *
+      min(uTerritoryAlpha * alphaScale * wash, 1.0) *
       smoothstep(0.5, 0.5 + aaW, edgeField) *
       fogVis;
 

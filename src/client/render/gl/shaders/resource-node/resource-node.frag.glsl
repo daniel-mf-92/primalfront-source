@@ -40,6 +40,72 @@ float shard(vec2 p, vec2 c, vec2 r, float ang, float aa) {
   return 1.0 - smoothstep(1.0 - aa * 8.0, 1.0 + aa * 8.0, m);
 }
 
+// ---- Stone Age pictograms (Marta 2026-10-22: the old blobs "look like a
+// turd", and it was not clear which resource is which). Pine trees = wood,
+// a stone pile = rock, a fish = fish; each filled and stroked in ink so it
+// reads on the parchment map. Coordinates: x right, y UP (local y is flipped).
+float sdBox(vec2 p, vec2 b) {
+  vec2 d = abs(p) - b;
+  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+}
+float sdEllipse(vec2 p, vec2 r) {
+  float k0 = length(p / r);
+  float k1 = length(p / (r * r));
+  return k0 * (k0 - 1.0) / max(k1, 1e-4);
+}
+// Upright triangle: base on y = 0, apex at (0, h), half-width w.
+float sdTriUp(vec2 p, float w, float h) {
+  vec2 n = normalize(vec2(h, w));
+  float edge = dot(vec2(abs(p.x), p.y) - vec2(0.0, h), n);
+  return max(edge, -p.y);
+}
+float sdPine(vec2 p, vec2 base, float h, float w, out float trunkD) {
+  vec2 q = p - base;
+  trunkD = sdBox(q - vec2(0.0, h * 0.09), vec2(w * 0.16, h * 0.11));
+  float low = sdTriUp(q - vec2(0.0, h * 0.16), w, h * 0.55);
+  float high = sdTriUp(q - vec2(0.0, h * 0.42), w * 0.74, h * 0.58);
+  return min(low, high);
+}
+
+// Returns coverage (fill + ink stroke) and writes the pictogram colour.
+float pictogram(vec2 lp, float kind, float seed, float aa, out vec3 col) {
+  vec2 p = vec2(lp.x, -lp.y);
+  vec3 ink = vec3(0.13, 0.10, 0.07);
+  float stroke = 0.032;
+  float d;
+  vec3 fill;
+  if (kind < 1.5) {
+    float t0, t1, t2;
+    float a = sdPine(p, vec2(0.0, -0.40), 0.80, 0.22, t0);
+    float b = sdPine(p, vec2(-0.23, -0.36), 0.56, 0.16, t1);
+    float c = sdPine(p, vec2(0.23, -0.37), 0.62, 0.17, t2);
+    float crown = min(a, min(b, c));
+    float trunk = min(t0, min(t1, t2));
+    d = min(crown, trunk);
+    vec3 green = mix(vec3(0.20, 0.40, 0.20), vec3(0.30, 0.52, 0.26), step(0.0, -p.x + 0.04 * seed));
+    fill = crown <= trunk ? green : vec3(0.45, 0.29, 0.15);
+  } else if (kind < 2.5) {
+    float s1 = sdEllipse(p - vec2(0.02, -0.14), vec2(0.27, 0.17));
+    float s2 = sdEllipse(p - vec2(-0.22, -0.22), vec2(0.14, 0.10));
+    float s3 = sdEllipse(p - vec2(0.07, 0.08), vec2(0.16, 0.13));
+    d = min(s1, min(s2, s3));
+    float lit = smoothstep(-0.10, 0.18, p.y - 0.4 * p.x);
+    fill = mix(vec3(0.46, 0.45, 0.43), vec3(0.74, 0.72, 0.68), lit);
+  } else {
+    float body = sdEllipse(p - vec2(-0.06, 0.0), vec2(0.27, 0.14));
+    vec2 tp = vec2(p.y, 0.40 - p.x);
+    float tail = sdTriUp(tp, 0.15, 0.20);
+    d = min(body, tail);
+    fill = mix(vec3(0.30, 0.50, 0.64), vec3(0.62, 0.78, 0.84), smoothstep(0.04, -0.08, p.y));
+    float eye = length(p - vec2(-0.22, 0.035)) - 0.028;
+    fill = mix(ink, fill, smoothstep(-aa, aa, eye));
+  }
+  float inside = 1.0 - smoothstep(-aa, aa, d);
+  float covered = 1.0 - smoothstep(-aa, aa, d - stroke);
+  col = mix(ink, fill, inside);
+  return covered;
+}
+
 void main() {
   vec2 p = vLocalPos;
   float aa = fwidth(length(p)) + 0.0015;
@@ -64,6 +130,12 @@ void main() {
     float mRight = blob(q, vec2(0.18 + 0.03 * sin(s * 1.2), -0.08), 0.15 + 0.025 * vSeed, aa);
     float mLow = blob(q, vec2(-0.01, -0.21 + 0.02 * cos(s)), 0.13, aa);
     mask = max(max(mMain, mLeft), max(mRight, mLow));
+  }
+
+  vec3 pictoCol = vec3(0.0);
+  if (primitive) {
+    float paa = fwidth(p.x) * 1.2 + 0.004;
+    mask = pictogram(p, vKind, vSeed, paa, pictoCol);
   }
 
   float wipeLine = 1.0 - vDeath;
@@ -118,34 +190,7 @@ void main() {
   vec3 arid = vec3(0.46, 0.36, 0.20);
   vec3 river = vec3(0.18, 0.31, 0.32);
 
-  vec3 color = mix(moss, twig, 0.32 + 0.22 * sin(s));
-  if (isRock) {
-    // Faceted slate with a hard lit/shadow face split and a copper vein —
-    // reads as an ore deposit symbol, not organic droppings.
-    vec2 rq = rot(q, rockAng);
-    float facet = step(0.0, rq.x + 0.35 * rq.y);
-    color = mix(vec3(0.22, 0.235, 0.27), vec3(0.50, 0.52, 0.55), facet);
-    float vein = 1.0 - smoothstep(0.015, 0.05, abs(rq.y - 0.35 * rq.x));
-    color = mix(color, vec3(0.74, 0.52, 0.28), vein * 0.85);
-  } else if (isFish) {
-    color = mix(river, loam, 0.35 + 0.10 * sin(s * 2.3));
-  }
-  color = mix(loam, color, isRock ? 0.9 : 0.76);
-
-  if (!isRock) {
-    vec2 n = normalize(q + vec2(0.035, -0.02) + 1e-4);
-    float light = dot(n, vec2(-0.52, 0.66));
-    color *= 0.78 + 0.28 * (0.5 + 0.5 * light);
-  }
-
-  float grain =
-    0.88 + 0.10 * sin(p.x * 17.0 + p.y * 13.0 + s * 3.0) +
-    0.05 * (hash21(floor((p + 0.5) * 34.0 + vSeed * 17.0)) - 0.5);
-  color *= isRock ? (0.96 + 0.04 * grain) : grain;
-  if (!isRock) {
-    float rim = smoothstep(0.30, 0.46, length(p));
-    color = mix(color, color * 0.56, rim * 0.60);
-  }
+  vec3 color = pictoCol;
 
   // No click-indicator rings (owner direction 2026-07-02). Visible-but-wild
   // nodes get an ALLURING breathing bloom; nodes inside territory smolder

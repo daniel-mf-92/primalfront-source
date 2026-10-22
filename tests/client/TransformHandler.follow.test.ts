@@ -2,13 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DragEvent } from "../../src/client/InputHandler";
 import {
   FOLLOW_MAX_LOOK_AHEAD_TILES,
+  FOLLOW_REENGAGE_IDLE_MS,
   PRIMITIVE_TRIBE_CAMERA_ZOOM,
   TransformHandler,
 } from "../../src/client/TransformHandler";
-import { EventBus } from "../../src/core/EventBus";
-import { Age } from "../../src/core/game/Game";
 import { GameView } from "../../src/client/view/GameView";
 import { PlayerView } from "../../src/client/view/PlayerView";
+import { EventBus } from "../../src/core/EventBus";
+import { Age } from "../../src/core/game/Game";
 import {
   makeGameView,
   makeNameViewData,
@@ -43,7 +44,11 @@ function makeFollowHandler(name: { x: number; y: number; size?: number }): {
   });
   // GameView.myPlayer() returns the memoized _myPlayer field directly.
   (game as any)._myPlayer = player;
-  const handler = new TransformHandler(game, new EventBus(), makeInputElement());
+  const handler = new TransformHandler(
+    game,
+    new EventBus(),
+    makeInputElement(),
+  );
   // Stop the constructor's persistent follow interval so tests can drive
   // followTick()/goTo() deterministically (also nulls target via clearTarget()).
   handler.destroy();
@@ -164,7 +169,7 @@ describe("TransformHandler follow-cam", () => {
     expect((handler as any).target).toBeNull();
 
     // After the idle window elapses, follow re-engages on its own.
-    mockNow = 100000 + 2500 + 1;
+    mockNow = 100000 + FOLLOW_REENGAGE_IDLE_MS + 1;
     (handler as any).followTick();
     expect((handler as any).target).not.toBeNull();
     (handler as any).clearTarget();

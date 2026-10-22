@@ -323,6 +323,14 @@ describe("ResourceTerritoryFlowExecution", () => {
   function runFlow(n: number): void {
     flow.tick(n * game.config().resourceTerritoryFlowIntervalTicks());
   }
+  // Runs `n` consecutive flows (runFlow runs at most one per call).
+  let flowClock = 1000;
+  function runFlows(n: number): void {
+    for (let i = 0; i < n; i++) {
+      flowClock += game.config().resourceTerritoryFlowIntervalTicks();
+      flow.tick(flowClock);
+    }
+  }
 
   it("shrinks owned forest to a sustainable stand, then trickles resources", () => {
     const tile = Array.from(player.tiles())[0];
@@ -425,24 +433,38 @@ describe("ResourceTerritoryFlowExecution", () => {
   // paying long enough to be worth the walk. Primitive mining is therefore
   // SLOWER per flow than settled-era mining, not faster: the tribe lacks the
   // tools, and the node endures.
-  it("primitive rock quarries are worked slowly, so a roamed-to node endures", () => {
+  it("a Stone Age tribe works a quarry out quickly, so staying put stops paying", () => {
+    // Marta 2026-10-22: resources under a tribe that sits still must run out
+    // early - the tribe is meant to roam to the next one.
     player.setAge(Age.Primitive);
     const tile = Array.from(player.tiles())[0];
-    game.setResource(tile, ResourceKind.Rock, 5);
+    game.setResource(tile, ResourceKind.Rock, 20);
     const before = player.resources();
     const rate = game.config().primitiveRockMineYieldPerFlow();
+    expect(rate).toBeGreaterThanOrEqual(
+      3 * game.config().rockMineYieldPerFlow(),
+    );
 
     runFlow(1);
-
     expect(game.resourceAt(tile)).toEqual({
       kind: ResourceKind.Rock,
-      quantity: 5 - rate,
+      quantity: 20 - rate,
     });
     expect(player.resources()).toBe(before + rate);
-    // The whole point of the change: a primitive tribe no longer strip-mines a
-    // quarry it wandered onto. It was 4/flow (double the settled rate); it is
-    // now at most the settled rate, so the node endures for the roaming tribe.
-    expect(rate).toBeLessThanOrEqual(game.config().rockMineYieldPerFlow());
+
+    runFlows(Math.ceil(20 / rate));
+    expect(game.resourceAt(tile).kind).toBe(ResourceKind.None);
+  });
+
+  it("a Stone Age wood stand is cleared outright and stops paying", () => {
+    player.setAge(Age.Primitive);
+    const tile = Array.from(player.tiles())[0];
+    game.setResource(tile, ResourceKind.Wood, 12);
+    runFlows(Math.ceil(12 / game.config().primitiveForestUsePerFlow()) + 1);
+    expect(game.resourceAt(tile).kind).toBe(ResourceKind.None);
+    const after = player.resources();
+    runFlows(5);
+    expect(player.resources()).toBe(after);
   });
 
   it("primitive tribes gather adjacent river fish and abandoned shoals regrow", () => {
