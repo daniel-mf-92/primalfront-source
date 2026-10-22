@@ -35,6 +35,7 @@ import { GuideBeacon } from "./layers/GuideBeacon";
 import { HeadsUpMessage } from "./layers/HeadsUpMessage";
 import { ImmunityTimer } from "./layers/ImmunityTimer";
 import { InGamePromo } from "./layers/InGamePromo";
+import { LandWatch } from "./layers/LandWatch";
 import { Leaderboard } from "./layers/Leaderboard";
 import { MainRadialMenu } from "./layers/MainRadialMenu";
 import { MultiTabModal } from "./layers/MultiTabModal";
@@ -259,6 +260,13 @@ export function createRenderer(
   guideBeacon.eventBus = eventBus;
   guideBeacon.transformHandler = transformHandler;
 
+  const landWatch = document.querySelector("land-watch") as LandWatch;
+  if (!(landWatch instanceof LandWatch)) {
+    console.error("land watch not found");
+  }
+  landWatch.game = game;
+  landWatch.eventBus = eventBus;
+
   const performanceOverlay = document.querySelector(
     "performance-overlay",
   ) as PerformanceOverlay;
@@ -348,6 +356,7 @@ export function createRenderer(
     playerPanel,
     headsUpMessage,
     guideBeacon,
+    landWatch,
     multiTabModal,
     inGamePromo,
     alertFrame,
@@ -359,7 +368,23 @@ export function createRenderer(
     uiState,
     layers,
     performanceOverlay,
+    game,
   );
+}
+
+/** Zoom multiple over "whole map fits" for the spawn view (see initialize). */
+export const SPAWN_MAX_COVER = 1.8;
+
+export function spawnFit(
+  viewport: { width: number; height: number },
+  mapWidth: number,
+  mapHeight: number,
+): number {
+  if (viewport.width <= 0 || viewport.height <= 0) return 1;
+  const hor = viewport.width / mapWidth;
+  const ver = viewport.height / mapHeight;
+  const cover = Math.max(hor, ver) / Math.min(hor, ver);
+  return Math.min(cover, SPAWN_MAX_COVER);
 }
 
 export class GameRenderer {
@@ -370,6 +395,7 @@ export class GameRenderer {
     public uiState: UIState,
     private layers: Controller[],
     private performanceOverlay: PerformanceOverlay,
+    private game: GameView,
   ) {}
 
   initialize() {
@@ -383,8 +409,17 @@ export class GameRenderer {
       this.transformHandler.updateCanvasBoundingRect(),
     );
 
-    //show whole map on startup
-    this.transformHandler.centerAll(0.9);
+    // Spawn view: fill the screen with the map. "Contain at 90%" left the
+    // world as a speck on a black frame (audit 2026-10-22); "cover" fills a
+    // desktop screen edge to edge. A tall phone would lose most of a wide map
+    // to cover, so the zoom past "contain" is capped there.
+    this.transformHandler.centerAll(
+      spawnFit(
+        this.transformHandler.boundingRect(),
+        this.game.width(),
+        this.game.height(),
+      ),
+    );
   }
 
   tick() {

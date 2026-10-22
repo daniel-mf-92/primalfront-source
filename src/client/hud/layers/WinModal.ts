@@ -15,6 +15,7 @@ import {
 import { crazyGamesSDK } from "../../CrazyGamesSDK";
 import { buildChallengeUrl } from "../../HomeChallenge";
 import { Platform } from "../../Platform";
+import { markQuietMenu, MusicSuspendEvent } from "../../sound/Sounds";
 import { SendWinnerEvent } from "../../Transport";
 import { getMapName } from "../../Utils";
 import { GameView } from "../../view";
@@ -115,45 +116,37 @@ export class WinModal extends LitElement implements Controller {
         ${this.renderResultSummary()} ${this.renderResultStrip()}
         ${this.innerHtml()}
         <div class="${this.showButtons ? "flex flex-col gap-2.5" : "hidden"}">
-          <o-button
-            variant="primary"
-            width="block"
-            class="win-modal-share ${this.copied ? "is-copied" : ""}"
-            .title=${this.copied
-              ? translateText("win_modal.copied")
-              : translateText("win_modal.share")}
-            @click=${this._handleShare}
-          ></o-button>
-          <div class="grid grid-cols-2 gap-2.5 md:flex md:justify-between">
+          <!-- What the player most likely wants next is the big button: play
+               again after a finished practice match, back to the menu after
+               leaving. Share used to be the biggest thing here and Exit the
+               smallest (audit 2026-10-22). -->
+          <div class="win-modal-main grid grid-cols-1 gap-2.5 md:grid-cols-2">
+            <o-button
+              variant="primary"
+              width="block"
+              class="win-modal-primary"
+              translationKey=${this.primaryAction().key}
+              @click=${this.primaryAction().run}
+            ></o-button>
+            ${this.secondaryAction() !== null
+              ? html`<o-button
+                  variant="secondary"
+                  width="block"
+                  translationKey=${this.secondaryAction()!.key}
+                  @click=${this.secondaryAction()!.run}
+                ></o-button>`
+              : null}
+          </div>
+          <div class="win-modal-more grid grid-cols-2 gap-2.5 md:flex">
             <o-button
               variant="secondary"
               width="block"
-              class="flex-1"
-              translationKey="win_modal.exit"
-              @click=${this._handleExit}
+              class="flex-1 win-modal-share ${this.copied ? "is-copied" : ""}"
+              .title=${this.copied
+                ? translateText("win_modal.copied")
+                : translateText("win_modal.share")}
+              @click=${this._handleShare}
             ></o-button>
-            ${this.canPlayAgain()
-              ? html`
-                  <o-button
-                    variant="secondary"
-                    width="block"
-                    class="flex-1"
-                    translationKey="win_modal.requeue"
-                    @click=${this._handleRequeue}
-                  ></o-button>
-                `
-              : null}
-            ${this.canPractice()
-              ? html`
-                  <o-button
-                    variant="secondary"
-                    width="block"
-                    class="flex-1"
-                    translationKey="win_modal.practice"
-                    @click=${this._handlePractice}
-                  ></o-button>
-                `
-              : null}
             ${this.isSinglePlayer
               ? html`
                   <o-button
@@ -172,12 +165,40 @@ export class WinModal extends LitElement implements Controller {
               .title=${this.game?.myPlayer()?.isAlive()
                 ? translateText("win_modal.keep")
                 : translateText("win_modal.spectate")}
-              @click=${this.hide}
+              @click=${this._handleKeepPlaying}
             ></o-button>
           </div>
         </div>
       </div>
     `;
+  }
+
+  /** The one big button: replay a finished solo match, else go home. */
+  private primaryAction(): { key: string; run: () => void } {
+    if (!this.leaving && this.canPlayAgain()) {
+      return { key: "win_modal.requeue", run: () => this._handleRequeue() };
+    }
+    return { key: "win_modal.exit", run: () => void this._handleExit() };
+  }
+
+  /** The runner-up, beside it: whichever of home / replay / practice is left. */
+  private secondaryAction(): { key: string; run: () => void } | null {
+    if (!this.leaving && this.canPlayAgain()) {
+      return { key: "win_modal.exit", run: () => void this._handleExit() };
+    }
+    if (this.canPlayAgain()) {
+      return { key: "win_modal.requeue", run: () => this._handleRequeue() };
+    }
+    if (this.canPractice()) {
+      return { key: "win_modal.practice", run: () => this._handlePractice() };
+    }
+    return null;
+  }
+
+  /** Back to the live match: its sound comes back with it. */
+  private _handleKeepPlaying() {
+    this.hide();
+    this.eventBus?.emit(new MusicSuspendEvent(false));
   }
 
   innerHtml() {
@@ -299,6 +320,9 @@ export class WinModal extends LitElement implements Controller {
 
   async show() {
     crazyGamesSDK.gameplayStop();
+    // The match is over (or being left): its music and effects stop here, not
+    // after the player is back on the menu.
+    this.eventBus?.emit(new MusicSuspendEvent(true));
     await this.loadPatternContent();
     // Check if this is a ranked game
     this.isRankedGame =
@@ -407,12 +431,14 @@ export class WinModal extends LitElement implements Controller {
 
   private async _handleExit() {
     this.hide();
+    markQuietMenu();
     await crazyGamesSDK.requestMidgameAd();
     window.location.href = "/";
   }
 
   private _handleRequeue() {
     this.hide();
+    markQuietMenu();
     if (this.isRankedGame) {
       // Navigate to homepage and open matchmaking modal
       window.location.href = "/?requeue";
@@ -424,6 +450,7 @@ export class WinModal extends LitElement implements Controller {
 
   private _handlePractice() {
     this.hide();
+    markQuietMenu();
     window.location.href = "/#modal=single-player";
   }
 
@@ -431,6 +458,7 @@ export class WinModal extends LitElement implements Controller {
   // host-lobby flow, which creates the lobby and copies the invite link.
   private _handlePlayWithFriend() {
     this.hide();
+    markQuietMenu();
     window.location.href = "/?friends";
   }
 

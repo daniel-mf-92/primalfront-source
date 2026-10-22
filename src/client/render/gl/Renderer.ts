@@ -1179,7 +1179,8 @@ export class GPURenderer {
   private drawBaseLayer(cam: Float32Array, zoom: number): void {
     const gl = this.gl;
     const pe = this.settings.passEnabled;
-    gl.clearColor(0.04, 0.04, 0.06, 1.0);
+    // Off the map edge: the atlas's dark leather cover, not a black void.
+    gl.clearColor(0.13, 0.095, 0.065, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable(gl.BLEND);
     if (pe.terrain) this.terrainPass.draw(cam, zoom);

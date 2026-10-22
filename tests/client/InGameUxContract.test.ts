@@ -69,7 +69,10 @@ describe("in-game UX contract", () => {
       "src/client/hud/layers/RadialMenu.ts",
     );
 
-    expect(controlPanel).toContain("tc-objective-detail--mobile");
+    // The next action shows on every screen size (it was desktop-hidden behind
+    // a native tooltip; real-screen audit 2026-10-22).
+    expect(controlPanel).toContain('<div class="tc-objective-detail');
+    expect(controlPanel).not.toContain("tc-objective-detail--mobile");
     expect(radialMenu).toContain("private menuItemLabel");
     expect(radialMenu).toContain('class", "menu-item-label"');
     expect(radialMenu).toContain('attr("data-menu-label"');
@@ -107,7 +110,7 @@ describe("in-game UX contract", () => {
     expect(controlPanel).toContain(".tc-objective-roadmap");
     expect(winModal).toContain("renderResultSummary");
     expect(winModal).toContain("_handlePractice");
-    expect(winModal).toContain('translationKey="win_modal.practice"');
+    expect(winModal).toContain('key: "win_modal.practice"');
     expect(styles).toContain(".win-modal-summary");
     expect(translations).toContain('"roadmap_label"');
     expect(translations).toContain('"result_summary_win"');

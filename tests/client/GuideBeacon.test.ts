@@ -47,18 +47,17 @@ describe("guide beacon", () => {
     expect(nearestWoodStand(map, { x: 0, y: 0 }, 7, 10)).toBeNull();
   });
 
-  it("shows while the tribe is looking for wood or still building its economy", () => {
+  it("shows exactly when the goal says go to the wood stand", () => {
     const tribe = (age: Age) => ({
       age: () => age,
-      resources: () => 0,
       hasSpawned: () => true,
       isAlive: () => true,
     });
-    expect(wantsWoodBeacon(tribe(Age.Primitive), "find_resources")).toBe(true);
-    expect(wantsWoodBeacon(tribe(Age.Primitive), "convert_resources")).toBe(
-      true,
-    );
-    expect(wantsWoodBeacon(tribe(Age.Primitive), "build_economy")).toBe(false);
-    expect(wantsWoodBeacon(tribe(Age.Classical), "find_resources")).toBe(false);
+    const go = { pointToWood: true };
+    const stay = { pointToWood: false };
+    expect(wantsWoodBeacon(tribe(Age.Primitive), go)).toBe(true);
+    expect(wantsWoodBeacon(tribe(Age.Primitive), stay)).toBe(false);
+    expect(wantsWoodBeacon(tribe(Age.Primitive), null)).toBe(false);
+    expect(wantsWoodBeacon(tribe(Age.Classical), go)).toBe(false);
   });
 });

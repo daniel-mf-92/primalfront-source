@@ -300,6 +300,23 @@
   image-rendering: auto;
   opacity: 1;
 }
+/* Practice-setup thumbnails: the map art is pale land on transparent sea, so
+   on parchment the land all but vanished (audit 2026-10-22). Give the frame
+   the same ink-blue sea as the featured map so the coastlines read. */
+body:not(.in-game) .pf-map-preview-frame {
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      rgba(255, 250, 235, 0.08),
+      transparent 70%
+    ),
+    #2f3f47;
+  border: 1px solid var(--ink, #2b2118);
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 235, 0.12);
+}
+body:not(.in-game) .pf-map-preview-img {
+  filter: saturate(1.05) contrast(1.05);
+}
 
 /* ---- Featured live match ------------------------------------------------ */
 .pf-match-browser {
@@ -941,6 +958,54 @@
   flex-direction: column;
   gap: 0.15rem;
   padding: 0 0.15rem 0.1rem;
+}
+.pf-pitch--with-cta {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.pf-pitch__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.pf-pitch__practice {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.95rem;
+  border: 2px solid var(--ink, var(--hairline-strong));
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+}
+.pf-pitch__practice:not(:disabled):hover {
+  box-shadow: var(--shadow-2);
+  background: var(--surface-2);
+}
+.pf-pitch__practice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 640px) {
+  .pf-pitch--with-cta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .pf-pitch__practice {
+    justify-content: space-between;
+  }
 }
 .pf-pitch__kicker {
   color: var(--age-accent-hi);

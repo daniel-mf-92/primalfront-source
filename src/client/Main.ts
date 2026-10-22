@@ -67,6 +67,7 @@ import {
   translateText,
 } from "./Utils";
 import { SoundManager } from "./sound/SoundManager";
+import { consumeQuietMenu } from "./sound/Sounds";
 import { installSafariPinchZoomBlocker } from "./utilities/DisableSafariPinchZoom";
 
 import "./components/DesktopNavBar";
@@ -279,6 +280,9 @@ class Client {
 
   async initialize(): Promise<void> {
     crazyGamesSDK.maybeInit();
+    // Just left a match (the result screen's buttons reload the page): the
+    // menu stays silent instead of starting its music on the first click.
+    if (consumeQuietMenu()) this.soundManager.suspendMusic();
     this.soundManager.playMenuMusic();
 
     // Browsers block audio until the first user gesture, so menu/era music

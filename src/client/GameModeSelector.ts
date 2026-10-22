@@ -40,6 +40,23 @@ import {
 
 const CARD_BG = "bg-surface";
 
+/**
+ * The featured lobby: the one the pointer is resting on while it is still
+ * joinable, otherwise the recommended one.
+ */
+export function pinnedOrRecommended(
+  lobbies: PublicGames | null,
+  pinnedGameID: string | null,
+): PublicGameInfo | null {
+  if (lobbies !== null && pinnedGameID !== null) {
+    const pinned = Object.values(lobbies.games ?? {})
+      .flat()
+      .find((lobby) => lobby.gameID === pinnedGameID);
+    if (pinned !== undefined) return pinned;
+  }
+  return getRecommendedLobby(lobbies);
+}
+
 export function getRecommendedLobby(
   lobbies: PublicGames | null,
 ): PublicGameInfo | null {
@@ -59,6 +76,10 @@ export class GameModeSelector extends LitElement {
   @state() private lobbies: PublicGames | null = null;
   @state() private mapAspectRatios: Map<GameMapType, number> = new Map();
   @state() private inputValid: boolean = true;
+  // The featured battle under the pointer stays put. Lobbies roll over every
+  // few seconds, and the hero map swapping under the cursor read as the page
+  // moving away from the click (audit 2026-10-22).
+  private pinnedGameID: string | null = null;
   /**
    * A result someone shared. Read once from the URL: this is the whole reason a
    * first-time visitor is on the page, so it outranks the generic pitch.
@@ -159,7 +180,10 @@ export class GameModeSelector extends LitElement {
     const ffa = this.lobbies?.games?.["ffa"]?.[0];
     const teams = this.lobbies?.games?.["team"]?.[0];
     const special = this.lobbies?.games?.["special"]?.[0];
-    const recommendedLobby = getRecommendedLobby(this.lobbies);
+    const recommendedLobby = pinnedOrRecommended(
+      this.lobbies,
+      this.pinnedGameID,
+    );
     const isOnCrazyGames = crazyGamesSDK.isOnCrazyGames();
     const alternativeLobbies = [special, teams, ffa]
       .filter(
@@ -358,6 +382,13 @@ export class GameModeSelector extends LitElement {
         ?disabled=${!this.inputValid}
         data-play-path="quick_play"
         data-game-id=${lobby.gameID}
+        @pointerenter=${() => {
+          this.pinnedGameID = lobby.gameID;
+        }}
+        @pointerleave=${() => {
+          this.pinnedGameID = null;
+          this.requestUpdate();
+        }}
         class="pf-featured-match ${!this.inputValid ? "is-disabled" : ""}"
       >
         <span class="pf-featured-match__media" aria-hidden="true">
@@ -421,12 +452,27 @@ export class GameModeSelector extends LitElement {
       ${translateText("mode_selector.pitch")}
     </p>`;
     if (challenge === null) {
+      // Practice used to live only under "More ways to play", below the fold
+      // at 1080p (audit 2026-10-22). It is the safest first game, so it sits
+      // up here beside the pitch, one click from the top of the page.
       return html`
-        <div class="pf-pitch">
-          <span class="pf-pitch__kicker"
-            >${translateText("mode_selector.pitch_kicker")}</span
+        <div class="pf-pitch pf-pitch--with-cta">
+          <div class="pf-pitch__copy">
+            <span class="pf-pitch__kicker"
+              >${translateText("mode_selector.pitch_kicker")}</span
+            >
+            ${pitch}
+          </div>
+          <button
+            type="button"
+            class="pf-pitch__practice"
+            data-play-path="solo_hero"
+            ?disabled=${!this.inputValid}
+            @click=${this.openSinglePlayerModal}
           >
-          ${pitch}
+            <span>${translateText("mode_selector.play_solo_now")}</span>
+            <span aria-hidden="true">&#8594;</span>
+          </button>
         </div>
       `;
     }

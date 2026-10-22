@@ -234,29 +234,31 @@ export class HeadsUpMessage extends LitElement implements Controller {
           : null}
         ${this.isVisible
           ? html`
+              <!-- One quiet strip at the top edge, not a box and a button in
+                   the middle of the map the player is choosing from (audit
+                   2026-10-22). The pick-for-me button sits inside it. -->
               <div
-                class="tc-spawn-chip fixed top-[15%] left-1/2 -translate-x-1/2 z-[799]
-                            inline-flex items-center justify-center min-h-8 lg:min-h-10
-                            w-fit max-w-[90vw]
-                            text-md lg:text-xl px-3 lg:px-4 py-1
-                            text-center break-words"
-                style="word-wrap: break-word; hyphens: auto;"
+                class="tc-spawn-chip tc-spawn-strip fixed top-[72px] lg:top-4 left-1/2 -translate-x-1/2 z-[799]
+                            inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5
+                            w-max max-w-[calc(100vw-120px)]
+                            text-sm lg:text-base px-3 lg:px-4 py-1.5
+                            text-center"
                 @contextmenu=${(e: MouseEvent) => e.preventDefault()}
               >
-                ${this.getMessage()}
+                <span>${this.getMessage()}</span>
+                ${this.showPickSpawn()
+                  ? html`
+                      <button
+                        type="button"
+                        class="tc-spawn-pick"
+                        style="pointer-events: auto;"
+                        @click=${this.pickSpawnForMe}
+                      >
+                        ${translateText("heads_up_message.pick_spawn")}
+                      </button>
+                    `
+                  : null}
               </div>
-              ${this.showPickSpawn()
-                ? html`
-                    <button
-                      type="button"
-                      class="tc-spawn-chip fixed top-[15%] mt-14 lg:mt-16 left-1/2 -translate-x-1/2 z-[799] px-4 py-2 text-sm lg:text-base font-bold uppercase tracking-wide text-white"
-                      style="pointer-events: auto;"
-                      @click=${this.pickSpawnForMe}
-                    >
-                      ${translateText("heads_up_message.pick_spawn")}
-                    </button>
-                  `
-                : null}
             `
           : null}
         ${this.game?.inSpawnPhase() &&

@@ -1,12 +1,8 @@
 import { ResourceKind, UnitType } from "../../core/game/Game";
 import type { TileRef } from "../../core/game/GameMap";
 import { Controller } from "../Controller";
+import { objectiveDirector } from "../hud/layers/ObjectiveDirector";
 import type { ObjectiveID } from "../hud/layers/ObjectiveRail";
-import {
-  chooseObjective,
-  computeAgeGates,
-  computePrimitiveGoldPipeline,
-} from "../hud/layers/ObjectiveRail";
 import { MapRenderer } from "../render/gl";
 import { GameView } from "../view";
 import type { PlayerView } from "../view/PlayerView";
@@ -67,12 +63,9 @@ export class MapDirectorController implements Controller {
     const player = this.game.myPlayer();
     if (player === null || !player.isAlive()) return;
 
-    const objective = chooseObjective(
-      player,
-      this.game.config(),
-      computeAgeGates(player, this.game.config()),
-      computePrimitiveGoldPipeline(player, this.game.config()),
-    );
+    // Same goal the panel shows, never a second opinion.
+    const objective = objectiveDirector(this.game).current();
+    if (objective === null) return;
     const anchor = this.findAnchor(player);
     if (anchor === null) return;
 

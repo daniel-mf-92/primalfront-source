@@ -172,6 +172,14 @@ export interface RenderSettings {
      * so they cover a fixed area of the map.
      */
     iconGrowZoom: number;
+    /**
+     * Largest map footprint (tiles across) a structure icon may cover. Caps
+     * the fixed-screen-size band so a zoomed-out map is not papered over with
+     * discs (real-screen audit 2026-10-22). 0 = no cap.
+     */
+    maxWorldTiles: number;
+    /** Smallest on-screen size (px) a capped icon shrinks to. */
+    minIconPx: number;
     shapes: Record<string, { scale: number; iconFill: number }>;
     highlightOutlineWidth: number;
     highlightDimAlpha: number;

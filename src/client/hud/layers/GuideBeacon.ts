@@ -1,14 +1,18 @@
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { EventBus } from "../../../core/EventBus";
-import { Age, Cell, ResourceKind } from "../../../core/game/Game";
+import { Age, Cell, UnitType } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { Controller } from "../../Controller";
+import { PlaySoundEffectEvent } from "../../sound/Sounds";
 import { TransformHandler } from "../../TransformHandler";
 import { SendAttackIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
-import { chooseObjective } from "./ObjectiveRail";
+import { BuildPlacedEvent, BuildRefusedEvent } from "./BuildFeedback";
+import { objectiveDirector } from "./ObjectiveDirector";
+import type { ObjectiveRailItem } from "./ObjectiveRail";
+import { WoodTarget, WorldPoint } from "./WoodStand";
 
 // Two on-map markers that answer the two questions a new tribe has in its
 // first minute, both read from the same replicated state every other HUD
@@ -25,81 +29,40 @@ import { chooseObjective } from "./ObjectiveRail";
 // Positions are re-derived every animation frame from the camera, so the
 // markers stay glued to their tiles while the player pans and zooms.
 
-/** How far (tiles) from the tribe's centre a stand is still worth pointing at. */
-const WOOD_SEARCH_RADIUS = 70;
-/** A node this depleted is a stump, not a stand. */
-const MIN_USEFUL_WOOD = 4;
 /** The move marker expires if the camp never arrives (blocked, abandoned). */
 const MOVE_MARKER_TTL_TICKS = 900;
 /** Keep clamped markers this far inside the viewport edge. */
 const EDGE_PAD = 28;
+/** How long the "placed" / "can't build here" stamp stays on the map. */
+const BUILD_MARK_MS = 1800;
+const BUILD_REFUSED_MS = 2600;
 
-interface WorldPoint {
-  x: number;
-  y: number;
+const BUILD_NAME_KEYS: Partial<Record<UnitType, string>> = {
+  [UnitType.City]: "unit_display.short_permanent_settlement",
+  [UnitType.Hut]: "unit_display.short_hut",
+  [UnitType.TradeOutpost]: "unit_display.short_trade_outpost",
+  [UnitType.ScoutLookout]: "unit_display.short_scout_lookout",
+  [UnitType.PrimitiveFarm]: "unit_display.short_primitive_farm",
+};
+
+function buildName(type: UnitType): string {
+  const key = BUILD_NAME_KEYS[type];
+  return key !== undefined ? translateText(key) : String(type);
 }
 
-export interface WoodTarget extends WorldPoint {
-  tile: TileRef;
-  dist: number;
-}
-
-/**
- * Pure: pick the nearest visible, un-owned, still-rich wood node around an
- * anchor. Exported so the choice is unit-testable without a renderer.
- */
-export function nearestWoodStand(
-  game: Pick<
-    GameView,
-    | "width"
-    | "height"
-    | "ref"
-    | "resourceAt"
-    | "isResourceVisible"
-    | "ownerID"
-    | "isValidCoord"
-  >,
-  anchor: WorldPoint,
-  mySmallID: number,
-  radius: number = WOOD_SEARCH_RADIUS,
-): WoodTarget | null {
-  const ax = Math.round(anchor.x);
-  const ay = Math.round(anchor.y);
-  let best: WoodTarget | null = null;
-  const x0 = Math.max(0, ax - radius);
-  const x1 = Math.min(game.width() - 1, ax + radius);
-  const y0 = Math.max(0, ay - radius);
-  const y1 = Math.min(game.height() - 1, ay + radius);
-  for (let y = y0; y <= y1; y++) {
-    for (let x = x0; x <= x1; x++) {
-      const tile = game.ref(x, y);
-      const node = game.resourceAt(tile);
-      if (node.kind !== ResourceKind.Wood || node.quantity < MIN_USEFUL_WOOD) {
-        continue;
-      }
-      if (game.ownerID(tile) === mySmallID) continue;
-      if (!game.isResourceVisible(tile)) continue;
-      const dist = Math.hypot(x - ax, y - ay);
-      if (best === null || dist < best.dist) {
-        best = { tile, x, y, dist };
-      }
-    }
-  }
-  return best;
-}
+export { nearestWoodStand } from "./WoodStand";
+export type { WoodTarget } from "./WoodStand";
 
 /** Pure: should the wood beacon show for this player right now? */
 export function wantsWoodBeacon(
-  player: Pick<PlayerView, "age" | "resources" | "hasSpawned" | "isAlive">,
-  objectiveId: string,
+  player: Pick<PlayerView, "age" | "hasSpawned" | "isAlive">,
+  objective: Pick<ObjectiveRailItem, "pointToWood"> | null,
 ): boolean {
   if (!player.hasSpawned() || !player.isAlive()) return false;
   if (player.age() !== Age.Primitive) return false;
-  // Keep pointing at the next node until the first building goes up: one
-  // captured node is a trickle, the rest of the stand is the real income.
-  return (
-    objectiveId === "find_resources" || objectiveId === "convert_resources"
-  );
+  // The goal panel decides: the marker shows exactly when the goal's next
+  // action is "go to the wood stand", so the two never contradict.
+  return objective?.pointToWood === true;
 }
 
 @customElement("guide-beacon")
@@ -110,10 +73,13 @@ export class GuideBeacon extends LitElement implements Controller {
 
   @state() private wood: WoodTarget | null = null;
   @state() private move: WorldPoint | null = null;
+  // Build feedback: a stamp where the build order landed (or why it did not).
+  @state() private build: (WorldPoint & { ok: boolean; label: string }) | null =
+    null;
+  private buildTimer: ReturnType<typeof setTimeout> | null = null;
   private moveTile: TileRef | null = null;
   private moveSetTick = 0;
   private rafId: number | null = null;
-  private scanCountdown = 0;
 
   createRenderRoot() {
     this.style.position = "fixed";
@@ -131,6 +97,20 @@ export class GuideBeacon extends LitElement implements Controller {
       this.move = { x: this.game.x(e.tile), y: this.game.y(e.tile) };
       this.place();
     });
+    this.eventBus.on(BuildPlacedEvent, (e) => {
+      this.showBuildMark(
+        e.tile,
+        true,
+        translateText("guide_beacon.build_placed", {
+          name: buildName(e.unitType),
+        }),
+      );
+      this.eventBus.emit(new PlaySoundEffectEvent("click"));
+    });
+    this.eventBus.on(BuildRefusedEvent, (e) => {
+      this.showBuildMark(e.tile, false, e.reason);
+      this.eventBus.emit(new PlaySoundEffectEvent("click", 0.6));
+    });
     const frame = () => {
       this.place();
       this.rafId = requestAnimationFrame(frame);
@@ -138,8 +118,29 @@ export class GuideBeacon extends LitElement implements Controller {
     this.rafId = requestAnimationFrame(frame);
   }
 
+  private showBuildMark(tile: TileRef, ok: boolean, label: string) {
+    this.build = { x: this.game.x(tile), y: this.game.y(tile), ok, label };
+    if (this.buildTimer !== null) clearTimeout(this.buildTimer);
+    this.buildTimer = setTimeout(
+      () => {
+        this.build = null;
+        this.buildTimer = null;
+      },
+      ok ? BUILD_MARK_MS : BUILD_REFUSED_MS,
+    );
+    // Restart the stamp animation even when the same marker is reused.
+    const el = this.querySelector<HTMLElement>("#gb-build");
+    if (el !== null) {
+      el.classList.remove("is-stamping");
+      void el.offsetWidth;
+      el.classList.add("is-stamping");
+    }
+    this.place();
+  }
+
   disconnectedCallback() {
     super.disconnectedCallback();
+    if (this.buildTimer !== null) clearTimeout(this.buildTimer);
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
   }
 
@@ -159,41 +160,10 @@ export class GuideBeacon extends LitElement implements Controller {
         this.move = null;
       }
     }
-    // The stand search walks a 141x141 box; twice a second is plenty.
-    if (this.scanCountdown-- > 0) return;
-    this.scanCountdown = 5;
-    const objective = chooseObjective(
-      me,
-      this.game.config(),
-      undefined,
-      undefined,
-      this.game.ticks(),
-    );
-    if (!wantsWoodBeacon(me, objective.id)) {
-      this.wood = null;
-      return;
-    }
-    const anchor = this.anchorOf(me);
-    if (anchor === null) {
-      this.wood = null;
-      return;
-    }
-    this.wood = nearestWoodStand(
-      this.game,
-      anchor,
-      me.smallID(),
-      objective.id === "find_resources" ? WOOD_SEARCH_RADIUS : 40,
-    );
-  }
-
-  private anchorOf(me: PlayerView): WorldPoint | null {
-    const name = me.nameLocation();
-    if (name !== undefined && name.size > 0) {
-      return { x: name.x, y: name.y };
-    }
-    const spawn = me.spawnTile();
-    if (spawn === undefined) return null;
-    return { x: this.game.x(spawn), y: this.game.y(spawn) };
+    const director = objectiveDirector(this.game);
+    this.wood = wantsWoodBeacon(me, director.current())
+      ? director.woodTarget()
+      : null;
   }
 
   /** Glue both markers to their tiles for the current camera. */
@@ -201,6 +171,7 @@ export class GuideBeacon extends LitElement implements Controller {
     if (!this.transformHandler) return;
     this.placeOne("gb-wood", this.wood);
     this.placeOne("gb-move", this.move);
+    this.placeOne("gb-build", this.build);
   }
 
   private placeOne(id: string, point: WorldPoint | null) {
@@ -318,6 +289,47 @@ export class GuideBeacon extends LitElement implements Controller {
         #gb-move {
           --gb-color: #f0b35c;
         }
+        #gb-build {
+          --gb-color: #e9d9a8;
+        }
+        #gb-build.is-refused {
+          --gb-color: #d0563c;
+        }
+        #gb-build .gb-ring {
+          animation: gb-stamp 0.5s ease-out 1 both;
+          border-width: 3px;
+        }
+        #gb-build .gb-core {
+          display: none;
+        }
+        /* Above the ring: below it sits the build ghost's own cost label. */
+        #gb-build .gb-label {
+          top: auto;
+          bottom: 30px;
+          border-radius: 3px;
+          background: rgba(36, 26, 18, 0.95);
+          border: 1px solid #120c07;
+          border-left: 3px solid var(--gb-color);
+          color: #efe6d2;
+          max-width: 260px;
+          white-space: normal;
+          text-align: center;
+          width: max-content;
+        }
+        @keyframes gb-stamp {
+          0% {
+            transform: scale(1.7);
+            opacity: 0;
+          }
+          60% {
+            transform: scale(0.92);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
         #gb-move .gb-ring {
           animation: gb-ripple 1.1s ease-out infinite;
           border-width: 2px;
@@ -354,6 +366,19 @@ export class GuideBeacon extends LitElement implements Controller {
         <div class="gb-ring"></div>
         <div class="gb-core"></div>
         <div class="gb-label">${woodLabel}</div>
+      </div>
+      <div
+        id="gb-build"
+        class="gb-marker is-stamping ${this.build?.ok === false
+          ? "is-refused"
+          : ""}"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="gb-arrow"></div>
+        <div class="gb-ring"></div>
+        <div class="gb-core"></div>
+        <div class="gb-label">${this.build?.label ?? ""}</div>
       </div>
       <div id="gb-move" class="gb-marker" aria-hidden="true">
         <div class="gb-arrow"></div>

@@ -7,6 +7,7 @@ import {
   UserSettings,
 } from "../../core/game/UserSettings";
 import {
+  MusicSuspendEvent,
   PlaySoundEffectEvent,
   SetBackgroundMusicVolumeEvent,
   SetSoundEffectsVolumeEvent,
@@ -146,6 +147,10 @@ export class SoundManager {
     e: SetBackgroundMusicVolumeEvent,
   ) => void;
   private onSetSoundEffectsVolume: (e: SetSoundEffectsVolumeEvent) => void;
+  private onMusicSuspend: (e: MusicSuspendEvent) => void;
+  // While true no music starts and no effect plays: the match is over (result
+  // screen) or was just left. Cleared by resumeMusic() / playLoadingMusic().
+  private suspended = false;
   private onStoredBackgroundMusicVolume: (e: Event) => void;
   private onStoredSoundEffectsVolume: (e: Event) => void;
 
@@ -166,7 +171,10 @@ export class SoundManager {
       const volume = parseFloat(String((e as CustomEvent<string>).detail));
       if (Number.isFinite(volume)) this.setSoundEffectsVolume(volume);
     };
+    this.onMusicSuspend = (e) =>
+      e.suspended ? this.suspendMusic() : this.resumeMusic();
     eventBus.on(PlaySoundEffectEvent, this.onPlaySoundEffect);
+    eventBus.on(MusicSuspendEvent, this.onMusicSuspend);
     eventBus.on(SetBackgroundMusicVolumeEvent, this.onSetBackgroundMusicVolume);
     eventBus.on(SetSoundEffectsVolumeEvent, this.onSetSoundEffectsVolume);
     globalThis.addEventListener(
@@ -185,6 +193,7 @@ export class SoundManager {
       this.duckRestoreTimer = null;
     }
     this.eventBus.off(PlaySoundEffectEvent, this.onPlaySoundEffect);
+    this.eventBus.off(MusicSuspendEvent, this.onMusicSuspend);
     this.eventBus.off(
       SetBackgroundMusicVolumeEvent,
       this.onSetBackgroundMusicVolume,
@@ -229,7 +238,39 @@ export class SoundManager {
 
   /** Crossfade back to Primitive music while the client waits for a game. */
   public playLoadingMusic(): void {
+    // Joining a game is the player asking for sound again.
+    this.suspended = false;
     this.enterEra(Age.Primitive, "ambient", false);
+  }
+
+  /** Fade the music out and stop every effect until resumeMusic(). */
+  public suspendMusic(): void {
+    if (this.suspended) return;
+    this.suspended = true;
+    this.stopAllSoundEffects();
+    const howl = this.currentMusicHowl;
+    this.currentMusicHowl = null;
+    this.playGeneration++;
+    if (!howl) return;
+    this.safely("fade out music", () => {
+      if (!howl.playing()) {
+        howl.stop();
+        return;
+      }
+      howl.fade(howl.volume(), 0, 600);
+      howl.once("fade", () => this.safely("stop music", () => howl.stop()));
+    });
+  }
+
+  /** Undo suspendMusic(): bring the current era's music back. */
+  public resumeMusic(): void {
+    if (!this.suspended) return;
+    this.suspended = false;
+    this.playBackgroundMusic();
+  }
+
+  public isSuspended(): boolean {
+    return this.suspended;
   }
 
   /** Begin (or resume) era music for the current/last-known era. */
@@ -298,6 +339,12 @@ export class SoundManager {
 
   /** Enter an era/mood: start its authored pool from the top. */
   private enterEra(era: number, mood: EraMusicMood, immediate: boolean): void {
+    if (this.suspended) {
+      // Remember where the soundtrack should resume, play nothing now.
+      this.currentEra = era;
+      this.currentMood = mood;
+      return;
+    }
     this.safely(`enter era ${era} music`, () => {
       const playlist = this.playlistFor(era, mood);
       if (!playlist || playlist.length === 0) {
@@ -424,6 +471,7 @@ export class SoundManager {
   }
 
   public playSoundEffect(name: SoundEffect, rate?: number): void {
+    if (this.suspended) return;
     this.safely(`play sound ${name}`, () => {
       const howl = this.getOrLoadSoundEffect(name);
       if (!howl) return;

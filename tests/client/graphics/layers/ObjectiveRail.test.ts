@@ -5,6 +5,8 @@ import {
   computeAgeGates,
   computeEraTriumphs,
   computePrimitiveGoldPipeline,
+  primitiveStageOf,
+  settlementIceWaitTicks,
 } from "../../../../src/client/hud/layers/ObjectiveRail";
 import { PlayerExecution } from "../../../../src/core/execution/PlayerExecution";
 import {
@@ -173,4 +175,143 @@ test("lockstep tick never crashes converting a fractional resource pool (BigInt 
   }).not.toThrow();
   expect(typeof player.gold()).toBe("bigint");
   expect(player.gold()).toBeGreaterThanOrEqual(before);
+});
+
+// ---------------------------------------------------------------------------
+// Goal ladder (real-screen audit 2026-10-22): the Stone Age goal follows real
+// state forward only, and never sends the player to a wood stand that is not
+// there.
+// ---------------------------------------------------------------------------
+
+async function freshTribe() {
+  const info = new PlayerInfo("tribe", PlayerType.Human, null, "tribe");
+  const game = await setup("big_plains", { infiniteTroops: true }, [info]);
+  const player = game.player("tribe");
+  for (let dx = -3; dx <= 3; dx++) {
+    for (let dy = -3; dy <= 3; dy++) {
+      player.conquer(game.ref(50 + dx, 50 + dy));
+    }
+  }
+  return { game, player };
+}
+
+test("ladder: once a Hut has stood, a dry stand never sends the goal back to 'claim the wood stand'", async () => {
+  const { game, player } = await freshTribe();
+  const memory = { stage: 0 };
+  const config = game.config();
+  player.addGold(BigInt(config.hutCost() * 2));
+  expect(
+    chooseObjective(player, config, undefined, undefined, 0, { memory }).id,
+  ).toBe("build_economy");
+  player.buildUnit(UnitType.Hut, game.ref(50, 50), {});
+  expect(
+    chooseObjective(player, config, undefined, undefined, 0, { memory }).id,
+  ).toBe("found_city");
+  // The Hut wears away, the stand is dry, the gold was spent: still the
+  // settlement step, with advice to get wood again.
+  for (const hut of player.units(UnitType.Hut)) hut.delete();
+  player.removeGold(player.gold());
+  const after = chooseObjective(player, config, undefined, undefined, 0, {
+    memory,
+    woodInSight: true,
+  });
+  expect(after.id).toBe("found_city");
+  expect(after.detailKey).toBe("control_panel.objective_hint_dry_wood");
+  expect(after.pointToWood).toBe(true);
+  expect(after.progress).toBeLessThan(1);
+});
+
+test("ladder: with no wood stand in sight the first goal says explore, not 'claim the wood stand'", async () => {
+  const { game, player } = await freshTribe();
+  const goal = chooseObjective(player, game.config(), undefined, undefined, 0, {
+    memory: { stage: 0 },
+    woodInSight: false,
+  });
+  expect(goal.id).toBe("find_resources");
+  expect(goal.titleKey).toBe("control_panel.objective_explore");
+  expect(goal.pointToWood).toBe(false);
+  const withWood = chooseObjective(
+    player,
+    game.config(),
+    undefined,
+    undefined,
+    0,
+    { memory: { stage: 0 }, woodInSight: true },
+  );
+  expect(withWood.titleKey).toBe("control_panel.objective_find_resources");
+  expect(withWood.pointToWood).toBe(true);
+});
+
+test("ladder: the step index only ever rises over a scripted Stone Age run", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  const memory = { stage: 0 };
+  const seen: number[] = [];
+  const look = () => {
+    const goal = chooseObjective(player, config, undefined, undefined, 0, {
+      memory,
+      woodInSight: true,
+    });
+    seen.push(primitiveStageOf(goal.id));
+  };
+  look(); // nothing yet
+  player.addWood(50);
+  look(); // wood in the pile
+  player.addGold(BigInt(config.hutCost()));
+  look(); // can afford a Hut
+  player.buildUnit(UnitType.Hut, game.ref(50, 50), {});
+  look(); // Hut standing
+  for (const hut of player.units(UnitType.Hut)) hut.delete();
+  player.removeGold(player.gold());
+  look(); // Hut gone, broke
+  player.addGold(5_000_000n);
+  look(); // rich
+  for (let i = 1; i < seen.length; i++) {
+    expect(seen[i]).toBeGreaterThanOrEqual(seen[i - 1]);
+  }
+  expect(seen[0]).toBe(0);
+  expect(seen[seen.length - 1]).toBe(3);
+});
+
+test("ladder: a settlement the tribe can afford says build it now, never 100%", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  const memory = { stage: 3 };
+  player.addGold(50_000_000n);
+  const late = config.climateMeltTicks() * 2;
+  const goal = chooseObjective(player, config, undefined, undefined, late, {
+    memory,
+  });
+  expect(goal.id).toBe("found_city");
+  expect(goal.detailKey).toBe(
+    "control_panel.objective_found_city_ready_detail",
+  );
+  expect(goal.progress).toBeLessThan(1);
+  // Before the ice has receded the same gold says how long the ice has left
+  // (the test config may melt instantly; then it is "build it now" too).
+  const early = chooseObjective(player, config, undefined, undefined, 0, {
+    memory,
+  });
+  expect(early.detailKey).toBe(
+    settlementIceWaitTicks(config, 0) > 0
+      ? "control_panel.objective_found_city_ice_detail"
+      : "control_panel.objective_found_city_ready_detail",
+  );
+});
+
+test("ladder: a Hut that wore away with gold in hand says rebuild it, not push out", async () => {
+  const { game, player } = await freshTribe();
+  const config = game.config();
+  const goal = chooseObjective(player, config, undefined, undefined, 0, {
+    memory: { stage: 3 },
+    woodInSight: false,
+  });
+  expect(goal.id).toBe("found_city");
+  expect(goal.detailKey).not.toBe("control_panel.objective_hint_rebuild_hut");
+  player.addGold(BigInt(config.hutCost() * 2));
+  const rich = chooseObjective(player, config, undefined, undefined, 0, {
+    memory: { stage: 3 },
+    woodInSight: false,
+  });
+  expect(rich.detailKey).toBe("control_panel.objective_hint_rebuild_hut");
 });

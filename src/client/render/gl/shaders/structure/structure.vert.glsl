@@ -16,6 +16,8 @@ uniform float uDotsThreshold;
 uniform float uDotScale;
 uniform float uScaleFactor;
 uniform float uIconGrowZoom;
+uniform float uMaxWorldTiles; // 0 = off
+uniform float uMinIconPx;
 uniform float uShapeScales[ATLAS_COLS];
 uniform float uIconFills[ATLAS_COLS];
 
@@ -55,7 +57,14 @@ void main() {
   float shapeScale = uShapeScales[shapeIdx];
   vShapeScale = shapeScale;
 
-  float halfSize = uIconSize * iconScale * 0.5 / uZoom * shapeScale;
+  // On-screen size in px. Zoomed out, a fixed 60 px disc covers more map
+  // than the camp it marks; cap it to a map footprint (uMaxWorldTiles
+  // tiles across) so structures shrink with the map, down to uMinIconPx.
+  float sizePx = uIconSize * iconScale;
+  if (uMaxWorldTiles > 0.0 && uZoom < uIconGrowZoom) {
+    sizePx = max(min(sizePx, uZoom * uMaxWorldTiles), min(sizePx, uMinIconPx));
+  }
+  float halfSize = sizePx * 0.5 / uZoom * shapeScale;
 
   vec2 center = vec2(worldX + 0.5, worldY + 0.5);
   vec2 worldPos = center + (aPos - 0.5) * halfSize * 2.0;

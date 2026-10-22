@@ -43,6 +43,7 @@ import {
   dramaCueMeta,
   isRepeatableDramaCue,
 } from "./DramaDirector";
+import { objectiveDirector } from "./ObjectiveDirector";
 import {
   AgeGate,
   ERA_PROFILES,
@@ -50,12 +51,12 @@ import {
   ObjectiveRailItem,
   PrimitiveGoldPipeline,
   canAdvanceFromGates,
-  chooseObjective,
   computeAgeGates,
   computeEraStanding,
   computeEraTriumphs,
   computePrimitiveGoldPipeline,
   countBuiltUnits,
+  primitiveStageOf,
 } from "./ObjectiveRail";
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
@@ -368,13 +369,9 @@ export class ControlPanel extends LitElement implements Controller {
       this._age === Age.Primitive
         ? computePrimitiveGoldPipeline(player, config)
         : null;
-    this._objective = chooseObjective(
-      player,
-      config,
-      this._ageGates,
-      this._primitivePipeline ?? undefined,
-      this.game.ticks(),
-    );
+    // One goal for the whole HUD, remembered across ticks so it only moves
+    // forward (see ObjectiveDirector).
+    this._objective = objectiveDirector(this.game).current();
     this._canAdvanceAge = canAdvanceFromGates(this._ageGates);
 
     // M9 — am I currently in the advance-age vulnerability window?
@@ -562,13 +559,8 @@ export class ControlPanel extends LitElement implements Controller {
       }
     }
 
-    // Troops at the limit: the rate chip reads "Full" and this says what to do
-    // about it (UX audit 2026-10-21, item 6: "+0/s" with no explanation).
-    // Not in the opening minute: a brand-new tribe always starts full, and the
-    // hint then read as "the game is already stalled" (audit 2026-10-22).
-    if (this.troopsAtCap() && this.game.ticks() > 900) {
-      return { type: "info", message: "control_panel.troops_full_hint" };
-    }
+    // Troops at the limit get their own nudge on the troop bar (see
+    // renderTroopsFullNudge), not a paragraph in this slot.
 
     // Low troops (Less than 1k) warning
     if (this._troops < 10000 && this._troops > 0) {
@@ -818,7 +810,10 @@ export class ControlPanel extends LitElement implements Controller {
   private renderDramaFeed() {
     if (
       this._dramaEvents.length === 0 ||
-      this._objective?.id === "find_resources"
+      this._objective?.id === "find_resources" ||
+      // The troops-full nudge needs the room more than a past deed does; with
+      // both, the attack slider it points at fell below the panel's fold.
+      this.wantsTroopsFullNudge()
     ) {
       return html``;
     }
@@ -1089,18 +1084,12 @@ export class ControlPanel extends LitElement implements Controller {
     const player = this.game?.myPlayer();
     if (!player || player.age() !== Age.Primitive) return html``;
 
-    const cityGate = this._ageGates.find((gate) => gate.id === "city");
-    const economyBuildings =
-      countBuiltUnits(player, UnitType.PrimitiveFarm) +
-      countBuiltUnits(player, UnitType.TradeOutpost);
-    const frontierComplete =
-      player.resources() > 0 ||
-      (this._primitivePipeline?.totalGoldPerSecond ?? 0n) > 0n ||
-      economyBuildings > 0 ||
-      (cityGate?.complete ?? false);
-    const economyComplete =
-      economyBuildings > 0 || (cityGate?.complete ?? false);
-    const settlementComplete = cityGate?.complete ?? false;
+    // The roadmap reads the same ladder as the goal, so a tab never lights
+    // up for a step the goal has already left behind.
+    const stage = this._objective ? primitiveStageOf(this._objective.id) : 0;
+    const frontierComplete = stage >= 2;
+    const economyComplete = stage >= 3;
+    const settlementComplete = stage >= 4;
     const steps = [
       {
         id: "frontier",
@@ -1168,14 +1157,17 @@ export class ControlPanel extends LitElement implements Controller {
     // whenever the era expander is open — that toggle is the one control for "show
     // me the explanatory copy", and it is also the only way this text is reachable
     // on touch, where title= tooltips never fire.
-    const detail = translateText(this._objective.detailKey);
+    const detail = translateText(
+      this._objective.detailKey,
+      this._objective.detailParams ?? {},
+    );
+    const title = translateText(this._objective.titleKey);
     return html`
       <div
         class="tc-objective-card ${isPrize
           ? "tc-objective-card--prize"
           : ""} ${isFirstMove ? "tc-objective-card--first-turn" : ""}"
         data-objective-id=${this._objective.id}
-        title=${detail}
         aria-live="polite"
       >
         <div class="flex items-center justify-between gap-2">
@@ -1198,8 +1190,11 @@ export class ControlPanel extends LitElement implements Controller {
                     : "control_panel.objective_label",
                 )}</span
               >
-              <div class="font-bold text-text-hi truncate leading-tight">
-                ${translateText(this._objective.titleKey)}
+              <div
+                class="font-bold text-text-hi truncate leading-tight"
+                title=${title}
+              >
+                ${title}
               </div>
             </div>
           </div>
@@ -1208,14 +1203,12 @@ export class ControlPanel extends LitElement implements Controller {
             <span class="tc-num text-sm text-age-accent">${progress}%</span>
           </div>
         </div>
-        ${html`<div
-          class="tc-objective-detail text-xs text-text-mid mt-1 lg:mt-0.5 ${isFirstMove ||
-          this._detailsOpen
-            ? ""
-            : "tc-objective-detail--mobile"}"
-        >
+        <!-- The next action, always on screen. It used to be desktop-hidden
+             behind a native title= tooltip, which Windows draws as one
+             unwrapped line across the panel (real-screen audit 2026-10-22). -->
+        <div class="tc-objective-detail text-xs text-text-mid mt-1 lg:mt-0.5">
           ${detail}
-        </div>`}
+        </div>
         ${this.renderPrimitiveRoadmap()}
         <div
           class="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden"
@@ -1505,6 +1498,33 @@ export class ControlPanel extends LitElement implements Controller {
     return this._maxTroops > 0 && this._troops >= this._maxTroops * 0.98;
   }
 
+  // Troops at the limit while the tribe sits still: the one thing to do is
+  // spend them. A paragraph in the notification slot said so and was not
+  // read (real-screen audit 2026-10-22: full troops, shrinking land, no
+  // attack in eleven minutes), so this sits on the troop bar itself and says
+  // the action in one line. Not in the opening minute (every new tribe starts
+  // full) and not while an attack is already out.
+  private wantsTroopsFullNudge(): boolean {
+    return (
+      this.troopsAtCap() &&
+      this._attackingTroops === 0 &&
+      (this.game?.ticks() ?? 0) > 900
+    );
+  }
+
+  private renderTroopsFullNudge() {
+    if (!this.wantsTroopsFullNudge()) return html``;
+    return html`
+      <div class="tc-troops-nudge" role="status" data-hud="troops-full-nudge">
+        <span class="tc-troops-nudge__mark" aria-hidden="true"></span>
+        <span
+          ><strong>${translateText("control_panel.troops_full_title")}</strong>
+          ${translateText("control_panel.troops_full_hint")}</span
+        >
+      </div>
+    `;
+  }
+
   private renderTroopRateText(): string {
     return this.troopsAtCap()
       ? translateText("control_panel.troops_full")
@@ -1683,7 +1703,13 @@ export class ControlPanel extends LitElement implements Controller {
           >
         </div>
         <!-- Troop bar -->
-        <div class="flex-1">${this.renderDesktopTroopBar()}</div>
+        <div
+          class="flex-1 ${this.wantsTroopsFullNudge()
+            ? "tc-troopbar--full"
+            : ""}"
+        >
+          ${this.renderDesktopTroopBar()}
+        </div>
         <!-- Gold -->
         <div
           class="tc-chip tc-chip--gold text-sm w-[4.5rem] relative"
@@ -1702,6 +1728,7 @@ export class ControlPanel extends LitElement implements Controller {
           <span class="tc-num">${renderNumber(this._gold)}</span>
         </div>
       </div>
+      ${this.renderTroopsFullNudge()}
       <!-- Row 2: attack ratio | slider -->
       <div class="flex items-center gap-2 mb-0.5" translate="no">
         <div class="tc-chip text-sm w-[8rem]">
@@ -1744,8 +1771,10 @@ export class ControlPanel extends LitElement implements Controller {
 
   private renderMobile() {
     const isFirstTurn = this.isFirstTurnObjective();
+    // Phone: the gold / troop row comes first under the goal. A past deed
+    // ("Gold flow started") above it pushed the troop bar below the 28vh fold.
     return html`
-      ${this.renderCeremony()} ${this.renderDramaFeed()}
+      ${this.renderCeremony()}
       <div class="flex gap-2 items-center">
         <!-- Gold -->
         <div
@@ -1765,7 +1794,11 @@ export class ControlPanel extends LitElement implements Controller {
           <span class="tc-num px-0.5">${renderNumber(this._gold)}</span>
         </div>
         <!-- Troop bar -->
-        <div class="w-[40%] shrink-0 flex items-center">
+        <div
+          class="w-[40%] shrink-0 flex items-center ${this.wantsTroopsFullNudge()
+            ? "tc-troopbar--full"
+            : ""}"
+        >
           ${this.renderMobileTroopBar()}
         </div>
         <!-- Sword + % label -->
@@ -1800,8 +1833,8 @@ export class ControlPanel extends LitElement implements Controller {
           />
         </div>
       </div>
-      ${this.renderNotification()}
-      ${isFirstTurn ? html`` : this.renderAgePanel()}
+      ${this.renderTroopsFullNudge()} ${this.renderNotification()}
+      ${this.renderDramaFeed()} ${isFirstTurn ? html`` : this.renderAgePanel()}
       ${isFirstTurn ? html`` : this.renderTelegraphRow()}
     `;
   }
@@ -1888,6 +1921,62 @@ export class ControlPanel extends LitElement implements Controller {
         .tc-objective-detail {
           line-height: 1.35;
         }
+        /* Troops-full nudge: an ink-and-wax strip pinned under the troop bar,
+           in the atlas leather of the panel, with one ember mark. */
+        .tc-troops-nudge {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          margin: -2px 0 6px;
+          padding: 5px 10px;
+          border: 1px solid
+            color-mix(in srgb, var(--ember) 55%, var(--hairline));
+          border-left: 3px solid var(--ember);
+          border-radius: 3px;
+          background: color-mix(in srgb, var(--ember) 14%, var(--surface-2));
+          color: var(--text-hi);
+          font-size: 0.8rem;
+          line-height: 1.3;
+        }
+        .tc-troops-nudge strong {
+          color: #f3c98b;
+          font-weight: 800;
+        }
+        .tc-troops-nudge__mark {
+          flex: 0 0 auto;
+          width: 0;
+          height: 0;
+          margin-top: 4px;
+          border-top: 5px solid transparent;
+          border-bottom: 5px solid transparent;
+          border-left: 8px solid var(--ember);
+        }
+        .tc-troopbar--full > div {
+          animation: tc-troops-full-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes tc-troops-full-pulse {
+          0%,
+          100% {
+            box-shadow: 0 0 0 0 transparent;
+          }
+          50% {
+            box-shadow: 0 0 0 2px
+              color-mix(in srgb, var(--ember) 70%, transparent);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .tc-troopbar--full > div {
+            animation: none;
+            box-shadow: 0 0 0 2px
+              color-mix(in srgb, var(--ember) 70%, transparent);
+          }
+        }
+        @media (max-width: 1023px) {
+          .tc-troops-nudge {
+            margin: 6px 0 2px;
+            font-size: 0.78rem;
+          }
+        }
         .tc-objective-roadmap {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1938,9 +2027,6 @@ export class ControlPanel extends LitElement implements Controller {
         .tc-roadmap-step--complete .tc-roadmap-index {
           color: var(--gain);
         }
-        .tc-objective-detail--mobile {
-          display: none;
-        }
         @media (max-width: 767px) {
           .tc-objective-card {
             padding: 7px 10px;
@@ -1954,9 +2040,6 @@ export class ControlPanel extends LitElement implements Controller {
             padding: 3px 2px;
             font-size: 0.7rem;
             letter-spacing: 0.03em;
-          }
-          .tc-objective-detail--mobile {
-            display: block;
           }
           .tc-objective-detail {
             display: -webkit-box;

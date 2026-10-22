@@ -25,6 +25,10 @@ export interface ObjectiveRailItem {
   id: ObjectiveID;
   titleKey: string;
   detailKey: string;
+  /** Values for the detail string's {placeholders}. */
+  detailParams?: Record<string, string>;
+  /** True when the next action is "go to the wood stand" (on-map marker). */
+  pointToWood: boolean;
   progress: number;
 }
 
@@ -362,6 +366,48 @@ function goldProgress(player: ObjectivePlayer, cost: number): number {
   return Math.max(0, Math.min(1, Number(player.gold()) / cost));
 }
 
+/**
+ * Ticks left before the ice lets a Permanent Settlement be built (0 = now).
+ * Mirrors BuildMenu's "The ice must recede first" reason.
+ */
+export function settlementIceWaitTicks(config: Config, ticks: number): number {
+  const meltTick = Math.ceil(
+    config.climateMeltTicks() * (1 - config.settlementMaxIceFraction()),
+  );
+  return Math.max(0, meltTick - ticks);
+}
+
+/**
+ * The Stone Age goal ladder, in order. The goal panel walks DOWN this list
+ * and never back up it: a dry stand, a Hut that wore away or gold spent on
+ * something else changes the advice inside a step, never the step itself
+ * (real-screen audit 2026-10-22: "Build a Hut" -> "Claim the wood stand" ->
+ * "Build a Hut" again within eight minutes, with a Hut standing).
+ */
+export const PRIMITIVE_LADDER: readonly ObjectiveID[] = [
+  "find_resources",
+  "convert_resources",
+  "build_economy",
+  "found_city",
+  "save_advance_toll",
+];
+
+/** Furthest Stone Age step this tribe has reached. Owned by the caller. */
+export interface ObjectiveMemory {
+  stage: number;
+}
+
+export interface ObjectiveContext {
+  /** Kept across ticks so the ladder only moves forward. */
+  memory?: ObjectiveMemory;
+  /**
+   * Whether a usable wood stand is in sight near the tribe. `null` (or left
+   * out) = not scanned; the panel then assumes there is one, which is what
+   * the spawn guarantee gives every new tribe.
+   */
+  woodInSight?: boolean | null;
+}
+
 export function chooseObjective(
   player: ObjectivePlayer,
   config: Config,
@@ -371,6 +417,7 @@ export function chooseObjective(
     config,
   ),
   ticks: number = 0,
+  context: ObjectiveContext = {},
 ): ObjectiveRailItem {
   const completeGates = gates.filter((gate) => gate.complete).length;
   const gateProgress =
@@ -400,52 +447,137 @@ export function chooseObjective(
 
   const cityGate = gates.find((gate) => gate.id === "city");
   const goldGate = gates.find((gate) => gate.id === "gold");
-  if (cityGate?.complete && goldGate && !goldGate.complete) {
-    return objective("save_advance_toll", gateProgress);
-  }
-
   const stockpile = player.resources();
-  // The Hut is the objective's own building ("Build your first Hut"): without
-  // it here the panel stayed on that step at 100% after the Hut was up
-  // (real-screen playtest 2026-10-22).
+  const flowing = pipeline.totalGoldPerSecond > 0n || stockpile > 0;
+  // Any standing economy building means the Hut step is behind us. (The Hut
+  // is the step's own building: without it the panel stayed on "Build a
+  // Hut" at 100% after the Hut was up, real-screen playtest 2026-10-22.)
   const economyBuildings =
     countBuiltUnits(player, UnitType.Hut) +
     countBuiltUnits(player, UnitType.PrimitiveFarm) +
     countBuiltUnits(player, UnitType.TradeOutpost);
-  // Each step's bar measures the one number that step is waiting on, so it
-  // visibly climbs instead of sitting at a fixed figure.
   const hutCost = hutCostNow(config, ticks);
-  const cityProgress = goldProgress(
-    player,
-    settlementCostNow(config, player, ticks),
-  );
-  if (cityGate && !cityGate.complete) {
+  const gold = Number(player.gold());
+
+  let reached: number;
+  if (cityGate?.complete) {
+    reached = 4;
+  } else if (economyBuildings > 0) {
+    reached = 3;
+  } else if (gold >= hutCost) {
     // Affordable Hut first: a stand that ran dry leaves the pile at zero, and
     // telling a tribe that holds a Hut's worth of gold to go walk again (seen
     // on a real screen 2026-10-21) wastes the one thing it has earned.
-    if (economyBuildings === 0 && player.gold() >= BigInt(hutCost)) {
-      // The gold is there but the Hut is not: 80%, never a full bar for a
-      // step that is not done (audit 2026-10-22: "Build a Hut 100%" for
-      // minutes with no Hut read as broken).
-      return objective("build_economy", 0.8);
-    }
-    if (stockpile === 0 && pipeline.totalGoldPerSecond === 0n) {
-      return objective("find_resources", 0);
-    }
-    if (pipeline.totalGoldPerSecond > 0n || stockpile > 0) {
-      return objective("convert_resources", goldProgress(player, hutCost));
-    }
-    return objective("found_city", cityProgress);
+    reached = 2;
+  } else if (flowing) {
+    reached = 1;
+  } else {
+    reached = 0;
   }
+  let stage = Math.max(reached, context.memory?.stage ?? 0);
+  if (context.memory !== undefined) context.memory.stage = stage;
+  // A lost settlement is the one honest way back: the toll step needs one.
+  if (stage === 4 && !cityGate?.complete) stage = 3;
 
-  return objective("found_city", cityProgress);
+  const woodInSight = context.woodInSight ?? true;
+  // When the gold has stopped, the next action is always the same: get wood
+  // again, from the marked stand or, with none in sight, by pushing out.
+  const dryHint = woodInSight
+    ? "control_panel.objective_hint_dry_wood"
+    : "control_panel.objective_hint_dry_explore";
+
+  switch (stage) {
+    case 4:
+      return objective(
+        goldGate?.complete ? "advance_age" : "save_advance_toll",
+        gateProgress,
+      );
+    case 3: {
+      const cost = settlementCostNow(config, player, ticks);
+      if (gold >= cost) {
+        const wait = settlementIceWaitTicks(config, ticks);
+        return objective("found_city", 0.9, {
+          detailKey:
+            wait > 0
+              ? "control_panel.objective_found_city_ice_detail"
+              : "control_panel.objective_found_city_ready_detail",
+          detailParams:
+            wait > 0 ? { seconds: String(Math.ceil(wait / 10)) } : undefined,
+        });
+      }
+      // Never a full bar for a step that is not done.
+      const progress = Math.min(0.9, goldProgress(player, cost));
+      // The Hut wore away (they are temporary) and its land is slipping back
+      // to the wild: rebuilding it is the one thing to do while saving.
+      if (countBuiltUnits(player, UnitType.Hut) === 0 && gold >= hutCost) {
+        return objective("found_city", progress, {
+          detailKey: "control_panel.objective_hint_rebuild_hut",
+        });
+      }
+      if (!flowing) {
+        return objective("found_city", progress, {
+          detailKey: dryHint,
+          pointToWood: woodInSight,
+        });
+      }
+      return objective("found_city", progress);
+    }
+    case 2:
+      if (gold >= hutCost) {
+        // The gold is there but the Hut is not: 80%, never a full bar for a
+        // step that is not done (audit 2026-10-22: "Build a Hut 100%" for
+        // minutes with no Hut read as broken).
+        return objective("build_economy", 0.8);
+      }
+      // Reached the Hut's price once, then spent or lost part of it.
+      return objective("build_economy", 0.8 * goldProgress(player, hutCost), {
+        detailKey: flowing
+          ? "control_panel.objective_build_economy_saving_detail"
+          : dryHint,
+        pointToWood: !flowing && woodInSight,
+      });
+    case 1:
+      return objective("convert_resources", goldProgress(player, hutCost), {
+        detailKey: flowing ? undefined : dryHint,
+        pointToWood: woodInSight,
+      });
+    default:
+      if (!woodInSight) {
+        return objective("find_resources", 0, {
+          titleKey: "control_panel.objective_explore",
+          detailKey: "control_panel.objective_explore_detail",
+        });
+      }
+      return objective("find_resources", 0, { pointToWood: true });
+  }
 }
 
-function objective(id: ObjectiveID, progress: number): ObjectiveRailItem {
-  return {
-    id,
+/** Index of a Stone Age goal on the ladder, -1 for later-age goals. */
+export function primitiveStageOf(id: ObjectiveID): number {
+  if (id === "advance_age") return PRIMITIVE_LADDER.length;
+  return PRIMITIVE_LADDER.indexOf(id);
+}
+
+function objective(
+  id: ObjectiveID,
+  progress: number,
+  extra: {
+    titleKey?: string;
+    detailKey?: string;
+    detailParams?: Record<string, string>;
+    pointToWood?: boolean;
+  } = {},
+): ObjectiveRailItem {
+  const standard = {
     titleKey: `control_panel.objective_${id}`,
     detailKey: `control_panel.objective_${id}_detail`,
+  };
+  return {
+    id,
+    titleKey: extra.titleKey ?? standard.titleKey,
+    detailKey: extra.detailKey ?? standard.detailKey,
+    detailParams: extra.detailParams,
+    pointToWood: extra.pointToWood ?? false,
     progress: Math.max(0, Math.min(1, progress)),
   };
 }

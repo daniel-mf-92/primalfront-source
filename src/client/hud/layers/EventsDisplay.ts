@@ -246,6 +246,12 @@ export class EventsDisplay extends LitElement implements Controller {
       return;
     }
 
+    // A worn-away Hut is announced by the land-watch banner (LandWatch.ts);
+    // a second red line in the corner said the same thing.
+    if (event.message === "events_display.hut_worn_away") {
+      return;
+    }
+
     // Captured trade-ship gold is surfaced as a transient +gold pip in
     // control-panel rather than as a scroll-list entry.
     if (event.message === "events_display.received_gold_from_captured_ship") {

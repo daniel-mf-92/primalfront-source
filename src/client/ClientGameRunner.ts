@@ -757,6 +757,8 @@ export class ClientGameRunner {
   }
 
   public start() {
+    // A new match brings the sound back if the last one was left silent.
+    this.soundManager.resumeMusic();
     this.soundManager.playBackgroundMusic();
     console.log("starting client game");
 
@@ -973,8 +975,8 @@ export class ClientGameRunner {
   }
 
   public stop() {
-    this.soundManager.stopAllSoundEffects();
-    this.soundManager.playMenuMusic();
+    // Leaving a match ends its sound: no soundtrack carried onto the menu.
+    this.soundManager.suspendMusic();
     this.graphicsListenerAbort?.abort();
     if (!this.isActive) return;
 

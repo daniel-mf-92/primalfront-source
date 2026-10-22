@@ -62,6 +62,37 @@ export class PlaySoundEffectEvent implements GameEvent {
   ) {}
 }
 
+/**
+ * Silence (true) or bring back (false) the match's music and effects. The
+ * result screen raises it: the match is over, its soundtrack should not keep
+ * playing under "Back to menu" (audit 2026-10-22).
+ */
+export class MusicSuspendEvent implements GameEvent {
+  constructor(public readonly suspended: boolean) {}
+}
+
+const QUIET_MENU_KEY = "pf.quietMenuAfterMatch";
+
+/** Leaving a match: the menu page that loads next starts silent. */
+export function markQuietMenu(): void {
+  try {
+    sessionStorage.setItem(QUIET_MENU_KEY, "1");
+  } catch {
+    // Storage blocked: the menu plays its music as before.
+  }
+}
+
+/** True once after a match was left (see markQuietMenu). */
+export function consumeQuietMenu(): boolean {
+  try {
+    const quiet = sessionStorage.getItem(QUIET_MENU_KEY) !== null;
+    sessionStorage.removeItem(QUIET_MENU_KEY);
+    return quiet;
+  } catch {
+    return false;
+  }
+}
+
 export class SetSoundEffectsVolumeEvent implements GameEvent {
   constructor(public readonly volume: number) {}
 }

@@ -4,7 +4,6 @@ import { translateText } from "../../../client/Utils";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
 import {
-  Age,
   BuildableUnit,
   BuildMenus,
   Gold,
@@ -27,6 +26,7 @@ import {
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
 import { GameView } from "../../view";
+import { buildRefusalReason } from "./BuildFeedback";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 // Primitive settlements have dedicated glyphs: a rustic hut for the temporary
 // Hut, and a single friendly house for the permanent Settlement (the "first
@@ -550,51 +550,8 @@ export class BuildMenu extends LitElement implements Controller {
   // reason reads as broken (real-screen audit 2026-10-21: every item grey,
   // nothing said why). Touch has no hover, so this is rendered, not a tooltip.
   public disabledReason(buildableUnit: BuildableUnit): string {
-    const player = this.game?.myPlayer();
-    if (!player) return translateText("build_menu.reason_place");
-    if (
-      buildableUnit.type === UnitType.City &&
-      player.age() === Age.Primitive
-    ) {
-      const cfg = this.game.config();
-      const meltTick = Math.ceil(
-        cfg.climateMeltTicks() * (1 - cfg.settlementMaxIceFraction()),
-      );
-      const left = meltTick - this.game.ticks();
-      if (left > 0) {
-        return translateText("build_menu.reason_ice", {
-          seconds: String(Math.ceil(left / 10)),
-        });
-      }
-    }
-    const gold = player.gold();
-    if (buildableUnit.cost > gold) {
-      return translateText("build_menu.reason_gold", {
-        gold: renderNumber(buildableUnit.cost - gold),
-      });
-    }
-    const config = this.game.config();
-    if (buildableUnit.type === UnitType.Hut) {
-      const minDist = config.hutMinSpacing();
-      const tooClose = player
-        .units(UnitType.Hut)
-        .some(
-          (hut) =>
-            this.game.euclideanDistSquared(hut.tile(), this.clickedTile) <
-            minDist * minDist,
-        );
-      if (tooClose) return translateText("build_menu.reason_hut_spacing");
-    }
-    if (
-      buildableUnit.type === UnitType.TradeOutpost &&
-      player.units(UnitType.TradeOutpost).length >=
-        config.tradeOutpostMaxCount()
-    ) {
-      return translateText("build_menu.reason_outpost_cap", {
-        n: String(config.tradeOutpostMaxCount()),
-      });
-    }
-    return translateText("build_menu.reason_place");
+    if (!this.game) return translateText("build_menu.reason_place");
+    return buildRefusalReason(this.game, buildableUnit, this.clickedTile);
   }
 
   public cost(item: BuildItemDisplay): Gold {

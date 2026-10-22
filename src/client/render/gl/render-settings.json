@@ -119,6 +119,8 @@
     "dotScale": 0.3,
     "iconScaleFactorZoomedOut": 3,
     "iconGrowZoom": 7,
+    "maxWorldTiles": 14,
+    "minIconPx": 14,
     "shapes": {
       "City": {
         "scale": 1,

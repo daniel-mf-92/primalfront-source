@@ -554,7 +554,14 @@ body.in-game .win-modal--lose {
 }
 body.in-game .win-modal-backdrop {
   backdrop-filter: none;
-  background: rgba(20, 14, 9, 0.5);
+  background: rgba(20, 14, 9, 0.72);
+}
+/* Result screen's one big button: the atlas wax, not a bright flat orange. */
+body.in-game .win-modal-primary {
+  --color-age-accent: #8a2a1c;
+  --age-accent: #8a2a1c;
+  --age-accent-hi: #a8382a;
+  --surface-0: #f3e9d2;
 }
 
 /* Mode line under the featured battle's name: ink, like the name. */

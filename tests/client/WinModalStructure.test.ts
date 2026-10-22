@@ -40,11 +40,14 @@ describe("WinModal structure", () => {
   });
 
   it("offers a share action wired to the share handler", () => {
-    expect(src).toContain('class="win-modal-share');
+    expect(src).toContain("win-modal-share");
     expect(src).toMatch(/@click=\$\{this\._handleShare\}/);
   });
 
-  it("keeps share as the only accent CTA so it reads as the action", () => {
+  // Audit 2026-10-22: Share was the biggest button and Exit the smallest. The
+  // one accent button is now the likely next step (play again / back to
+  // menu); share sits with the secondary actions.
+  it("makes play-again / back-to-menu the one accent CTA, share secondary", () => {
     const variants = Array.from(
       src.matchAll(/variant="(primary|secondary)"/g),
     ).map((m) => m[1]);
@@ -52,11 +55,16 @@ describe("WinModal structure", () => {
     expect(
       variants.filter((v) => v === "secondary").length,
     ).toBeGreaterThanOrEqual(3);
+    const primary = src.slice(src.indexOf('variant="primary"') - 60);
+    expect(primary.slice(0, 400)).toContain("win-modal-primary");
+    expect(primary.slice(0, 400)).not.toContain("win-modal-share");
+    expect(src).toContain('key: "win_modal.requeue"');
+    expect(src).toContain('key: "win_modal.exit"');
   });
 
   it("shows the result strip above the buttons", () => {
     expect(src.indexOf("renderResultStrip()")).toBeLessThan(
-      src.indexOf("win-modal-share"),
+      src.indexOf("win-modal-primary"),
     );
   });
 

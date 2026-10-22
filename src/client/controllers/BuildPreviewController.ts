@@ -21,6 +21,12 @@ import { TileRef } from "../../core/game/GameMap";
 import { UserSettings } from "../../core/game/UserSettings";
 import { Controller } from "../Controller";
 import {
+  BuildPlacedEvent,
+  BuildRefusedEvent,
+  buildRefusalReason,
+  eraHotkeyTarget,
+} from "../hud/layers/BuildFeedback";
+import {
   ConfirmGhostStructureEvent,
   MouseMoveEvent,
   MouseUpEvent,
@@ -164,7 +170,16 @@ export class BuildPreviewController implements Controller {
    * UI bits (build menu, key bindings) toggle uiState; we mirror it here.
    */
   private syncGhostState(): void {
-    const target = this.uiState.ghostStructure;
+    let target = this.uiState.ghostStructure;
+    if (target !== null) {
+      // A number key bound to an out-of-era unit picks the unit the build bar
+      // shows in that slot (see eraHotkeyTarget).
+      const resolved = eraHotkeyTarget(this.game, target);
+      if (resolved !== target) {
+        this.uiState.ghostStructure = resolved;
+        target = resolved;
+      }
+    }
     if (this.ghostUnit) {
       if (target === null) {
         this.removeGhostStructure();
@@ -239,7 +254,11 @@ export class BuildPreviewController implements Controller {
             canBuild: false,
             canUpgrade: false,
           });
-          this.pendingConfirm = null;
+          if (this.pendingConfirm !== null) {
+            const ev = this.pendingConfirm;
+            this.pendingConfirm = null;
+            this.createStructure(ev);
+          }
           this.emitGhostPreview(tileRef, targetingAlly);
           return;
         }
@@ -249,9 +268,10 @@ export class BuildPreviewController implements Controller {
         if (this.pendingConfirm !== null) {
           const ev = this.pendingConfirm;
           this.pendingConfirm = null;
-          if (this.isGhostReadyForConfirm()) {
-            this.createStructure(ev);
-          }
+          // Ready or not, settle the click: createStructure either places the
+          // build or says why it cannot go there. A click that waited for
+          // this answer used to vanish when the answer was "no".
+          this.createStructure(ev);
         }
 
         this.emitGhostPreview(tileRef, targetingAlly);
@@ -458,34 +478,57 @@ export class BuildPreviewController implements Controller {
 
   private createStructure(e: MouseUpEvent) {
     if (!this.ghostUnit) return;
-    if (
-      this.ghostUnit.buildableUnit.canBuild === false &&
-      this.ghostUnit.buildableUnit.canUpgrade === false
-    ) {
+    const tileCell = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
+    const tile = this.game.isValidCoord(tileCell.x, tileCell.y)
+      ? this.game.ref(tileCell.x, tileCell.y)
+      : null;
+    const buildable = this.ghostUnit.buildableUnit;
+    if (buildable.canBuild === false && buildable.canUpgrade === false) {
+      // A refused click used to drop the ghost without a word (audit
+      // 2026-10-22). Say why, where the click landed. Keep the ghost when the
+      // spot is the problem so the next click can try another; drop it when
+      // the gold is, because no spot will do.
+      if (tile !== null) {
+        const reason = buildRefusalReason(this.game, buildable, tile);
+        this.eventBus.emit(
+          new BuildRefusedEvent(
+            buildable.type as PlayerBuildableUnitType,
+            tile,
+            reason,
+          ),
+        );
+      }
+      if (buildable.cost > (this.game.myPlayer()?.gold() ?? 0n)) {
+        this.removeGhostStructure();
+      }
+      return;
+    }
+    if (tile === null) {
       this.removeGhostStructure();
       return;
     }
-    const tile = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
-    if (this.ghostUnit.buildableUnit.canUpgrade !== false) {
+    if (buildable.canUpgrade !== false) {
       this.eventBus.emit(
         new SendUpgradeStructureIntentEvent(
-          this.ghostUnit.buildableUnit.canUpgrade,
-          this.ghostUnit.buildableUnit.type,
+          buildable.canUpgrade,
+          buildable.type,
         ),
       );
+      this.eventBus.emit(
+        new BuildPlacedEvent(buildable.type as PlayerBuildableUnitType, tile),
+      );
       this.removeGhostStructure();
-    } else if (this.ghostUnit.buildableUnit.canBuild) {
-      const unitType = this.ghostUnit.buildableUnit.type;
+    } else if (buildable.canBuild) {
+      const unitType = buildable.type;
       const rocketDirectionUp =
         unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb
           ? this.uiState.rocketDirectionUp
           : undefined;
       this.eventBus.emit(
-        new BuildUnitIntentEvent(
-          unitType,
-          this.game.ref(tile.x, tile.y),
-          rocketDirectionUp,
-        ),
+        new BuildUnitIntentEvent(unitType, tile, rocketDirectionUp),
+      );
+      this.eventBus.emit(
+        new BuildPlacedEvent(unitType as PlayerBuildableUnitType, tile),
       );
       if (!shouldPreserveGhostAfterBuild(unitType)) {
         this.removeGhostStructure();

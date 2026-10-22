@@ -91,6 +91,8 @@ export class StructurePass {
   private uDotScale: WebGLUniformLocation;
   private uScaleFactor: WebGLUniformLocation;
   private uIconGrowZoom: WebGLUniformLocation;
+  private uMaxWorldTiles: WebGLUniformLocation;
+  private uMinIconPx: WebGLUniformLocation;
   private uShapeScales: WebGLUniformLocation;
   private uIconFills: WebGLUniformLocation;
   private uGhostAlpha: WebGLUniformLocation;
@@ -186,6 +188,11 @@ export class StructurePass {
     )!;
     this.uScaleFactor = gl.getUniformLocation(this.program, "uScaleFactor")!;
     this.uIconGrowZoom = gl.getUniformLocation(this.program, "uIconGrowZoom")!;
+    this.uMaxWorldTiles = gl.getUniformLocation(
+      this.program,
+      "uMaxWorldTiles",
+    )!;
+    this.uMinIconPx = gl.getUniformLocation(this.program, "uMinIconPx")!;
     this.uShapeScales = gl.getUniformLocation(this.program, "uShapeScales")!;
     this.uIconFills = gl.getUniformLocation(this.program, "uIconFills")!;
     this.uGhostAlpha = gl.getUniformLocation(this.program, "uGhostAlpha")!;
@@ -434,6 +441,8 @@ export class StructurePass {
     gl.uniform1f(this.uDotScale, ss.dotScale);
     gl.uniform1f(this.uScaleFactor, ss.iconScaleFactorZoomedOut);
     gl.uniform1f(this.uIconGrowZoom, ss.iconGrowZoom);
+    gl.uniform1f(this.uMaxWorldTiles, ss.maxWorldTiles ?? 0);
+    gl.uniform1f(this.uMinIconPx, ss.minIconPx ?? 0);
 
     // Build per-structure uniform arrays from settings, ordered by atlas column
     const scales = new Float32Array(ATLAS_COLS);

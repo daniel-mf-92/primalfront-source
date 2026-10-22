@@ -15,6 +15,7 @@ import { ToggleStructureEvent } from "../../InputHandler";
 import { UIState } from "../../UIState";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
+import { formatClock, HUT_WARN_TICKS, hutWearFor } from "./LandWatch";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/SettlementIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -65,6 +66,8 @@ export class UnitDisplay extends LitElement implements Controller {
   private _defensePost = 0;
   private _samLauncher = 0;
   private allDisabled = false;
+  // Ticks until my first Hut wears away (null = no Hut standing).
+  private _hutTicksLeft: number | null = null;
   private _hoveredUnit: PlayerBuildableUnitType | null = null;
 
   createRenderRoot() {
@@ -150,6 +153,7 @@ export class UnitDisplay extends LitElement implements Controller {
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
     this._warships = player.totalUnitLevels(UnitType.Warship);
+    this._hutTicksLeft = hutWearFor(this.game).soonest()?.ticks ?? null;
     this.requestUpdate();
   }
 
@@ -168,7 +172,11 @@ export class UnitDisplay extends LitElement implements Controller {
     }
 
     return html`
-      <div class="border-t border-white/10 p-0.5 w-full">
+      <!-- Bottom padding keeps the name row clear of the window edge (it was
+           cut off at 1920x1080 in Vivaldi on Windows, audit 2026-10-22). -->
+      <div
+        class="tc-build-bar border-t border-white/10 px-0.5 pt-1 pb-2 w-full"
+      >
         <div
           class="grid grid-rows-1 auto-cols-max grid-flow-col gap-0.5 w-fit mx-auto items-center"
         >
@@ -391,11 +399,24 @@ export class UnitDisplay extends LitElement implements Controller {
           </div>
         </div>
         <!-- Name under the icon: hover-only names were never found by a new
-             player (real-screen playtest 2026-10-22). -->
-        <span
-          class="text-[11px] leading-none mt-0.5 text-text-dim whitespace-nowrap select-none"
-          >${shortUnitName(structureKey)}</span
-        >
+             player (real-screen playtest 2026-10-22). A standing Hut also
+             shows how long it has left: Huts are temporary camps, and one
+             that vanished without warning took its land with it. -->
+        ${unitType === UnitType.Hut && this._hutTicksLeft !== null
+          ? html`<span
+              class="tc-build-name tc-build-name--wear ${this._hutTicksLeft <=
+              HUT_WARN_TICKS
+                ? "is-ending"
+                : ""}"
+              title=${translateText("unit_display.hut_wear_title", {
+                time: formatClock(this._hutTicksLeft),
+              })}
+              >${shortUnitName(structureKey)}
+              ${formatClock(this._hutTicksLeft)}</span
+            >`
+          : html`<span class="tc-build-name"
+              >${shortUnitName(structureKey)}</span
+            >`}
       </div>
     `;
   }
