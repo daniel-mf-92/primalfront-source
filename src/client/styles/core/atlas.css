@@ -556,3 +556,10 @@ body.in-game .win-modal-backdrop {
   backdrop-filter: none;
   background: rgba(20, 14, 9, 0.5);
 }
+
+/* Mode line under the featured battle's name: ink, like the name. */
+body:not(.in-game) .pf-featured-match__facts,
+body:not(.in-game) .pf-featured-match__facts * {
+  color: var(--text-dim);
+  text-shadow: none;
+}
