@@ -16,7 +16,7 @@
     "nameDebug": false,
     "resourceNode": true,
     "mammothHerd": true,
-    "borderTroop": true
+    "borderTroop": false
   },
   "falloutBloom": {
     "broilSpeedCold": 0.0018,
