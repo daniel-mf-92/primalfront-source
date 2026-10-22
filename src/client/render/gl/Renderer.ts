@@ -10,6 +10,7 @@
  */
 
 import type { Config } from "../../../core/configuration/Config";
+import type { BorderTroop } from "../../BorderTroops";
 import type {
   AttackRingInput,
   BonusEvent,
@@ -30,6 +31,7 @@ import { Camera } from "./Camera";
 import { BarPass } from "./passes/BarPass";
 import { BorderComputePass } from "./passes/BorderComputePass";
 import { BorderStampPass } from "./passes/BorderStampPass";
+import { BorderTroopPass } from "./passes/BorderTroopPass";
 import { CoordinateGridPass } from "./passes/CoordinateGridPass";
 import { CrosshairPass } from "./passes/CrosshairPass";
 import { DefenseCoveragePass } from "./passes/DefenseCoveragePass";
@@ -123,6 +125,7 @@ export class GPURenderer {
   private resourceNodePass: ResourceNodePass;
   private primitiveFogPass: PrimitiveFogPass;
   private mammothHerdPass: MammothHerdPass;
+  private borderTroopPass: BorderTroopPass;
   private unitPass: UnitPass;
   private namePass: NamePass;
   private fxPass: FxPass;
@@ -477,6 +480,7 @@ export class GPURenderer {
     this.territoryPass.setFogTexture(this.primitiveFogPass.texture);
     this.borderStampPass.setFogTexture(this.primitiveFogPass.texture);
     this.mammothHerdPass = new MammothHerdPass(gl, mapW, this.settings);
+    this.borderTroopPass = new BorderTroopPass(gl, this.settings);
     this.unitPass = new UnitPass(gl, header, this.paletteTex, this.settings);
     this.namePass = new NamePass(
       gl,
@@ -828,6 +832,10 @@ export class GPURenderer {
     isVisible?: (tile: number) => boolean,
   ): void {
     this.mammothHerdPass.update(herds, isVisible);
+  }
+
+  updateBorderTroops(troops: ReadonlyArray<BorderTroop>): void {
+    this.borderTroopPass.update(troops);
   }
 
   updatePrimitiveFog(data: Uint8Array | null, dirty: boolean): void {
@@ -1196,6 +1204,7 @@ export class GPURenderer {
     // Mammoth herds sit with the resource layer: over terrain/territory, under
     // units/structures/labels. Fog/zoom-gated inside the pass.
     if (pe.mammothHerd) this.mammothHerdPass.draw(cam, zoom);
+    if (pe.borderTroop) this.borderTroopPass.draw(cam, zoom);
     if (pe.unit) this.unitPass.drawGround(cam);
     this.samRadiusPass.draw(cam);
     this.rangeCirclePass.draw(cam);
@@ -1271,6 +1280,7 @@ export class GPURenderer {
     this.primitiveFogPass.dispose();
     this.resourceNodePass.dispose();
     this.mammothHerdPass.dispose();
+    this.borderTroopPass.dispose();
     this.unitPass.dispose();
     this.namePass.dispose();
     this.fxPass.dispose();

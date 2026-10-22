@@ -1013,7 +1013,11 @@ export class Config {
   ): number {
     // Era ramp: a Primitive tribe creeps; later empires sweep. Multiplier is
     // very low in Primitive and climbs by Age (deliberate slow start).
-    const ageMult = this.attackTilesPerTickAgeMult(attacker.age());
+    // Marta 2026-10-22: in every age where territory moves (land can still go
+    // wild) spread is half as fast, so a band's reach is a real decision.
+    const ageMult =
+      this.attackTilesPerTickAgeMult(attacker.age()) *
+      (this.rewildEnabled(attacker.age()) ? 0.5 : 1);
     if (defender.isPlayer()) {
       return (
         within(((5 * attackTroops) / defender.troops()) * 2, 0.01, 0.5) *

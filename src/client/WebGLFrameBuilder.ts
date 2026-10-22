@@ -3,11 +3,13 @@ import { base64url } from "jose";
 import { assetUrl } from "../core/AssetUrls";
 import { decodePatternData } from "../core/PatternDecoder";
 import { PlayerType } from "../core/game/Game";
+import { BorderTroopPlayer, computeBorderTroops } from "./BorderTroops";
 import { uploadFrameData } from "./render/frame/Upload";
 // Type-only: a value import would pull GPURenderer and its `.glsl?raw` shader
 // imports into any non-Vite consumer (e.g. the Node perf harness).
 import type { MapRenderer, PlayerStatic, SpawnCenter } from "./render/gl";
 import type { GameView } from "./view";
+import { PRIMITIVE_FOG_VISIBLE } from "./view/GameView";
 
 const PALETTE_SIZE = 4096;
 
@@ -70,6 +72,44 @@ export class WebGLFrameBuilder {
     this.view.updatePalette(this.palette);
   }
 
+  // Border troops: recomputed about once a second (a full-map cell scan),
+  // pushed as figures to the troop pass. Presentation only.
+  private troopTick = 0;
+  private syncBorderTroops(gameView: GameView): void {
+    if (this.troopTick++ % 10 !== 0) return;
+    const players = new Map<number, BorderTroopPlayer>();
+    const all = gameView.players();
+    for (const p of all) {
+      if (!p.isAlive() || p.numTilesOwned() <= 0) continue;
+      const rgb = p.territoryColor().toRgb();
+      players.set(p.smallID(), {
+        smallID: p.smallID(),
+        age: p.age(),
+        tiles: p.numTilesOwned(),
+        color: [rgb.r / 255, rgb.g / 255, rgb.b / 255],
+        attacking: new Set<number>(),
+      });
+    }
+    for (const p of all) {
+      const entry = players.get(p.smallID());
+      if (entry === undefined) continue;
+      for (const a of p.outgoingAttacks()) {
+        if (a.targetID !== 0) (entry.attacking as Set<number>).add(a.targetID);
+      }
+    }
+    const troops = computeBorderTroops(
+      {
+        width: () => gameView.width(),
+        height: () => gameView.height(),
+        ownerID: (t) => gameView.ownerID(t),
+        isLand: (t) => gameView.isLand(t),
+      },
+      players,
+      (t) => gameView.primitiveFogState(t) === PRIMITIVE_FOG_VISIBLE,
+    );
+    this.view.updateBorderTroops(troops);
+  }
+
   update(gameView: GameView): void {
     this.syncPlayers(gameView);
     this.syncPlayerSpawns(gameView);
@@ -85,6 +125,7 @@ export class WebGLFrameBuilder {
     this.view.updateMammothHerds(gameView.mammothHerds(), (t) =>
       gameView.isMammothHerdVisible(t),
     );
+    this.syncBorderTroops(gameView);
     this.view.updatePrimitiveFog(
       gameView.primitiveFogBuffer(),
       gameView.drainPrimitiveFogDirty(),

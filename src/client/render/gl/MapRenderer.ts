@@ -12,6 +12,7 @@
  */
 
 import type { Config } from "../../../core/configuration/Config";
+import type { BorderTroop } from "../../BorderTroops";
 import type {
   AttackRingInput,
   BonusEvent,
@@ -175,6 +176,10 @@ export class MapRenderer {
     isVisible?: (tile: number) => boolean,
   ): void {
     this.renderer?.updateMammothHerds(herds, isVisible);
+  }
+  /** Push the border troop figures (see BorderTroops.ts). */
+  updateBorderTroops(troops: ReadonlyArray<BorderTroop>): void {
+    this.renderer?.updateBorderTroops(troops);
   }
   updatePrimitiveFog(data: Uint8Array | null, dirty: boolean): void {
     this.renderer?.updatePrimitiveFog(data, dirty);

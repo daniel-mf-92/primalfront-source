@@ -58,6 +58,7 @@ export interface RenderSettings {
     nameDebug: boolean;
     resourceNode: boolean;
     mammothHerd: boolean;
+    borderTroop: boolean;
   };
   falloutBloom: {
     broilSpeedCold: number;
@@ -217,6 +218,14 @@ export interface RenderSettings {
     rockR: number;
     rockG: number;
     rockB: number;
+  };
+  /** Era-styled figures on territory borders, and clashes on attack fronts. */
+  borderTroop: {
+    size: number;
+    minPx: number;
+    alpha: number;
+    minZoom: number;
+    fadeRange: number;
   };
   /** Module §11 — mammoth herd sprites (fog/zoom-gated like resourceNode). */
   mammothHerd: {

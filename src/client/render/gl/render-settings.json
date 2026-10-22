@@ -15,7 +15,8 @@
     "bar": true,
     "nameDebug": false,
     "resourceNode": true,
-    "mammothHerd": true
+    "mammothHerd": true,
+    "borderTroop": true
   },
   "falloutBloom": {
     "broilSpeedCold": 0.0018,
@@ -423,5 +424,12 @@
       "radius": 8,
       "intensity": 2
     }
+  },
+  "borderTroop": {
+    "size": 2.6,
+    "minPx": 16,
+    "alpha": 1,
+    "minZoom": 1.2,
+    "fadeRange": 0.8
   }
 }
