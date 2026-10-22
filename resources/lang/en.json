@@ -374,6 +374,7 @@
     "deed_first_resource_flow_detail": "Harvested resources are becoming advance gold.",
     "deed_threat_spotted": "Threat leader spotted",
     "deed_threat_spotted_detail": "A rival is strong enough to rally the table.",
+    "default_view": "Default view",
     "era_details_hide": "Hide age details",
     "era_details_show": "Show age details",
     "era_focus": "This age",

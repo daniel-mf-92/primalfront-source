@@ -45,13 +45,14 @@ const DEFAULT_OPTIONS = {
   // 133 (was 400): every bot's AI is simulated client-side each tick in lockstep
   // with the server, so a high count permanently backlogs weak/CPU-busy devices
   // ("Catching up…" that never clears). Player can raise it via the slider.
-  // 33 on a compact map (toggling compact off restores the 133 of a full
-  // map). A first practice match on the full World map put the player one
-  // speck among 200 tribes with nobody in reach (real-screen audit 2026-10-21).
-  bots: 33,
+  // 133 on the full-size map, the same tribe density as 33 on compact
+  // (Normal has ~4x the area; toggling compact on drops it back to 33 via
+  // getBotsForCompactMap). Full size is the default again since 2026-10-22
+  // (Marta: the compact default map felt cramped, "3x larger would be better").
+  bots: 133,
   infiniteGold: false,
   infiniteTroops: false,
-  compactMap: true,
+  compactMap: false,
   maxTimer: false,
   maxTimerValue: undefined as number | undefined,
   instantBuild: false,

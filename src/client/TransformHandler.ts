@@ -1,6 +1,12 @@
 import { EventBus, GameEvent } from "../core/EventBus";
 import { Age, Cell } from "../core/game/Game";
 import { CenterCameraEvent, DragEvent, ZoomEvent } from "./InputHandler";
+import {
+  anchoredZoomOffset,
+  clampZoomScale,
+  easeZoomScale,
+  zoomFactorForDelta,
+} from "./utilities/CameraZoom";
 import { GameView, PlayerView, UnitView } from "./view";
 
 export class GoToPlayerEvent implements GameEvent {
@@ -125,6 +131,15 @@ export class TransformHandler {
   // centerCamera() recenter. Kills the "camera fights my zoom" jitter.
   private autoZoomYielded: boolean = false;
 
+  // ── Eased manual zoom ──
+  // Target scale the wheel/keys/pinch asked for; the scale glides to it over a
+  // few frames, anchored at the last pointer position (canvas coordinates).
+  private zoomTargetScale: number | null = null;
+  private zoomAnchorX = 0;
+  private zoomAnchorY = 0;
+  private zoomFrameHandle: number | null = null;
+  private zoomLastFrameTime: number | null = null;
+
   constructor(
     private game: GameView,
     private eventBus: EventBus,
@@ -136,7 +151,8 @@ export class TransformHandler {
     this.eventBus.on(GoToPlayerEvent, (e) => this.onGoToPlayer(e));
     this.eventBus.on(GoToPositionEvent, (e) => this.onGoToPosition(e));
     this.eventBus.on(GoToUnitEvent, (e) => this.onGoToUnit(e));
-    this.eventBus.on(CenterCameraEvent, () => this.centerCamera());
+    // Key C and the HUD "default view" button share one behaviour.
+    this.eventBus.on(CenterCameraEvent, () => this.resetView());
     // Persistent follow driver: cheap no-op when follow is inactive (guarded on
     // isFollowing() + a live myPlayer), so it's safe to leave running for the
     // whole game session. Stopped by destroy().
@@ -149,6 +165,7 @@ export class TransformHandler {
   /** Stop all timers. Call when tearing down the renderer/game session. */
   destroy() {
     this.clearTarget();
+    this.cancelZoomEase();
     if (this.followIntervalID !== null) {
       clearInterval(this.followIntervalID);
       this.followIntervalID = null;
@@ -304,6 +321,7 @@ export class TransformHandler {
 
   onGoToPlayer(event: GoToPlayerEvent) {
     this.clearTarget();
+    this.cancelZoomEase();
     const target = this.playerFocusCell(event.player);
     if (target === null) {
       return;
@@ -315,12 +333,14 @@ export class TransformHandler {
 
   onGoToPosition(event: GoToPositionEvent) {
     this.clearTarget();
+    this.cancelZoomEase();
     this.target = new Cell(event.x, event.y);
     this.intervalID = setInterval(() => this.goTo(), GOTO_INTERVAL_MS);
   }
 
   onGoToUnit(event: GoToUnitEvent) {
     this.clearTarget();
+    this.cancelZoomEase();
     this.target = new Cell(
       this.game.x(event.unit.lastTile()),
       this.game.y(event.unit.lastTile()),
@@ -330,6 +350,7 @@ export class TransformHandler {
 
   centerCamera() {
     this.clearTarget();
+    this.cancelZoomEase();
     // Explicit recenter re-arms adaptive zoom (undoes a prior manual-zoom yield).
     this.autoZoomYielded = false;
     const player = this.game.myPlayer();
@@ -339,6 +360,52 @@ export class TransformHandler {
     this.target = target;
     this.targetScale = this.playerFocusScale(player, null);
     this.intervalID = setInterval(() => this.goTo(), GOTO_INTERVAL_MS);
+  }
+
+  /**
+   * The "default view" button (top-right HUD): glide back to the player's own
+   * land at its default zoom and hand the camera back to follow. With no land
+   * yet (spawn phase, spectating) it fits the whole map instead.
+   */
+  resetView() {
+    this.clearTarget();
+    this.cancelZoomEase();
+    // Hand the camera back: no manual-input suspension, adaptive zoom re-armed
+    // so the follow-cam frames the tribe again instead of keeping a hand zoom.
+    this.followSuspendedUntil = 0;
+    this.autoZoomYielded = false;
+    this.autoZoomSettled = false;
+    this.resetFollowSampling();
+    const player = this.game.myPlayer();
+    const target =
+      player !== null && player.isAlive() ? this.playerFocusCell(player) : null;
+    if (player === null || target === null) {
+      this.centerAll(0.9);
+      return;
+    }
+    this.target = target;
+    this.targetScale =
+      player.age() === Age.Primitive
+        ? this.playerFocusScale(player, null)
+        : this.defaultTerritoryScale(player);
+    this.intervalID = setInterval(() => this.goTo(), GOTO_INTERVAL_MS);
+  }
+
+  /**
+   * A zoom that frames the player's land with room around it, estimated from
+   * the name label size (proportional to the territory's inscribed rectangle;
+   * a cheap field read instead of a tiles() copy).
+   */
+  private defaultTerritoryScale(player: PlayerView): number {
+    const name = player.nameLocation();
+    const size = name !== undefined && name.size > 0 ? name.size : 8;
+    const extentTiles = Math.max(40, size * 6);
+    const { width, height } = this.boundingRect();
+    const view = Math.max(1, Math.min(width, height));
+    return Math.max(
+      1.2,
+      Math.min(PRIMITIVE_TRIBE_CAMERA_ZOOM, (view * 0.6) / extentTiles),
+    );
   }
 
   // ── Follow-cam public API (consumed by downstream cinematic-camera agents) ──
@@ -525,6 +592,7 @@ export class TransformHandler {
 
     // Hand off to the existing goTo() easing loop (keeps drag/zoom instant and
     // manual-input interruption intact — clearTarget() still cancels it).
+    if (goal.scale !== null) this.cancelZoomEase();
     this.target = goal.cell;
     this.targetScale = goal.scale;
     this.intervalID ??= setInterval(() => this.goTo(), GOTO_INTERVAL_MS);
@@ -701,28 +769,88 @@ export class TransformHandler {
     // The user picked a zoom — auto-zoom yields scale control so it never yanks
     // it back (follow still pans). Re-armed by setFollow(true)/centerCamera().
     this.autoZoomYielded = true;
-    const oldScale = this.scale;
-    const zoomFactor = 1 + event.delta / 600;
-    this.scale /= zoomFactor;
-
-    // Clamp the scale to prevent extreme zooming
-    this.scale = Math.max(0.2, Math.min(20, this.scale));
-
+    // Accumulate onto the pending target so a burst of wheel notches adds up,
+    // then glide there over a few frames instead of jumping per notch.
+    const base = this.zoomTargetScale ?? this.scale;
+    this.zoomTargetScale = clampZoomScale(
+      base * zoomFactorForDelta(event.delta),
+    );
     const canvasCoords = this.screenToCanvasCoordinates(event.x, event.y);
+    this.zoomAnchorX = canvasCoords.x;
+    this.zoomAnchorY = canvasCoords.y;
+    this.scheduleZoomFrame();
+  }
 
-    // Calculate the world point we want to zoom towards
-    const zoomPointX =
-      (canvasCoords.x - this.game.width() / 2) / oldScale + this.offsetX;
-    const zoomPointY =
-      (canvasCoords.y - this.game.height() / 2) / oldScale + this.offsetY;
+  /** True while an eased zoom is still gliding toward its target. */
+  isZooming(): boolean {
+    return this.zoomTargetScale !== null;
+  }
 
-    // Adjust the offset
-    this.offsetX =
-      zoomPointX - (canvasCoords.x - this.game.width() / 2) / this.scale;
-    this.offsetY =
-      zoomPointY - (canvasCoords.y - this.game.height() / 2) / this.scale;
+  /**
+   * Advance the eased zoom by `dtMs`, keeping the world point under the anchor
+   * fixed. Called from the animation frame loop; public for tests.
+   */
+  stepZoom(dtMs: number) {
+    const target = this.zoomTargetScale;
+    if (target === null) return;
+    const oldScale = this.scale;
+    let next = easeZoomScale(oldScale, target, dtMs);
+    if (Math.abs(Math.log(target / next)) < 0.002) next = target;
+    const halfW = this.game.width() / 2;
+    const halfH = this.game.height() / 2;
+    this.offsetX = anchoredZoomOffset(
+      this.offsetX,
+      this.zoomAnchorX,
+      halfW,
+      oldScale,
+      next,
+    );
+    this.offsetY = anchoredZoomOffset(
+      this.offsetY,
+      this.zoomAnchorY,
+      halfH,
+      oldScale,
+      next,
+    );
+    this.scale = next;
     this.clampOffsets();
     this.changed = true;
+    if (next === target) this.zoomTargetScale = null;
+  }
+
+  private scheduleZoomFrame() {
+    if (this.zoomFrameHandle !== null) return;
+    const raf =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb: FrameRequestCallback) =>
+            setTimeout(() => cb(performance.now()), 16) as unknown as number;
+    this.zoomFrameHandle = raf((now) => {
+      this.zoomFrameHandle = null;
+      const last = this.zoomLastFrameTime;
+      // First frame of a glide: assume one 60 Hz frame so it starts at once.
+      const dt = last === null ? 16 : Math.min(100, now - last);
+      this.zoomLastFrameTime = now;
+      this.stepZoom(dt);
+      if (this.zoomTargetScale !== null) {
+        this.scheduleZoomFrame();
+      } else {
+        this.zoomLastFrameTime = null;
+      }
+    });
+  }
+
+  private cancelZoomEase() {
+    this.zoomTargetScale = null;
+    this.zoomLastFrameTime = null;
+    if (this.zoomFrameHandle !== null) {
+      if (typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(this.zoomFrameHandle);
+      } else {
+        clearTimeout(this.zoomFrameHandle as unknown as NodeJS.Timeout);
+      }
+      this.zoomFrameHandle = null;
+    }
   }
 
   private clampOffsets() {
@@ -782,6 +910,7 @@ export class TransformHandler {
   override(x: number = 0, y: number = 0, s: number = 1) {
     //hardset view position
     this.clearTarget();
+    this.cancelZoomEase();
     this.offsetX = x;
     this.offsetY = y;
     this.scale = s;

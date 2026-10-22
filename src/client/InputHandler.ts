@@ -3,6 +3,10 @@ import { PlayerBuildableUnitType, UnitType } from "../core/game/Game";
 import { UserSettings } from "../core/game/UserSettings";
 import { Platform } from "./Platform";
 import { UIState } from "./UIState";
+import {
+  normalizeWheelDelta,
+  WHEEL_GESTURE_GAP_MS,
+} from "./utilities/CameraZoom";
 import { ReplaySpeedMultiplier } from "./utilities/ReplaySpeedMultiplier";
 import { GameView, UnitView } from "./view";
 
@@ -203,6 +207,10 @@ export class InputHandler {
   private pointers: Map<number, PointerEvent> = new Map();
 
   private lastPinchDistance: number = 0;
+
+  // Wheel gesture state: a gesture is a run of wheel events without a gap.
+  private lastWheelTime = -Infinity;
+  private wheelPanGesture = false;
 
   private pointerDown: boolean = false;
 
@@ -730,32 +738,53 @@ export class InputHandler {
   }
 
   private onScroll(event: WheelEvent) {
-    if (!event.shiftKey) {
-      const realCtrl =
-        this.activeKeys.has("ControlLeft") ||
-        this.activeKeys.has("ControlRight");
-      if (event.ctrlKey) {
-        if (!realCtrl) {
-          // Pinch-to-zoom gesture (trackpad): small deltas, amplify.
-          // Ignore large deltas — those are browser zoom shortcuts (cmd+/cmd-)
-          // which fire synthetic wheel events we don't want to handle.
-          if (Math.abs(event.deltaY) <= 10) {
-            this.eventBus.emit(
-              new ZoomEvent(event.x, event.y, event.deltaY * 10),
-            );
-          }
+    if (event.shiftKey) return;
+    const pagePx = window.innerHeight || 800;
+    const dx = normalizeWheelDelta(event.deltaX, event.deltaMode, pagePx);
+    const dy = normalizeWheelDelta(event.deltaY, event.deltaMode, pagePx);
+    const now = event.timeStamp || performance.now();
+    const newGesture = now - this.lastWheelTime > WHEEL_GESTURE_GAP_MS;
+    this.lastWheelTime = now;
+
+    const realCtrl =
+      this.activeKeys.has("ControlLeft") || this.activeKeys.has("ControlRight");
+    if (event.ctrlKey) {
+      if (!realCtrl) {
+        // Trackpad pinch (the browser sets ctrlKey): small deltas, amplify.
+        // Very large deltas are browser zoom shortcuts firing synthetic wheel
+        // events; ignore those. The zoom clamps each event, so a fast pinch
+        // (deltas up to ~50) now zooms instead of being dropped.
+        if (Math.abs(dy) <= 50) {
+          this.wheelPanGesture = false;
+          this.eventBus.emit(new ZoomEvent(event.x, event.y, dy * 10));
         }
-        // Always return when ctrlKey is set — whether it's a real ctrl scroll,
-        // a pinch gesture, or a browser zoom event, none should reach the
-        // regular scroll path below.
-        return;
       }
-      // Regular scroll wheel: ignore tiny residual momentum events that macOS
-      // keeps sending after a gesture ends (especially after browser zoom changes
-      // devicePixelRatio, which can cause these to accumulate into runaway zoom).
-      if (Math.abs(event.deltaY) < 2) return;
-      this.eventBus.emit(new ZoomEvent(event.x, event.y, event.deltaY));
+      // Always return when ctrlKey is set — whether it's a real ctrl scroll,
+      // a pinch gesture, or a browser zoom event, none should reach the
+      // regular scroll path below.
+      return;
     }
+
+    // Two-finger trackpad scroll with a sideways component pans the map. A
+    // mouse wheel never sends deltaX, so wheel-to-zoom is unchanged for mice.
+    // The choice is latched per gesture so a diagonal swipe doesn't flip
+    // between panning and zooming event by event.
+    if (newGesture) this.wheelPanGesture = false;
+    if (event.deltaMode === 0 && Math.abs(dx) >= 1) {
+      this.wheelPanGesture = true;
+    }
+    if (this.wheelPanGesture) {
+      if (dx !== 0 || dy !== 0) {
+        this.eventBus.emit(new DragEvent(-dx, -dy));
+      }
+      return;
+    }
+
+    // Regular scroll wheel: ignore tiny residual momentum events that macOS
+    // keeps sending after a gesture ends (especially after browser zoom changes
+    // devicePixelRatio, which can cause these to accumulate into runaway zoom).
+    if (Math.abs(dy) < 2) return;
+    this.eventBus.emit(new ZoomEvent(event.x, event.y, dy));
   }
 
   private onShiftScroll(event: WheelEvent) {

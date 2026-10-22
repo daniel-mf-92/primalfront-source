@@ -5,7 +5,7 @@ import { EventBus } from "../../../core/EventBus";
 import { GameType } from "../../../core/game/Game";
 import { Controller } from "../../Controller";
 import { crazyGamesSDK } from "../../CrazyGamesSDK";
-import { TogglePauseIntentEvent } from "../../InputHandler";
+import { CenterCameraEvent, TogglePauseIntentEvent } from "../../InputHandler";
 import { PauseGameIntentEvent, SendWinnerEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
@@ -19,6 +19,7 @@ const FastForwardIconSolid = assetUrl("images/FastForwardIconSolidWhite.svg");
 const pauseIcon = assetUrl("images/PauseIconWhite.svg");
 const playIcon = assetUrl("images/PlayIconWhite.svg");
 const settingsIcon = assetUrl("images/SettingIconWhite.svg");
+const defaultViewIcon = assetUrl("images/FocusIconWhite.svg");
 const fullscreenIcon = assetUrl("images/FullscreenIconWhite.svg");
 const exitFullscreenIcon = assetUrl("images/ExitFullscreenIconWhite.svg");
 
@@ -191,6 +192,11 @@ export class GameRightSidebar extends LitElement implements Controller {
     this.eventBus.emit(new LeaveGameIntentEvent());
   }
 
+  private onDefaultViewButtonClick() {
+    // Same as key C: back to your own land at the default zoom, follow on.
+    this.eventBus.emit(new CenterCameraEvent());
+  }
+
   private onSettingsButtonClick() {
     this.eventBus.emit(
       new ShowSettingsModalEvent(true, this._isSinglePlayer, this.isPaused),
@@ -235,6 +241,22 @@ export class GameRightSidebar extends LitElement implements Controller {
 
         <!-- Buttons -->
         ${this.maybeRenderReplayButtons()}
+
+        <button
+          type="button"
+          class="tc-hud-icon-btn tc-default-view-btn"
+          @click=${this.onDefaultViewButtonClick}
+          aria-label=${translateText("control_panel.default_view")}
+          title=${translateText("control_panel.default_view")}
+        >
+          <img
+            src=${defaultViewIcon}
+            alt=""
+            aria-hidden="true"
+            width="20"
+            height="20"
+          />
+        </button>
 
         <button
           type="button"
