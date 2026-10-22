@@ -1,9 +1,11 @@
 /**
  * ResourceNodePass — GPU-rendered natural resource nodes.
  *
- * The sim stores tile resource kind/quantity. Each node draws as a small
- * parchment disc with an ink emblem from the shared badge atlas (pine tree,
- * stone cairn, salmon; game-icons.net, CC BY 3.0). Owned resources smoulder
+ * The sim stores tile resource kind/quantity. Each node draws as a map
+ * pictogram from the shared badge atlas (pine tree, stone heap, salmon;
+ * game-icons.net, CC BY 3.0) in its own colour with an ink outline and a
+ * parchment halo; no disc, so it never reads as a troop badge. Zoomed far out
+ * the pictograms shrink to small marks (triangle, diamond, dot). Owned resources smoulder
  * faintly, resources in current primitive sight outside territory breathe a
  * bloom, and remembered/out-of-sight resources do not render.
  */
@@ -58,6 +60,9 @@ export class ResourceNodePass {
   private uZoom: WebGLUniformLocation;
   private uNodeSize: WebGLUniformLocation;
   private uMinPx: WebGLUniformLocation;
+  private uMaxPx: WebGLUniformLocation;
+  private uDotPx: WebGLUniformLocation;
+  private uDetail: WebGLUniformLocation;
   private uGlobalAlpha: WebGLUniformLocation;
   private uTime: WebGLUniformLocation;
   private atlas: WebGLTexture;
@@ -85,6 +90,9 @@ export class ResourceNodePass {
     this.uZoom = gl.getUniformLocation(this.program, "uZoom")!;
     this.uNodeSize = gl.getUniformLocation(this.program, "uNodeSize")!;
     this.uMinPx = gl.getUniformLocation(this.program, "uMinPx")!;
+    this.uMaxPx = gl.getUniformLocation(this.program, "uMaxPx")!;
+    this.uDotPx = gl.getUniformLocation(this.program, "uDotPx")!;
+    this.uDetail = gl.getUniformLocation(this.program, "uDetail")!;
     this.uGlobalAlpha = gl.getUniformLocation(this.program, "uGlobalAlpha")!;
     this.uTime = gl.getUniformLocation(this.program, "uTime")!;
     gl.useProgram(this.program);
@@ -361,6 +369,9 @@ export class ResourceNodePass {
     gl.uniform1f(this.uZoom, zoom);
     gl.uniform1f(this.uNodeSize, rs.nodeSize);
     gl.uniform1f(this.uMinPx, rs.minPx);
+    gl.uniform1f(this.uMaxPx, rs.maxPx);
+    gl.uniform1f(this.uDotPx, rs.dotPx);
+    gl.uniform1f(this.uDetail, resourceDetail(zoom, rs));
     gl.uniform1f(this.uGlobalAlpha, rs.alpha * zoomFade);
     gl.uniform1f(this.uTime, (performance.now() / 1000) % 3600);
 
@@ -375,4 +386,19 @@ export class ResourceNodePass {
     this.instanceBuf.dispose();
     gl.deleteVertexArray(this.vao);
   }
+}
+
+/**
+ * 0 = far zoom (small coloured dots) .. 1 = pictograms, eased across
+ * [detailZoom - detailFade, detailZoom] px per tile.
+ */
+export function resourceDetail(
+  zoom: number,
+  rs: { detailZoom: number; detailFade: number },
+): number {
+  const t = Math.max(
+    0,
+    Math.min(1, (zoom - (rs.detailZoom - rs.detailFade)) / rs.detailFade),
+  );
+  return t * t * (3 - 2 * t);
 }

@@ -6,6 +6,8 @@ import {
   MAX_CLASHES_PER_FRONT,
   MAX_TROOPS_PER_PLAYER,
   MIN_TROOP_SPACING,
+  PATROL_RADIUS,
+  patrolWeight,
   TROOP_CELL,
   troopsForPlayer,
 } from "../../src/client/BorderTroops";
@@ -198,5 +200,60 @@ describe("border troops", () => {
           expect((a.x - b.x) ** 2 + (a.y - b.y) ** 2).toBeGreaterThanOrEqual(
             MIN_TROOP_SPACING ** 2,
           );
+  });
+
+  it("each guard patrols to another border tile of its own, a few tiles away", () => {
+    const W = 60;
+    const inside = (x: number, y: number) =>
+      x >= 10 && x < 40 && y >= 10 && y < 40;
+    const map = grid(W, 60, (x, y) => (inside(x, y) ? 1 : 0));
+    const troops = computeBorderTroops(map, new Map([[1, player(1, 3, 900)]]));
+    expect(troops.length).toBeGreaterThan(0);
+    let moved = 0;
+    for (const t of troops) {
+      expect(inside(t.px, t.py)).toBe(true);
+      const onEdge = t.px === 10 || t.px === 39 || t.py === 10 || t.py === 39;
+      expect(onEdge).toBe(true);
+      const d = Math.hypot(t.px - t.x, t.py - t.y);
+      expect(d).toBeLessThanOrEqual(PATROL_RADIUS + 1);
+      if (d > 0) moved++;
+    }
+    expect(moved).toBe(troops.length);
+  });
+
+  it("clashes hold their ground (no patrol)", () => {
+    const map = grid(60, 30, (x) => (x < 30 ? 1 : 2));
+    const troops = computeBorderTroops(
+      map,
+      new Map([
+        [1, player(1, 2, 900, [2])],
+        [2, player(2, 2, 900)],
+      ]),
+    );
+    const clashes = troops.filter((t) => t.kind === 1);
+    expect(clashes.length).toBeGreaterThan(0);
+    for (const t of clashes) expect([t.px, t.py]).toEqual([t.x, t.y]);
+  });
+
+  it("the patrol walks out, pauses, walks back and pauses", () => {
+    let lo = 1;
+    let hi = 0;
+    let atRest = 0;
+    const N = 400;
+    for (let i = 0; i < N; i++) {
+      const w = patrolWeight((i / N) * 13, 0);
+      lo = Math.min(lo, w);
+      hi = Math.max(hi, w);
+      if (w === 0 || w === 1) atRest++;
+    }
+    expect(lo).toBe(0);
+    expect(hi).toBe(1);
+    expect(atRest).toBeGreaterThan(N * 0.2);
+    // Continuous: no jump between frames 1/60 s apart.
+    for (let t = 0; t < 20; t += 1 / 60) {
+      expect(
+        Math.abs(patrolWeight(t + 1 / 60, 0.3) - patrolWeight(t, 0.3)),
+      ).toBeLessThan(0.02);
+    }
   });
 });

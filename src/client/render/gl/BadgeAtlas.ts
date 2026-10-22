@@ -2,7 +2,9 @@
  * BadgeAtlas — the shared ink-icon strip used by the border troop badges and
  * the resource node discs (resources/atlases/badge-atlas.png, built by
  * scripts/build-badge-atlas.sh from game-icons.net SVGs, CC BY 3.0, see
- * CREDITS.md). 12 cells of 128 px, white on clear; shaders read only alpha.
+ * CREDITS.md). 12 cells of 128 px. Troop and clash cells (0-8) are white on
+ * clear and read by alpha only; resource cells (9-11) pack four masks in RGBA
+ * (icon, silhouette, outline, halo) for the pictogram shader.
  *
  * One texture per GL context, mipmapped, bound on its own texture unit so it
  * never disturbs the units other passes use.

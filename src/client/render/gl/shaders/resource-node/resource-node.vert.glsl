@@ -7,8 +7,11 @@ layout(location = 2) in vec4 aInst1; // quantity ratio, alpha, death progress, p
 
 uniform mat3  uCamera;
 uniform float uZoom;
-uniform float uNodeSize;
-uniform float uMinPx;
+uniform float uNodeSize; // pictogram height in tiles
+uniform float uMinPx;    // pictogram floor, pixels
+uniform float uMaxPx;    // pictogram ceiling, pixels
+uniform float uDotPx;    // dot diameter when zoomed far out, pixels
+uniform float uDetail;   // 0 = dots (far zoom) .. 1 = pictograms
 
 out vec2 vLocalPos;
 flat out float vAlpha;
@@ -18,6 +21,11 @@ flat out float vVisibility;
 flat out float vQuantity;
 flat out float vDeath;
 flat out float vPrimitive;
+
+// The pictogram art fills 92/128 of its atlas cell (scripts/build-badge-atlas.sh),
+// the rest is halo; a dot fills 0.6 of the quad (its halo the rest).
+const float ART = 92.0 / 128.0;
+const float DOT = 0.6;
 
 void main() {
   float worldX = aInst0.x;
@@ -35,14 +43,15 @@ void main() {
   bool primitive = vPrimitive > 0.5;
   // Icons must stay legible, so depletion shrinks a node only a little
   // (it also dims it, see the fragment shader).
-  float quantityScale = primitive ? mix(0.72, 1.08, sqrt(max(vQuantity, 0.0))) : 1.0;
-  float deathScale = primitive ? mix(1.0, 0.18, vDeath) : 1.0;
-  float sizeJitter = 0.92 + 0.16 * seed;
-  float halfTiles = uNodeSize * 0.5 * sizeJitter * quantityScale * deathScale;
-  float minHalfTiles = primitive
-    ? (uMinPx * 0.5 / max(uZoom, 0.0001)) * mix(0.8, 1.0, quantityScale) * deathScale
-    : (uMinPx * 0.5) / max(uZoom, 0.0001);
-  float halfSize = max(halfTiles, minHalfTiles);
+  float quantityScale = primitive ? mix(0.82, 1.06, sqrt(max(vQuantity, 0.0))) : 1.0;
+  float deathScale = primitive ? mix(1.0, 0.3, vDeath) : 1.0;
+  float sizeJitter = 0.94 + 0.12 * seed;
+
+  float z = max(uZoom, 0.0001);
+  float pictoPx = clamp(uNodeSize * z, uMinPx, uMaxPx) / ART;
+  float dotPx = uDotPx / DOT;
+  float quadPx = mix(dotPx, pictoPx, uDetail) * sizeJitter * quantityScale * deathScale;
+  float halfSize = 0.5 * quadPx / z;
 
   vec2 center = vec2(worldX + 0.5, worldY + 0.5);
   vec2 worldPos = center + (aPos - 0.5) * halfSize * 2.0;

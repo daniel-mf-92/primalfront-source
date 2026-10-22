@@ -209,10 +209,17 @@ export interface RenderSettings {
    * (tree, stones, fish); see ResourceNodePass.ts.
    */
   resourceNode: {
-    /** Base node diameter, in tiles. */
+    /** Pictogram height, in tiles. */
     nodeSize: number;
-    /** Minimum on-screen diameter, in pixels — visibility floor when zoomed out. */
+    /** Pictogram height floor and ceiling, pixels. */
     minPx: number;
+    maxPx: number;
+    /** Dot diameter when zoomed far out, pixels. */
+    dotPx: number;
+    /** Zoom (px/tile) at/above which nodes are full pictograms. */
+    detailZoom: number;
+    /** Zoom band below detailZoom over which pictograms shrink into dots. */
+    detailFade: number;
     /** Global alpha multiplier for all nodes. */
     alpha: number;
     /** Zoom (px/tile) at/above which nodes render at full strength. */

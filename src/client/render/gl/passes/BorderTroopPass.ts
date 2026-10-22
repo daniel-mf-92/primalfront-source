@@ -12,11 +12,13 @@
  * troop and eases it toward its target every frame, so guards glide as borders
  * move, fade in when they appear and fade out when they go. A new key close to
  * a just-vanished one of the same owner and kind adopts it (it glides there
- * instead of blinking out and in). The shader adds the idle bob and the clash
- * pulse from a per-troop phase.
+ * instead of blinking out and in). Guards also patrol: each walks slowly
+ * between its spot and a second border tile a few tiles along (BorderTroop.px,
+ * py), pausing at each end. The shader adds the idle bob, the sway and the
+ * clash pulse and shake from a per-troop phase.
  */
 import type { BorderTroop } from "../../../BorderTroops";
-import { TROOP_CELL } from "../../../BorderTroops";
+import { patrolWeight, TROOP_CELL } from "../../../BorderTroops";
 import {
   BADGE_CELLS,
   BADGE_CLASH,
@@ -31,8 +33,8 @@ import { createProgram } from "../utils/GlUtils";
 import fragSrc from "../shaders/border-troop/border-troop.frag.glsl?raw";
 import vertSrc from "../shaders/border-troop/border-troop.vert.glsl?raw";
 
-// x, y, kind, cell | r, g, b, alpha | seed, appear
-const FLOATS_PER_INSTANCE = 10;
+// x, y, kind, cell | r, g, b, alpha | seed, appear, facing, unused
+const FLOATS_PER_INSTANCE = 12;
 const BYTES_PER_INSTANCE = FLOATS_PER_INSTANCE * 4;
 /** Seconds to fade a troop fully in or out. */
 const FADE_SECONDS = 0.4;
@@ -52,10 +54,18 @@ interface DisplayTroop {
   y: number;
   tx: number;
   ty: number;
+  /** Patrol end (eased) and its target. */
+  px: number;
+  py: number;
+  tpx: number;
+  tpy: number;
+  facing: number;
   color: [number, number, number];
   alpha: number;
   alive: boolean;
   seed: number;
+  /** Screen-space declutter visibility, eased 0..1. */
+  vis: number;
 }
 
 export class BorderTroopPass {
@@ -119,7 +129,7 @@ export class BorderTroopPass {
     gl.vertexAttribPointer(2, 4, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
     gl.vertexAttribDivisor(2, 1);
     gl.enableVertexAttribArray(3);
-    gl.vertexAttribPointer(3, 2, gl.FLOAT, false, BYTES_PER_INSTANCE, 32);
+    gl.vertexAttribPointer(3, 4, gl.FLOAT, false, BYTES_PER_INSTANCE, 32);
     gl.vertexAttribDivisor(3, 1);
     gl.bindVertexArray(null);
   }
@@ -171,21 +181,32 @@ export class BorderTroopPass {
           y: t.y,
           tx: t.x,
           ty: t.y,
+          px: t.px,
+          py: t.py,
+          tpx: t.px,
+          tpy: t.py,
+          facing: t.facing,
           color: t.color,
           alpha: snap ? 1 : 0,
           alive: true,
           seed: fract(t.key * 0.6180339887 + t.owner * 0.1234567),
+          vis: 1,
         };
         this.troops.set(t.key, d);
       }
       d.tx = t.x;
       d.ty = t.y;
+      d.tpx = t.px;
+      d.tpy = t.py;
+      d.facing = t.facing;
       d.age = t.age;
       d.color = t.color;
       d.alive = true;
       if (snap) {
         d.x = t.x;
         d.y = t.y;
+        d.px = t.px;
+        d.py = t.py;
         d.alpha = 1;
       }
     }
@@ -205,6 +226,7 @@ export class BorderTroopPass {
     const f = this.instanceBuf.float32;
     const glide = 1 - Math.exp(-GLIDE_RATE * dt);
     const fadeStep = dt / FADE_SECONDS;
+    const kept = this.declutter(zoom);
     let n = 0;
     for (const [k, d] of this.troops) {
       d.alpha = d.alive
@@ -214,19 +236,27 @@ export class BorderTroopPass {
         this.troops.delete(k);
         continue;
       }
+      d.vis = kept.has(d)
+        ? Math.min(1, d.vis + fadeStep)
+        : Math.max(0, d.vis - fadeStep);
       d.x += (d.tx - d.x) * glide;
       d.y += (d.ty - d.y) * glide;
+      d.px += (d.tpx - d.px) * glide;
+      d.py += (d.tpy - d.py) * glide;
+      const w = d.kind === 1 ? 0 : patrolWeight(now / 1000, d.seed);
       const o = n * FLOATS_PER_INSTANCE;
-      f[o] = d.x;
-      f[o + 1] = d.y;
+      f[o] = d.x + (d.px - d.x) * w;
+      f[o + 1] = d.y + (d.py - d.y) * w;
       f[o + 2] = d.kind;
       f[o + 3] = d.kind === 1 ? BADGE_CLASH : Math.max(0, Math.min(7, d.age));
       f[o + 4] = d.color[0];
       f[o + 5] = d.color[1];
       f[o + 6] = d.color[2];
-      f[o + 7] = smooth(d.alpha);
+      f[o + 7] = smooth(d.alpha) * smooth(d.vis);
       f[o + 8] = d.seed;
       f[o + 9] = d.alive ? smooth(d.alpha) : 1;
+      f[o + 10] = d.facing;
+      f[o + 11] = 0;
       n++;
     }
     const rs = this.settings.borderTroop;
@@ -254,6 +284,48 @@ export class BorderTroopPass {
     gl.bindVertexArray(null);
   }
 
+  /**
+   * Badges have a pixel floor, so zoomed out they would pile into a carpet of
+   * overlapping rings. Keep a greedy, stable subset at least about a badge
+   * apart on screen (clashes first); the rest fade out until you zoom in.
+   */
+  private declutter(zoom: number): Set<DisplayTroop> {
+    const rs = this.settings.borderTroop;
+    const z = Math.max(zoom, 1e-4);
+    const px = Math.min(
+      rs.maxPx,
+      Math.max(rs.size * z, troopFloorPx(rs.minPx, z)),
+    );
+    const spacing = (1.15 * px) / z;
+    const order = [...this.troops.values()].filter((d) => d.alive);
+    order.sort((a, b) => b.kind - a.kind || a.seed - b.seed);
+    const grid = new Map<number, DisplayTroop[]>();
+    const kept = new Set<DisplayTroop>();
+    const s2 = spacing * spacing;
+    for (const d of order) {
+      const gx = Math.floor(d.tx / spacing);
+      const gy = Math.floor(d.ty / spacing);
+      let clear = true;
+      for (let dy = -1; dy <= 1 && clear; dy++) {
+        for (let dx = -1; dx <= 1 && clear; dx++) {
+          for (const o of grid.get((gy + dy) * 65536 + gx + dx) ?? []) {
+            if ((o.tx - d.tx) ** 2 + (o.ty - d.ty) ** 2 < s2) {
+              clear = false;
+              break;
+            }
+          }
+        }
+      }
+      if (!clear) continue;
+      kept.add(d);
+      const key = gy * 65536 + gx;
+      const cell = grid.get(key);
+      if (cell) cell.push(d);
+      else grid.set(key, [d]);
+    }
+    return kept;
+  }
+
   dispose(): void {
     const gl = this.gl;
     gl.deleteProgram(this.program);
@@ -264,6 +336,14 @@ export class BorderTroopPass {
 
 function fract(v: number): number {
   return v - Math.floor(v);
+}
+
+/**
+ * Badge diameter floor in pixels at a zoom: the full floor from about 2 px per
+ * tile up, dropping to half when zoomed far out (mirrors border-troop.vert).
+ */
+function troopFloorPx(minPx: number, zoom: number): number {
+  return minPx * Math.max(0.5, Math.min(1, 0.3 + 0.35 * zoom));
 }
 
 function smooth(t: number): number {

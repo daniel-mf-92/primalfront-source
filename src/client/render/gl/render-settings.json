@@ -183,8 +183,12 @@
     "offsetY": -0.4
   },
   "resourceNode": {
-    "nodeSize": 1.6,
-    "minPx": 22,
+    "nodeSize": 3,
+    "minPx": 26,
+    "maxPx": 44,
+    "dotPx": 10,
+    "detailZoom": 1.8,
+    "detailFade": 0.8,
     "alpha": 0.95,
     "minZoom": 0.55,
     "fadeRange": 0.4,
@@ -428,9 +432,9 @@
     }
   },
   "borderTroop": {
-    "size": 2.4,
-    "minPx": 27,
-    "maxPx": 42,
+    "size": 2.8,
+    "minPx": 30,
+    "maxPx": 46,
     "alpha": 1,
     "minZoom": 1.2,
     "fadeRange": 0.8

@@ -43,6 +43,89 @@ export interface BorderTroop {
   color: [number, number, number];
   /** +1 faces right, -1 faces left (toward the outside of the territory). */
   facing: number;
+  /**
+   * The other end of this guard's patrol: another border tile of the same
+   * owner a few tiles along the border (the spot itself when there is none,
+   * and always for clashes). The renderer walks the guard back and forth.
+   */
+  px: number;
+  py: number;
+}
+
+/** Patrol reach, tiles: how far along the border a guard walks. */
+export const PATROL_RADIUS = 3;
+/** Seconds for one patrol round trip (plus up to PATROL_JITTER per troop). */
+const PATROL_SECONDS = 9;
+const PATROL_JITTER = 4;
+
+/**
+ * Where along its patrol a guard is at a moment (0 = its spot, 1 = the far
+ * end): walk out, pause, walk back, pause, on a per-troop period and phase
+ * (seed in [0, 1)). Used by BorderTroopPass every frame.
+ */
+export function patrolWeight(seconds: number, seed: number): number {
+  const period = PATROL_SECONDS + PATROL_JITTER * seed;
+  const u = seconds / period + seed;
+  const f = u - Math.floor(u);
+  return smoothstep(0.08, 0.42, f) - smoothstep(0.58, 0.92, f);
+}
+
+function smoothstep(a: number, b: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+/** Directions tried for the patrol end, in a fixed order (16 compass points). */
+const PATROL_DIRS: ReadonlyArray<readonly [number, number]> = Array.from(
+  { length: 16 },
+  (_, i) => {
+    const a = (i * Math.PI) / 8;
+    return [
+      Math.round(Math.cos(a) * PATROL_RADIUS),
+      Math.round(Math.sin(a) * PATROL_RADIUS),
+    ] as const;
+  },
+);
+
+function isBorderOf(
+  map: BorderTroopMap,
+  W: number,
+  H: number,
+  x: number,
+  y: number,
+  owner: number,
+): boolean {
+  if (x < 0 || y < 0 || x >= W || y >= H) return false;
+  const t = y * W + x;
+  if (map.ownerID(t) !== owner || !map.isLand(t)) return false;
+  for (const [nx, ny] of [
+    [x + 1, y],
+    [x - 1, y],
+    [x, y + 1],
+    [x, y - 1],
+  ]) {
+    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+    const nt = ny * W + nx;
+    if (map.ownerID(nt) !== owner && map.isLand(nt)) return true;
+  }
+  return false;
+}
+
+/** A border tile of the same owner about PATROL_RADIUS away, or the spot. */
+function patrolEnd(
+  map: BorderTroopMap,
+  W: number,
+  H: number,
+  t: BorderTroop,
+  hash: number,
+): [number, number] {
+  const start = Math.floor(hash * PATROL_DIRS.length);
+  for (let i = 0; i < PATROL_DIRS.length; i++) {
+    const [dx, dy] = PATROL_DIRS[(start + i) % PATROL_DIRS.length];
+    if (isBorderOf(map, W, H, t.x + dx, t.y + dy, t.owner)) {
+      return [t.x + dx, t.y + dy];
+    }
+  }
+  return [t.x, t.y];
 }
 
 /** Grid cell size in tiles: at most one figure per cell keeps them apart. */
@@ -165,6 +248,8 @@ export function computeBorderTroops(
             age: p.age,
             color: p.color,
             facing: fx < 0 ? -1 : 1,
+            px: x,
+            py: y,
           };
           if (fighting) {
             const front =
@@ -228,8 +313,9 @@ export function computeBorderTroops(
     return false;
   };
   for (const t of out) place(t);
-  for (const { troop } of picked) {
+  for (const { troop, hash } of picked) {
     if (near(troop)) continue;
+    [troop.px, troop.py] = patrolEnd(map, W, H, troop, hash);
     out.push(troop);
     place(troop);
   }

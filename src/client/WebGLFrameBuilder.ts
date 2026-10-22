@@ -77,6 +77,12 @@ export class WebGLFrameBuilder {
   private troopTick = 0;
   private syncBorderTroops(gameView: GameView): void {
     if (this.troopTick++ % 10 !== 0) return;
+    // While tribes are still choosing spawns, every tiny spawn blob would post
+    // a guard and the world view drowns in badges: no troops until play starts.
+    if (gameView.inSpawnPhase()) {
+      this.view.updateBorderTroops([]);
+      return;
+    }
     const players = new Map<number, BorderTroopPlayer>();
     const all = gameView.players();
     for (const p of all) {

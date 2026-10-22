@@ -1,9 +1,11 @@
 #version 300 es
 precision highp float;
 
-// Border troop badge: a parchment medallion with an ink rim, a team-colour
-// ring and the era emblem in ink (atlas cells 0-7: flint spear, Spartan helm,
-// legion helm, great helm, tricorn, pickelhaube, Brodie helmet, space helmet).
+// Border troop badge: a medallion with an ink rim, a broad team-colour ring
+// (the main cue: whose people stand here) and the era emblem in ink on a
+// team-tinted parchment face (atlas cells 0-7: spear-carrying caveman, Spartan
+// helm, legion helm, great helm, tricorn, pickelhaube, Brodie helmet, space
+// helmet). The emblem faces outward and drops away when the badge is tiny.
 // kind 1 = a clash: ember ring, crossed swords, a spark ring breathing out.
 // Local units: badge radius 0.5, y down (screen), quad spans +-0.75.
 
@@ -13,6 +15,8 @@ flat in float vCell;
 flat in vec3 vColor;
 flat in float vAlpha;
 flat in float vSeed;
+flat in float vFacing;
+flat in float vPx;
 
 uniform sampler2D uAtlas;
 uniform float uCells;
@@ -44,16 +48,13 @@ void main() {
 
   const float R = 0.5;        // outer edge of the medallion
   const float RIM = 0.055;    // ink rim width
-  const float RING_IN = 0.40; // inner edge of the colour ring
+  const float RING_IN = 0.335; // inner edge of the colour ring
 
   float disc = 1.0 - smoothstep(R - aa, R + aa, r);
 
   // Soft drop shadow, down and right, under the disc only.
   float sh = 1.0 - smoothstep(0.40, 0.60, length(p - vec2(0.04, 0.08)));
   float shadowA = sh * 0.32 * (1.0 - disc);
-
-  // Parchment face, a touch darker toward the rim like aged paper.
-  vec3 col = PARCHMENT * (1.0 - 0.10 * smoothstep(0.1, RING_IN, r));
 
   vec3 ringCol;
   if (clash) {
@@ -68,6 +69,9 @@ void main() {
     vec3 rich = vec3(0.42) + chroma * (0.22 / max(c, 0.06));
     ringCol = clamp(rich, 0.0, 1.0);
   }
+  // Parchment face, tinted toward the ring, a touch darker toward the rim.
+  vec3 col = mix(PARCHMENT, ringCol, clash ? 0.06 : 0.14) *
+    (1.0 - 0.10 * smoothstep(0.1, RING_IN, r));
   float ring = smoothstep(RING_IN - aa, RING_IN + aa, r);
   col = mix(col, ringCol, ring);
   // Hairline between ring and face.
@@ -78,7 +82,8 @@ void main() {
   col = mix(col, INK, rim);
 
   // Emblem in ink (dark ember ink on a clash).
-  float e = emblem(p, vCell, 0.295 * 128.0 / 112.0) * (1.0 - ring);
+  float e = emblem(vec2(p.x * vFacing, p.y), vCell, 0.262 * 128.0 / 112.0) * (1.0 - ring);
+  e *= smoothstep(17.0, 21.0, vPx);
   vec3 emblemInk = clash ? vec3(0.36, 0.07, 0.03) : INK;
   col = mix(col, emblemInk, e);
 

@@ -92,7 +92,7 @@ Delapouite's "Pirate hat", without the feather and with the skull filled in). So
 
 | File                    | Used for                              | Author                                                 |
 | ----------------------- | ------------------------------------- | ------------------------------------------------------ |
-| `stone-spear.svg`       | Stone Age troop                       | Lorc                                                   |
+| `caveman.svg`           | Stone Age troop                       | Delapouite                                             |
 | `spartan-helmet.svg`    | Classical troop                       | Delapouite                                             |
 | `centurion-helmet.svg`  | Imperial troop                        | Delapouite                                             |
 | `black-knight-helm.svg` | Feudal troop                          | Delapouite                                             |
@@ -102,5 +102,5 @@ Delapouite's "Pirate hat", without the feather and with the skull filled in). So
 | `astronaut-helmet.svg`  | Alien age troop                       | Delapouite                                             |
 | `crossed-swords.svg`    | Clash on an attack front              | Lorc                                                   |
 | `pine-tree.svg`         | Wood resource                         | Lorc                                                   |
-| `stone-stack.svg`       | Rock resource                         | Delapouite                                             |
+| `stone-pile.svg`        | Rock resource                         | Delapouite                                             |
 | `salmon.svg`            | Fish resource                         | various artists (game-icons.net "various-artists" set) |
