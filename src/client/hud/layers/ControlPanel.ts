@@ -564,7 +564,9 @@ export class ControlPanel extends LitElement implements Controller {
 
     // Troops at the limit: the rate chip reads "Full" and this says what to do
     // about it (UX audit 2026-10-21, item 6: "+0/s" with no explanation).
-    if (this.troopsAtCap()) {
+    // Not in the opening minute: a brand-new tribe always starts full, and the
+    // hint then read as "the game is already stalled" (audit 2026-10-22).
+    if (this.troopsAtCap() && this.game.ticks() > 900) {
       return { type: "info", message: "control_panel.troops_full_hint" };
     }
 

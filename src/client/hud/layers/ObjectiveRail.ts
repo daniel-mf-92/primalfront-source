@@ -424,7 +424,10 @@ export function chooseObjective(
     // telling a tribe that holds a Hut's worth of gold to go walk again (seen
     // on a real screen 2026-10-21) wastes the one thing it has earned.
     if (economyBuildings === 0 && player.gold() >= BigInt(hutCost)) {
-      return objective("build_economy", 1);
+      // The gold is there but the Hut is not: 80%, never a full bar for a
+      // step that is not done (audit 2026-10-22: "Build a Hut 100%" for
+      // minutes with no Hut read as broken).
+      return objective("build_economy", 0.8);
     }
     if (stockpile === 0 && pipeline.totalGoldPerSecond === 0n) {
       return objective("find_resources", 0);

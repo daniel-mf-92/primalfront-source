@@ -420,7 +420,7 @@
     "objective_advance_age": "Advance Age",
     "objective_advance_age_detail": "You have met the gate; advance before rivals punish the window.",
     "objective_build_economy": "Build a Hut",
-    "objective_build_economy_detail": "Right-click or long-press your own land, open Build and place a Hut. It holds land around it; farms and trading posts speed up gold.",
+    "objective_build_economy_detail": "You have the gold. Press 2 (or tap Hut in the build bar), then click your own land. You can also right-click or long-press your land and choose Build.",
     "objective_build_keystone": "Build keystone",
     "objective_build_keystone_detail": "The next age needs its keystone structure before the gate opens.",
     "objective_convert_resources": "Wood is turning into gold",

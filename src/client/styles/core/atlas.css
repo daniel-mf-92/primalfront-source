@@ -563,3 +563,25 @@ body:not(.in-game) .pf-featured-match__facts * {
   color: var(--text-dim);
   text-shadow: none;
 }
+
+/* The bot check only shows when Cloudflare wants a click. It used to float
+   in the middle of the screen over the map choices; now it is a labelled card
+   at the bottom (audit 2026-10-22). Empty = invisible. */
+.pf-bot-check:empty {
+  display: none;
+}
+.pf-bot-check {
+  padding: 10px 12px 12px;
+  background: #efe4c9;
+  border: 2px solid #2b2118;
+  box-shadow: 3px 3px 0 rgba(43, 33, 24, 0.85);
+}
+.pf-bot-check::before {
+  content: "Quick check before you play";
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2b2118;
+}

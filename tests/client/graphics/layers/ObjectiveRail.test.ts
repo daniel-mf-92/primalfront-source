@@ -55,7 +55,7 @@ test("a dry stand with a Hut's worth of gold says build, not walk again", async 
 
   expect(player.resources()).toBe(0);
   expect(objective.id).toBe("build_economy");
-  expect(objective.progress).toBe(1);
+  expect(objective.progress).toBe(0.8);
 });
 
 test("primitive pipeline projects resource and farm gold flow per second", async () => {
